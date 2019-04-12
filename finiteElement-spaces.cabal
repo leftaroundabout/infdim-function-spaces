@@ -17,14 +17,13 @@ extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Math.Function.FiniteElement.PWLinear
+  exposed-modules:     Math.Function.FiniteElement.PWConst
   -- other-modules:       
   other-extensions:    FlexibleInstances, FlexibleContexts, TypeFamilies, LambdaCase, ConstraintKinds
   build-depends:       base >=4.8 && <4.13
                        , manifolds >=0.5 && <0.6
                        , vector-space >=0.15 && <0.20
                        , linear >=1.15 && <1.30
-                       , vector
                        , transformers
                        , QuickCheck
   -- hs-source-dirs:      
