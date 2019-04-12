@@ -28,33 +28,35 @@ import Control.Monad
 import Control.Applicative
 
 
-data family PWConst x y
+data family Haar x y
 
 -- | Piecewise-constant functions on the unit interval whose integral is zero.
-data PWConst₀ y
-       = PWConstZero
-       | PWConst₀ !y           -- ^ Offset-amplitude between the left and right half
-                  (PWConst₀ y) -- ^ Left half of the function domain
-                  (PWConst₀ y) -- ^ Right half, i.e. [0.5 .. 1[.
+--   The name refers to the fact that this type effectively contains a decomposition
+--   in a basis of Haar wavelets.
+data Haar₀ y
+       = HaarZero
+       | Haar₀ !y        -- ^ Offset-amplitude between the left and right half
+               (Haar₀ y) -- ^ Left half of the function domain
+               (Haar₀ y) -- ^ Right half, i.e. [0.5 .. 1[.
 
-data instance PWConst ℝ y = PWConst_ℝ
+data instance Haar ℝ y = Haar_ℝ
     { pwconst_ℝ_offset :: !y
-    , pwconst_ℝ_variation :: PWConst₀ (Diff y) }
+    , pwconst_ℝ_variation :: Haar₀ (Diff y) }
 
-evalPWConst_ℝ :: (AffineSpace y, VectorSpace (Diff y))
-              => PWConst ℝ y -> ℝ -> y
-evalPWConst_ℝ (PWConst_ℝ offs varis) x = offs .+^ evalVari varis x
- where evalVari PWConstZero _ = zeroV
-       evalVari (PWConst₀ δlr lh rh) x
+evalHaar_ℝ :: (AffineSpace y, VectorSpace (Diff y))
+              => Haar ℝ y -> ℝ -> y
+evalHaar_ℝ (Haar_ℝ offs varis) x = offs .+^ evalVari varis x
+ where evalVari HaarZero _ = zeroV
+       evalVari (Haar₀ δlr lh rh) x
         | x<0.5      = evalVari lh (x*2) ^-^ δlr
         | otherwise  = evalVari lh (x*2 - 1) ^+^ δlr
 
 newtype PowerOfTwo = PowerOfTwo { binaryExponent :: Int } deriving (Eq, Ord, Show)
 
-homsamplePWConst_ℝ :: (AffineSpace y, Diff y ~ y, VectorSpace y, Fractional (Scalar y))
-            => PowerOfTwo -> (ℝ -> y) -> PWConst ℝ y
-homsamplePWConst_ℝ (PowerOfTwo 0) f = PWConst_ℝ (f 0.5) PWConstZero
-homsamplePWConst_ℝ (PowerOfTwo i) f
-   = case homsamplePWConst_ℝ (PowerOfTwo $ i-1) <$> [f . (/2), f . (/2).(+1)] of
-       [PWConst_ℝ y₀l sfl, PWConst_ℝ y₀r sfr]
-        -> PWConst_ℝ ((y₀l^+^y₀r)^/2) $ PWConst₀ ((y₀r^-^y₀l)^/2) sfl sfr
+homsampleHaar_ℝ :: (AffineSpace y, Diff y ~ y, VectorSpace y, Fractional (Scalar y))
+            => PowerOfTwo -> (ℝ -> y) -> Haar ℝ y
+homsampleHaar_ℝ (PowerOfTwo 0) f = Haar_ℝ (f 0.5) HaarZero
+homsampleHaar_ℝ (PowerOfTwo i) f
+   = case homsampleHaar_ℝ (PowerOfTwo $ i-1) <$> [f . (/2), f . (/2).(+1)] of
+       [Haar_ℝ y₀l sfl, Haar_ℝ y₀r sfr]
+        -> Haar_ℝ ((y₀l^+^y₀r)^/2) $ Haar₀ ((y₀r^-^y₀l)^/2) sfl sfr
