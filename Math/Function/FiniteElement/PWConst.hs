@@ -49,7 +49,7 @@ evalHaar_D¹ (Haar_D¹ offs varis) x = offs .+^ evalVari varis x
  where evalVari HaarZero _ = zeroV
        evalVari (Haar₀ δlr lh rh) (D¹ x)
         | x<0        = evalVari lh (D¹ $ x*2 + 1) ^-^ δlr
-        | otherwise  = evalVari lh (D¹ $ x*2 - 1) ^+^ δlr
+        | otherwise  = evalVari rh (D¹ $ x*2 - 1) ^+^ δlr
 
 newtype PowerOfTwo = PowerOfTwo { binaryExponent :: Int } deriving (Eq, Ord, Show)
 
