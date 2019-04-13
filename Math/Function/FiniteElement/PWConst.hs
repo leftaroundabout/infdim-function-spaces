@@ -30,6 +30,8 @@ import qualified Linear as Lin
 import Control.Monad
 import Control.Applicative
 
+import qualified Test.QuickCheck as QC
+
 
 -- | Piecewise-constant function with regular, power-of-two subdivisions, but
 --   not necessarily with homogeneous resolution. 
@@ -82,3 +84,10 @@ rightHalf (D¹ x) = D¹ $ (x+1)/2
 instance HaarSamplingDomain D¹ where
   evalHaarFunction = evalHaar_D¹
   homsampleHaarFunction = homsampleHaar_D¹
+
+
+instance QC.Arbitrary PowerOfTwo where
+  arbitrary = do
+    QC.Positive i <- QC.arbitrary
+    return . TwoToThe . ceiling . logBase 2 $ fromInteger i
+  shrink (TwoToThe i) = TwoToThe <$> [0 .. i-1]
