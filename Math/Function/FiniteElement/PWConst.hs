@@ -15,7 +15,10 @@
 {-# LANGUAGE ConstraintKinds        #-}
 
 module Math.Function.FiniteElement.PWConst
-        () where
+        ( Haar, HaarSamplingDomain(..)
+         -- * Utility
+        , PowerOfTwo, getPowerOfTwo
+        ) where
 
 import Data.Manifold.Types
 import Data.Complex
@@ -28,11 +31,20 @@ import Control.Monad
 import Control.Applicative
 
 
-data family Haar x y
-
--- | Piecewise-constant functions on the unit interval whose integral is zero.
+-- | Piecewise-constant function with regular, power-of-two subdivisions, but
+--   not necessarily with homogeneous resolution. 
 --   The name refers to the fact that this type effectively contains a decomposition
 --   in a basis of Haar wavelets.
+data family Haar x y
+
+class HaarSamplingDomain x where
+  evalHaarFunction :: (AffineSpace y, VectorSpace (Diff y))
+            => Haar x y -> x -> y
+  homsampleHaarFunction
+                :: (AffineSpace y, Diff y ~ y, VectorSpace y, Fractional (Scalar y))
+            => PowerOfTwo -> (x -> y) -> Haar x y
+
+-- | Piecewise-constant functions on the unit interval whose integral is zero.
 data Haar₀ y
        = HaarZero
        | Haar₀ !y        -- ^ Offset-amplitude between the left and right half
@@ -66,3 +78,7 @@ homsampleHaar_D¹ (TwoToThe i) f
 leftHalf, rightHalf :: D¹ -> D¹
 leftHalf (D¹ x) = D¹ $ (x-1)/2
 rightHalf (D¹ x) = D¹ $ (x+1)/2
+
+instance HaarSamplingDomain D¹ where
+  evalHaarFunction = evalHaar_D¹
+  homsampleHaarFunction = homsampleHaar_D¹
