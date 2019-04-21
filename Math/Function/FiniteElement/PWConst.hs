@@ -14,6 +14,7 @@
 {-# LANGUAGE LambdaCase             #-}
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE StandaloneDeriving     #-}
+{-# LANGUAGE UndecidableInstances   #-}
 
 module Math.Function.FiniteElement.PWConst
         ( Haar, HaarSamplingDomain(..)
@@ -118,17 +119,28 @@ instance VectorSpace y => VectorSpace (Haar₀ y) where
 instance (AffineSpace y, AffineSpace (Diff y), Diff (Diff y) ~ Diff y)
              => AffineSpace (Haar D¹ y) where
   type Diff (Haar D¹ y) = Haar D¹ (Diff y)
-  Haar_D¹ x₀ δ₀ .+^ Haar_D¹ x₁ δ₁ = Haar_D¹ (x₀.+^x₁) (δ₀.+^δ₁)
-  Haar_D¹ x₀ δ₀ .-. Haar_D¹ x₁ δ₁ = Haar_D¹ (x₀.-.x₁) (δ₀.-.δ₁)
+  Haar_D¹ y₀ δ₀ .+^ Haar_D¹ y₁ δ₁ = Haar_D¹ (y₀.+^y₁) (δ₀.+^δ₁)
+  Haar_D¹ y₀ δ₀ .-. Haar_D¹ y₁ δ₁ = Haar_D¹ (y₀.-.y₁) (δ₀.-.δ₁)
 
 instance (AffineSpace y, AdditiveGroup y, Diff y ~ y)
              => AdditiveGroup (Haar D¹ y) where
   zeroV = Haar_D¹ zeroV zeroV
   (^+^) = (.+^)
   (^-^) = (.-.)
-  negateV (Haar_D¹ x δ) = Haar_D¹ (negateV x) (negateV δ)
+  negateV (Haar_D¹ y δ) = Haar_D¹ (negateV y) (negateV δ)
 
 instance (VectorSpace y, AffineSpace y, Diff y ~ y)
              => VectorSpace (Haar D¹ y) where
   type Scalar (Haar D¹ y) = Scalar y
-  μ *^ Haar_D¹ x δ = Haar_D¹ (μ*^x) (μ*^δ)
+  μ *^ Haar_D¹ y δ = Haar_D¹ (μ*^y) (μ*^δ)
+
+instance (InnerSpace y, Fractional (Scalar y)) => InnerSpace (Haar₀ y) where
+  HaarZero <.> _ = 0
+  _ <.> HaarZero = 0
+  Haar₀ δlr₀ δsl₀ δsr₀ <.> Haar₀ δlr₁ δsl₁ δsr₁
+            = δlr₀<.>δlr₁ + (δsl₀<.>δsl₁)/2 + (δsr₀<.>δsr₁)/2
+
+-- | 𝓛² product on [-1…1] functions, i.e. @𝑓<.>𝑔 ⩵ ₋₁∫¹ d𝑥 𝑓(𝑥)·𝑔(𝑥)@
+instance (InnerSpace y, Fractional (Scalar y), AffineSpace y, Diff y ~ y)
+             => InnerSpace (Haar D¹ y) where
+  Haar_D¹ y₀ δ₀ <.> Haar_D¹ y₁ δ₁ = 2*(y₀<.>y₁ + δ₀<.>δ₁)
