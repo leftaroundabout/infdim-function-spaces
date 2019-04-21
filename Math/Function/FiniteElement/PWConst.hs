@@ -13,6 +13,7 @@
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE LambdaCase             #-}
 {-# LANGUAGE ConstraintKinds        #-}
+{-# LANGUAGE StandaloneDeriving     #-}
 
 module Math.Function.FiniteElement.PWConst
         ( Haar, HaarSamplingDomain(..)
@@ -52,10 +53,12 @@ data Haar₀ y
        | Haar₀ !y        -- ^ Offset-amplitude between the left and right half
                (Haar₀ y) -- ^ Left half of the function domain
                (Haar₀ y) -- ^ Right half, i.e. [0.5 .. 1[.
+ deriving (Show)
 
 data instance Haar D¹ y = Haar_D¹
     { pwconst_D¹_offset :: !y
     , pwconst_D¹_variation :: Haar₀ (Diff y) }
+deriving instance (Show y, Show (Diff y)) => Show (Haar D¹ y)
 
 evalHaar_D¹ :: (AffineSpace y, VectorSpace (Diff y))
               => Haar D¹ y -> D¹ -> y
