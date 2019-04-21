@@ -94,3 +94,41 @@ instance QC.Arbitrary PowerOfTwo where
     QC.Positive i <- QC.arbitrary
     return . TwoToThe . ceiling . logBase 2 $ fromInteger i
   shrink (TwoToThe i) = TwoToThe <$> [0 .. i-1]
+
+instance AdditiveGroup y => AffineSpace (Haar₀ y) where
+  type Diff (Haar₀ y) = Haar₀ y
+  HaarZero .+^ f = f
+  f .+^ HaarZero = f
+  Haar₀ δlr₀ δsl₀ δsr₀ .+^ Haar₀ δlr₁ δsl₁ δsr₁
+            = Haar₀ (δlr₀^+^δlr₁) (δsl₀.+^δsl₁) (δsr₀.+^δsr₁)
+  HaarZero .-. HaarZero = HaarZero
+
+instance AdditiveGroup y => AdditiveGroup (Haar₀ y) where
+  (^+^) = (.+^)
+  (^-^) = (.-.)
+  zeroV = HaarZero
+  negateV HaarZero = HaarZero
+  negateV (Haar₀ δlr δsl δsr) = Haar₀ (negateV δlr) (negateV δsl) (negateV δsr)
+
+instance VectorSpace y => VectorSpace (Haar₀ y) where
+  type Scalar (Haar₀ y) = Scalar y
+  _ *^ HaarZero = HaarZero
+  μ *^ Haar₀ δlr δsl δsr = Haar₀ (μ*^δlr) (μ*^δsl) (μ*^δsr)
+  
+instance (AffineSpace y, AffineSpace (Diff y), Diff (Diff y) ~ Diff y)
+             => AffineSpace (Haar D¹ y) where
+  type Diff (Haar D¹ y) = Haar D¹ (Diff y)
+  Haar_D¹ x₀ δ₀ .+^ Haar_D¹ x₁ δ₁ = Haar_D¹ (x₀.+^x₁) (δ₀.+^δ₁)
+  Haar_D¹ x₀ δ₀ .-. Haar_D¹ x₁ δ₁ = Haar_D¹ (x₀.-.x₁) (δ₀.-.δ₁)
+
+instance (AffineSpace y, AdditiveGroup y, Diff y ~ y)
+             => AdditiveGroup (Haar D¹ y) where
+  zeroV = Haar_D¹ zeroV zeroV
+  (^+^) = (.+^)
+  (^-^) = (.-.)
+  negateV (Haar_D¹ x δ) = Haar_D¹ (negateV x) (negateV δ)
+
+instance (VectorSpace y, AffineSpace y, Diff y ~ y)
+             => VectorSpace (Haar D¹ y) where
+  type Scalar (Haar D¹ y) = Scalar y
+  μ *^ Haar_D¹ x δ = Haar_D¹ (μ*^x) (μ*^δ)
