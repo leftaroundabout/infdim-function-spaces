@@ -103,6 +103,8 @@ instance AdditiveGroup y => AffineSpace (Haar₀ y) where
   Haar₀ δlr₀ δsl₀ δsr₀ .+^ Haar₀ δlr₁ δsl₁ δsr₁
             = Haar₀ (δlr₀^+^δlr₁) (δsl₀.+^δsl₁) (δsr₀.+^δsr₁)
   HaarZero .-. HaarZero = HaarZero
+  Haar₀ δlr₀ δsl₀ δsr₀ .-. Haar₀ δlr₁ δsl₁ δsr₁
+            = Haar₀ (δlr₀^-^δlr₁) (δsl₀.-.δsl₁) (δsr₀.-.δsr₁)
 
 instance AdditiveGroup y => AdditiveGroup (Haar₀ y) where
   (^+^) = (.+^)
