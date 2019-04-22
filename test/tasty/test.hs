@@ -23,6 +23,12 @@ main = defaultMain $ testGroup "Tests"
          $ \(D¹ x) -> x^2
   , testProperty "4th-order polynomial" . retrieveSampledFn
          $ \(D¹ x) -> x^4/9 + x^3/2 - x^2/3 - x - 0.3
+  , testProperty "Additivity of sampled form"
+         $ \cfs₀ cfs₁ res
+            -> let f (a,b,c) (D¹ x) = a*x^2 + b*x + c
+                   [f₀,f₁] = f<$>[cfs₀,cfs₁]
+               in homsampleHaarFunction res f₀ ^+^ homsampleHaarFunction res f₁
+                    ≃ (homsampleHaarFunction res (f₀^+^f₁) :: Haar D¹ ℝ)
   ]
  ]
 
@@ -36,3 +42,8 @@ retrieveSampledFn f res p = counterexample
        exact = f p
        discrepancy = abs $ sampled ^-^ exact
 
+infix 4 ≃
+(≃) :: (InnerSpace v, Scalar v ~ ℝ, Show v) => v -> v -> QC.Property
+v ≃ w = counterexample
+   (show v ++ " ̸≃ " ++ show w)
+  $ magnitude (v^-^w) <= 1e-9 * (magnitude v + magnitude w)
