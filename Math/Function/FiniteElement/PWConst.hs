@@ -146,3 +146,17 @@ instance (InnerSpace y, Fractional (Scalar y)) => InnerSpace (Haar₀ y) where
 instance (InnerSpace y, Fractional (Scalar y), AffineSpace y, Diff y ~ y)
              => InnerSpace (Haar D¹ y) where
   Haar_D¹ y₀ δ₀ <.> Haar_D¹ y₁ δ₁ = 2*(y₀<.>y₁ + δ₀<.>δ₁)
+
+instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
+               => QC.Arbitrary (Haar D¹ y) where
+  arbitrary = do
+     n <- QC.getSize
+          -- Magic numbers for the termination-probability: chosen empirically
+          -- to get both approximately n as the expectation of the number of nodes
+          -- in the function's tree representation, and a reasonable variance.
+     Haar_D¹ <$> QC.arbitrary <*> genΔs (round . (*3) . (**0.22) $ fromIntegral n)
+   where genΔs p'¹Terminate = QC.frequency
+           [ (1, pure HaarZero)
+           , (p'¹Terminate, Haar₀ <$> QC.arbitrary <*> genΔs pNext <*> genΔs pNext) ]
+          where pNext = floor $ fromIntegral p'¹Terminate / 1.1
+           
