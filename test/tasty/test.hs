@@ -30,6 +30,14 @@ main = defaultMain $ testGroup "Tests"
                in homsampleHaarFunction res f₀ ^+^ homsampleHaarFunction res f₁
                     ≃ (homsampleHaarFunction res (f₀^+^f₁) :: Haar D¹ ℝ)
   ]
+ , testGroup "Vector space laws"
+  [ testProperty "Commutativity of addition"
+      $ \f g -> f ^+^ g ≃ (g ^+^ f :: Haar D¹ ℝ)
+  , testProperty "Associativity of addition"
+      $ \f g h -> f ^+^ (g ^+^ h) ≃ ((f ^+^ g) ^+^ h :: Haar D¹ ℝ)
+  , testProperty "Distributivity"
+      $ \f g μ -> μ*^(f ^+^ g :: Haar D¹ ℝ) ≃ μ*^f ^+^ μ*^g
+  ]
  ]
 
 retrieveSampledFn :: (D¹ -> ℝ) -> PowerOfTwo -> D¹ -> QC.Property
