@@ -41,7 +41,7 @@ import qualified Test.QuickCheck as QC
 --   not necessarily with homogeneous resolution. 
 --   The name refers to the fact that this type effectively contains a decomposition
 --   in a basis of Haar wavelets.
-data family Haar x y
+type family Haar x y
 
 -- | This constraint should in principle be just `AffineSpace`, but this conflicts
 --   with the way the 'TensorSpace' class is set up, so we instead require
@@ -65,11 +65,13 @@ data Haar₀ y
                (Haar₀ y) -- ^ Right half, i.e. [0.5 .. 1[.
  deriving (Show)
 
-data instance Haar D¹ y = Haar_D¹
+data Haar_D¹ y = Haar_D¹
     { pwconst_D¹_offset :: !y
     , pwconst_D¹_variation :: Haar₀ y }
-deriving instance (Show y, Show (Diff y)) => Show (Haar D¹ y)
+deriving instance (Show y, Show (Diff y)) => Show (Haar_D¹ y)
 
+type instance Haar D¹ y = Haar_D¹ y
+         
 evalHaar_D¹ :: VAffineSpace y => Haar D¹ y -> D¹ -> y
 evalHaar_D¹ (Haar_D¹ offs varis) x = offs .+^ evalVari varis x
  where evalVari HaarZero _ = zeroV
@@ -126,21 +128,21 @@ instance VectorSpace y => VectorSpace (Haar₀ y) where
   _ *^ HaarZero = HaarZero
   μ *^ Haar₀ δlr δsl δsr = Haar₀ (μ*^δlr) (μ*^δsl) (μ*^δsr)
   
-instance (VAffineSpace y) => AffineSpace (Haar D¹ y) where
-  type Diff (Haar D¹ y) = Haar D¹ (Diff y)
+instance (VAffineSpace y) => AffineSpace (Haar_D¹ y) where
+  type Diff (Haar_D¹ y) = Haar D¹ (Diff y)
   Haar_D¹ y₀ δ₀ .+^ Haar_D¹ y₁ δ₁ = Haar_D¹ (y₀.+^y₁) (δ₀.+^δ₁)
   Haar_D¹ y₀ δ₀ .-. Haar_D¹ y₁ δ₁ = Haar_D¹ (y₀.-.y₁) (δ₀.-.δ₁)
 
 instance (VAffineSpace y, Diff y ~ y, AdditiveGroup y)
-             => AdditiveGroup (Haar D¹ y) where
+             => AdditiveGroup (Haar_D¹ y) where
   zeroV = Haar_D¹ zeroV zeroV
   (^+^) = (.+^)
   (^-^) = (.-.)
   negateV (Haar_D¹ y δ) = Haar_D¹ (negateV y) (negateV δ)
 
 instance (VectorSpace y, AffineSpace y, Diff y ~ y)
-             => VectorSpace (Haar D¹ y) where
-  type Scalar (Haar D¹ y) = Scalar y
+             => VectorSpace (Haar_D¹ y) where
+  type Scalar (Haar_D¹ y) = Scalar y
   μ *^ Haar_D¹ y δ = Haar_D¹ (μ*^y) (μ*^δ)
 
 instance (InnerSpace y, Fractional (Scalar y)) => InnerSpace (Haar₀ y) where
@@ -151,26 +153,26 @@ instance (InnerSpace y, Fractional (Scalar y)) => InnerSpace (Haar₀ y) where
 
 -- | 𝓛² product on [-1…1] functions, i.e. @𝑓<.>𝑔 ⩵ ₋₁∫¹ d𝑥 𝑓(𝑥)·𝑔(𝑥)@
 instance (InnerSpace y, Fractional (Scalar y), AffineSpace y, Diff y ~ y)
-             => InnerSpace (Haar D¹ y) where
+             => InnerSpace (Haar_D¹ y) where
   Haar_D¹ y₀ δ₀ <.> Haar_D¹ y₁ δ₁ = 2*(y₀<.>y₁ + δ₀<.>δ₁)
 
 instance ( VAffineSpace y
          , Semimanifold y, Needle y ~ Diff y
          , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
-             => Semimanifold (Haar D¹ y) where
-  type Needle (Haar D¹ y) = Haar D¹ (Needle y)
-  type Interior (Haar D¹ y) = Haar D¹ y
+             => Semimanifold (Haar_D¹ y) where
+  type Needle (Haar_D¹ y) = Haar D¹ (Needle y)
+  type Interior (Haar_D¹ y) = Haar D¹ y
   translateP = Tagged (.+~^)
   toInterior = Just
   fromInterior = id
 instance ( VAffineSpace y
          , Semimanifold y, Needle y ~ Diff y
          , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
-             => PseudoAffine (Haar D¹ y) where
+             => PseudoAffine (Haar_D¹ y) where
   (.-~!) = (.-.)
 
 instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
-               => QC.Arbitrary (Haar D¹ y) where
+               => QC.Arbitrary (Haar_D¹ y) where
   arbitrary = do
      n <- QC.getSize
           -- Magic numbers for the termination-probability: chosen empirically
