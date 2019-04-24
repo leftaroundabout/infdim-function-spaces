@@ -43,11 +43,12 @@ import qualified Test.QuickCheck as QC
 --   in a basis of Haar wavelets.
 data family Haar x y
 
+type VAffineSpace y = (AffineSpace y, VectorSpace (Diff y), AffineSpace (Diff y), Diff (Diff y) ~ Diff y)
+
 class HaarSamplingDomain x where
-  evalHaarFunction :: (AffineSpace y, VectorSpace (Diff y))
+  evalHaarFunction :: VAffineSpace y
             => Haar x y -> x -> y
-  homsampleHaarFunction
-                :: (AffineSpace y, Diff y ~ y, VectorSpace y, Fractional (Scalar y))
+  homsampleHaarFunction :: (VAffineSpace y, Diff y ~ y, Fractional (Scalar y))
             => PowerOfTwo -> (x -> y) -> Haar x y
 
 -- | Piecewise-constant functions on the unit interval whose integral is zero.
@@ -63,8 +64,7 @@ data instance Haar D¹ y = Haar_D¹
     , pwconst_D¹_variation :: Haar₀ (Diff y) }
 deriving instance (Show y, Show (Diff y)) => Show (Haar D¹ y)
 
-evalHaar_D¹ :: (AffineSpace y, VectorSpace (Diff y))
-              => Haar D¹ y -> D¹ -> y
+evalHaar_D¹ :: VAffineSpace y => Haar D¹ y -> D¹ -> y
 evalHaar_D¹ (Haar_D¹ offs varis) x = offs .+^ evalVari varis x
  where evalVari HaarZero _ = zeroV
        evalVari (Haar₀ δlr lh rh) (D¹ x)
@@ -75,7 +75,7 @@ newtype PowerOfTwo = TwoToThe { binaryExponent :: Int } deriving (Eq, Ord, Show)
 getPowerOfTwo :: PowerOfTwo -> Integer
 getPowerOfTwo (TwoToThe ex) = 2^ex
 
-homsampleHaar_D¹ :: (AffineSpace y, Diff y ~ y, VectorSpace y, Fractional (Scalar y))
+homsampleHaar_D¹ :: (VAffineSpace y, Diff y ~ y, Fractional (Scalar y))
             => PowerOfTwo -> (D¹ -> y) -> Haar D¹ y
 homsampleHaar_D¹ (TwoToThe 0) f = Haar_D¹ (f $ D¹ 0) HaarZero
 homsampleHaar_D¹ (TwoToThe i) f
@@ -120,13 +120,12 @@ instance VectorSpace y => VectorSpace (Haar₀ y) where
   _ *^ HaarZero = HaarZero
   μ *^ Haar₀ δlr δsl δsr = Haar₀ (μ*^δlr) (μ*^δsl) (μ*^δsr)
   
-instance (AffineSpace y, AffineSpace (Diff y), Diff (Diff y) ~ Diff y)
-             => AffineSpace (Haar D¹ y) where
+instance (VAffineSpace y) => AffineSpace (Haar D¹ y) where
   type Diff (Haar D¹ y) = Haar D¹ (Diff y)
   Haar_D¹ y₀ δ₀ .+^ Haar_D¹ y₁ δ₁ = Haar_D¹ (y₀.+^y₁) (δ₀.+^δ₁)
   Haar_D¹ y₀ δ₀ .-. Haar_D¹ y₁ δ₁ = Haar_D¹ (y₀.-.y₁) (δ₀.-.δ₁)
 
-instance (AffineSpace y, AdditiveGroup y, Diff y ~ y)
+instance (VAffineSpace y, Diff y ~ y, AdditiveGroup y)
              => AdditiveGroup (Haar D¹ y) where
   zeroV = Haar_D¹ zeroV zeroV
   (^+^) = (.+^)
@@ -149,7 +148,7 @@ instance (InnerSpace y, Fractional (Scalar y), AffineSpace y, Diff y ~ y)
              => InnerSpace (Haar D¹ y) where
   Haar_D¹ y₀ δ₀ <.> Haar_D¹ y₁ δ₁ = 2*(y₀<.>y₁ + δ₀<.>δ₁)
 
-instance ( AffineSpace y, AffineSpace (Diff y), Diff (Diff y) ~ Diff y
+instance ( VAffineSpace y
          , Semimanifold y, Needle y ~ Diff y
          , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
              => Semimanifold (Haar D¹ y) where
@@ -158,7 +157,7 @@ instance ( AffineSpace y, AffineSpace (Diff y), Diff (Diff y) ~ Diff y
   translateP = Tagged (.+~^)
   toInterior = Just
   fromInterior = id
-instance ( AffineSpace y, AffineSpace (Diff y), Diff (Diff y) ~ Diff y
+instance ( VAffineSpace y
          , Semimanifold y, Needle y ~ Diff y
          , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
              => PseudoAffine (Haar D¹ y) where
