@@ -38,6 +38,13 @@ main = defaultMain $ testGroup "Tests"
   , testProperty "Distributivity"
       $ \f g μ -> μ*^(f ^+^ g :: Haar D¹ ℝ) ≃ μ*^f ^+^ μ*^g
   ]
+ , testGroup "Inner product laws"
+  [ testProperty "Commutativity"
+      $ \f g -> f<.>(g :: Haar D¹ ℝ) ≃ g<.>f
+  , testProperty "Bilinearity"
+      $ \f g h μ -> (f^+^g)<.>(μ*^h :: Haar D¹ ℝ)
+                   ≃ μ*(f<.>h + g<.>h)
+  ]
  ]
 
 retrieveSampledFn :: (D¹ -> ℝ) -> PowerOfTwo -> D¹ -> QC.Property
