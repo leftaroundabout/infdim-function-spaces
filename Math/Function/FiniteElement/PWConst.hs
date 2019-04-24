@@ -23,6 +23,7 @@ module Math.Function.FiniteElement.PWConst
         ) where
 
 import Data.Manifold.Types
+import Data.Manifold.PseudoAffine
 import Data.Complex
 import Data.List
 import Data.AffineSpace
@@ -31,6 +32,7 @@ import qualified Linear as Lin
 
 import Control.Monad
 import Control.Applicative
+import Data.Tagged
 
 import qualified Test.QuickCheck as QC
 
@@ -146,6 +148,21 @@ instance (InnerSpace y, Fractional (Scalar y)) => InnerSpace (Haar₀ y) where
 instance (InnerSpace y, Fractional (Scalar y), AffineSpace y, Diff y ~ y)
              => InnerSpace (Haar D¹ y) where
   Haar_D¹ y₀ δ₀ <.> Haar_D¹ y₁ δ₁ = 2*(y₀<.>y₁ + δ₀<.>δ₁)
+
+instance ( AffineSpace y, AffineSpace (Diff y), Diff (Diff y) ~ Diff y
+         , Semimanifold y, Needle y ~ Diff y
+         , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
+             => Semimanifold (Haar D¹ y) where
+  type Needle (Haar D¹ y) = Haar D¹ (Needle y)
+  type Interior (Haar D¹ y) = Haar D¹ y
+  translateP = Tagged (.+~^)
+  toInterior = Just
+  fromInterior = id
+instance ( AffineSpace y, AffineSpace (Diff y), Diff (Diff y) ~ Diff y
+         , Semimanifold y, Needle y ~ Diff y
+         , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
+             => PseudoAffine (Haar D¹ y) where
+  (.-~!) = (.-.)
 
 instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
                => QC.Arbitrary (Haar D¹ y) where

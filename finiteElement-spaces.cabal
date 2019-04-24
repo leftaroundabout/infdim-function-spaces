@@ -24,7 +24,7 @@ library
                        , manifolds >0.5.0.1 && <0.6
                        , vector-space >=0.15 && <0.20
                        , linear >=1.15 && <1.30
-                       , transformers
+                       , transformers, tagged
                        , QuickCheck
   -- hs-source-dirs:      
   default-language:    Haskell2010
