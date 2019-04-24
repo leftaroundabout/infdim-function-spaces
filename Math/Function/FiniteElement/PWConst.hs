@@ -43,7 +43,13 @@ import qualified Test.QuickCheck as QC
 --   in a basis of Haar wavelets.
 data family Haar x y
 
-type VAffineSpace y = (AffineSpace y, VectorSpace (Diff y), AffineSpace (Diff y), Diff (Diff y) ~ Diff y)
+-- | This constraint should in principle be just `AffineSpace`, but this conflicts
+--   with the way the 'TensorSpace' class is set up, so we instead require
+--   a vector space.
+-- 
+--   Ideally, the functions should ultimately be generalised to work even on
+--   'PseudoAffine' manifolds.
+type VAffineSpace y = (AffineSpace y, VectorSpace (Diff y), Diff y ~ y)
 
 class HaarSamplingDomain x where
   evalHaarFunction :: VAffineSpace y
@@ -61,7 +67,7 @@ data Haar₀ y
 
 data instance Haar D¹ y = Haar_D¹
     { pwconst_D¹_offset :: !y
-    , pwconst_D¹_variation :: Haar₀ (Diff y) }
+    , pwconst_D¹_variation :: Haar₀ y }
 deriving instance (Show y, Show (Diff y)) => Show (Haar D¹ y)
 
 evalHaar_D¹ :: VAffineSpace y => Haar D¹ y -> D¹ -> y
