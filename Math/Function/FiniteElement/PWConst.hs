@@ -159,6 +159,21 @@ instance (InnerSpace y, Fractional (Scalar y), AffineSpace y, Diff y ~ y)
 instance ( VAffineSpace y
          , Semimanifold y, Needle y ~ Diff y
          , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
+             => Semimanifold (Haar₀ y) where
+  type Needle (Haar₀ y) = Haar₀ (Needle y)
+  type Interior (Haar₀ y) = Haar₀ y
+  translateP = Tagged (.+~^)
+  toInterior = Just
+  fromInterior = id
+instance ( VAffineSpace y
+         , Semimanifold y, Needle y ~ Diff y
+         , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
+             => PseudoAffine (Haar₀ y) where
+  (.-~!) = (.-.)
+
+instance ( VAffineSpace y
+         , Semimanifold y, Needle y ~ Diff y
+         , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
              => Semimanifold (Haar_D¹ y) where
   type Needle (Haar_D¹ y) = Haar D¹ (Needle y)
   type Interior (Haar_D¹ y) = Haar D¹ y
