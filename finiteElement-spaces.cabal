@@ -23,6 +23,8 @@ library
   build-depends:       base >=4.8 && <4.13
                        , manifolds >0.5.0.1 && <0.6
                        , vector-space >=0.15 && <0.20
+                       , linearmap-category >=0.3 && <0.4
+                       , constrained-categories >=0.3.1
                        , linear >=1.15 && <1.30
                        , transformers, tagged
                        , QuickCheck

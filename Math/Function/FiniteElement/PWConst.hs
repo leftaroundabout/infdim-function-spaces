@@ -15,6 +15,12 @@
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE StandaloneDeriving     #-}
 {-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE TypeOperators          #-}
+{-# LANGUAGE UnicodeSyntax          #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE RoleAnnotations        #-}
+{-# LANGUAGE TupleSections          #-}
 
 module Math.Function.FiniteElement.PWConst
         ( Haar, HaarSamplingDomain(..)
@@ -28,11 +34,14 @@ import Data.Complex
 import Data.List
 import Data.AffineSpace
 import Data.VectorSpace
-import qualified Linear as Lin
+import Math.LinearMap.Category
+import qualified Control.Functor.Constrained as CC
+import qualified Control.Arrow.Constrained as CC
 
 import Control.Monad
 import Control.Applicative
 import Data.Tagged
+import Data.Type.Coercion
 
 import qualified Test.QuickCheck as QC
 
@@ -71,6 +80,37 @@ data Haar_D¹ y = Haar_D¹
 deriving instance (Show y, Show (Diff y)) => Show (Haar_D¹ y)
 
 type instance Haar D¹ y = Haar_D¹ y
+
+fmapHaar₀Coeffs :: (TensorSpace y, TensorSpace z, Scalar y ~ Scalar z)
+                    => (y-+>z) -> (Haar₀ y -+> Haar₀ z)
+fmapHaar₀Coeffs f = LinearFunction go
+ where go HaarZero = HaarZero
+       go (Haar₀ δ l r) = Haar₀ (f CC.$ δ) (go l) (go r)
+
+fmapHaarCoeffs :: (TensorSpace y, TensorSpace z, Scalar y ~ Scalar z)
+                    => (y-+>z) -> (Haar_D¹ y -+> Haar_D¹ z)
+fmapHaarCoeffs f = LinearFunction $
+            \(Haar_D¹ y₀ δs) -> Haar_D¹ (f CC.$ y₀)
+                      $ getLinearFunction (fmapHaar₀Coeffs f) δs
+
+fzipHaar₀CoeffsWith :: ( TensorSpace x, TensorSpace y, TensorSpace z
+                       , Scalar x ~ Scalar y, Scalar y ~ Scalar z )
+                    => ((x,y)-+>z) -> ((Haar₀ x, Haar₀ y) -+> Haar₀ z)
+fzipHaar₀CoeffsWith f = LinearFunction go
+ where go (HaarZero, y) = getLinearFunction
+               (fmapHaar₀Coeffs $ f CC.. LinearFunction (zeroV,)) $ y
+       go (x, HaarZero) = getLinearFunction
+               (fmapHaar₀Coeffs $ f CC.. LinearFunction (,zeroV)) $ x
+       go (Haar₀ δx lx rx, Haar₀ δy ly ry)
+            = Haar₀ (f CC.$ (δx,δy)) (go (lx,ly)) (go (rx,ry))
+
+fzipHaarCoeffsWith :: ( TensorSpace x, TensorSpace y, TensorSpace z
+                      , Scalar x ~ Scalar y, Scalar y ~ Scalar z )
+                   => ((x,y)-+>z) -> ((Haar D¹ x, Haar D¹ y) -+> Haar D¹ z)
+fzipHaarCoeffsWith f = LinearFunction
+          $ \(Haar_D¹ x δxs, Haar_D¹ y δys)
+               -> Haar_D¹ (f CC.$ (x,y))
+                          (getLinearFunction (fzipHaar₀CoeffsWith f) (δxs,δys))
          
 evalHaar_D¹ :: VAffineSpace y => Haar D¹ y -> D¹ -> y
 evalHaar_D¹ (Haar_D¹ offs varis) x = offs .+^ evalVari varis x
@@ -185,6 +225,81 @@ instance ( VAffineSpace y
          , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
              => PseudoAffine (Haar_D¹ y) where
   (.-~!) = (.-.)
+
+instance ∀ y . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Scalar y ~ ℝ)
+             => TensorSpace (Haar₀ y) where
+  type TensorProduct (Haar₀ y) w = Haar₀ (y⊗w)
+  wellDefinedVector HaarZero = Just HaarZero
+  wellDefinedVector (Haar₀ δ l r) = Haar₀ <$> wellDefinedVector δ
+                                          <*> wellDefinedVector l
+                                          <*> wellDefinedVector r
+  wellDefinedTensor (Tensor HaarZero) = Just $ Tensor HaarZero
+  wellDefinedTensor (Tensor (Haar₀ δ l r)) = Tensor <$>
+                                   (Haar₀ <$> wellDefinedVector δ
+                                          <*> wellDefinedVector l
+                                          <*> wellDefinedVector r)
+  scalarSpaceWitness = case scalarSpaceWitness :: ScalarSpaceWitness y of
+     ScalarSpaceWitness -> ScalarSpaceWitness
+  linearManifoldWitness = case linearManifoldWitness :: LinearManifoldWitness y of
+     LinearManifoldWitness BoundarylessWitness -> LinearManifoldWitness BoundarylessWitness
+  coerceFmapTensorProduct = cftlp
+   where cftlp :: ∀ a b p . p (Haar₀ y) -> Coercion a b
+                   -> Coercion (Haar₀ (Tensor ℝ (Diff y) a))
+                               (Haar₀ (Tensor ℝ (Diff y) b))
+         cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
+            Coercion -> Coercion
+  zeroTensor = zeroV
+  toFlatTensor = LinearFunction Tensor CC.. fmapHaar₀Coeffs toFlatTensor
+  fromFlatTensor = fmapHaar₀Coeffs fromFlatTensor CC.. LinearFunction getTensorProduct
+  addTensors (Tensor f) (Tensor g) = Tensor $ f^+^g
+  scaleTensor = bilinearFunction $ \μ (Tensor f) -> Tensor $ μ*^f
+  negateTensor = LinearFunction $ \(Tensor f) -> Tensor $ negateV f
+  tensorProduct = bilinearFunction
+         $ \f w -> Tensor $ fmapHaar₀Coeffs (LinearFunction $ \y -> y⊗w) CC.$ f
+  transposeTensor = LinearFunction $
+       \(Tensor (Haar₀ δyw δsl δsr))
+           -> (CC.fmap (LinearFunction $ \δy -> Haar₀ δy zeroV zeroV)
+                 CC.. transposeTensor CC.$ δyw)
+             ^+^ (CC.fmap (LinearFunction $ \δysl -> Haar₀ zeroV δysl zeroV)
+                 CC.. transposeTensor CC.$ Tensor δsl)
+             ^+^ (CC.fmap (LinearFunction $ \δysr -> Haar₀ zeroV zeroV δysr)
+                 CC.. transposeTensor CC.$ Tensor δsr)
+  fmapTensor = bilinearFunction $ \a (Tensor f)
+             -> Tensor $ fmapHaar₀Coeffs (CC.fmap a) CC.$ f
+  fzipTensorWith = bilinearFunction $ \a (Tensor f, Tensor g)
+             -> Tensor $ fzipHaar₀CoeffsWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
+instance ∀ y . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Scalar y ~ ℝ)
+             => TensorSpace (Haar_D¹ y) where
+  type TensorProduct (Haar_D¹ y) w = Haar D¹ (y⊗w)
+  wellDefinedVector (Haar_D¹ y₀ δs)
+       = Haar_D¹ <$> wellDefinedVector y₀ <*> wellDefinedVector δs
+  wellDefinedTensor (Tensor (Haar_D¹ y₀ δs))
+       = Tensor <$> (Haar_D¹ <$> wellDefinedVector y₀ <*> wellDefinedVector δs)
+  scalarSpaceWitness = case scalarSpaceWitness :: ScalarSpaceWitness y of
+     ScalarSpaceWitness -> ScalarSpaceWitness
+  linearManifoldWitness = case linearManifoldWitness :: LinearManifoldWitness y of
+     LinearManifoldWitness BoundarylessWitness -> LinearManifoldWitness BoundarylessWitness
+  coerceFmapTensorProduct = cftlp
+   where cftlp :: ∀ a b p . p (Haar D¹ y) -> Coercion a b
+                   -> Coercion (Haar D¹ (Tensor ℝ (Diff y) a))
+                               (Haar D¹ (Tensor ℝ (Diff y) b))
+         cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
+            Coercion -> Coercion
+  zeroTensor = zeroV
+  toFlatTensor = LinearFunction Tensor CC.. fmapHaarCoeffs toFlatTensor
+  fromFlatTensor = fmapHaarCoeffs fromFlatTensor CC.. LinearFunction getTensorProduct
+  addTensors (Tensor f) (Tensor g) = Tensor $ f^+^g
+  scaleTensor = bilinearFunction $ \μ (Tensor f) -> Tensor $ μ*^f
+  negateTensor = LinearFunction $ \(Tensor f) -> Tensor $ negateV f
+  tensorProduct = bilinearFunction
+         $ \f w -> Tensor $ fmapHaarCoeffs (LinearFunction $ \y -> y⊗w) CC.$ f
+  transposeTensor = LinearFunction $
+       \(Tensor (Haar_D¹ yw₀ δs))
+           -> (CC.fmap (LinearFunction $ (`Haar_D¹`zeroV)) CC.. transposeTensor CC.$ yw₀)
+  fmapTensor = bilinearFunction $ \a (Tensor f)
+             -> Tensor $ fmapHaarCoeffs (CC.fmap a) CC.$ f
+  fzipTensorWith = bilinearFunction $ \a (Tensor f, Tensor g)
+             -> Tensor $ fzipHaarCoeffsWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
 
 instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
                => QC.Arbitrary (Haar_D¹ y) where
