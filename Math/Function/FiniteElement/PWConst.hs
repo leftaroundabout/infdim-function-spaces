@@ -202,7 +202,7 @@ instance ( VAffineSpace y
              => Semimanifold (Haar₀ y) where
   type Needle (Haar₀ y) = Haar₀ (Needle y)
   type Interior (Haar₀ y) = Haar₀ y
-  translateP = Tagged (.+~^)
+  translateP = Tagged (.+^)
   toInterior = Just
   fromInterior = id
 instance ( VAffineSpace y
@@ -217,7 +217,7 @@ instance ( VAffineSpace y
              => Semimanifold (Haar_D¹ y) where
   type Needle (Haar_D¹ y) = Haar D¹ (Needle y)
   type Interior (Haar_D¹ y) = Haar D¹ y
-  translateP = Tagged (.+~^)
+  translateP = Tagged (.+^)
   toInterior = Just
   fromInterior = id
 instance ( VAffineSpace y
