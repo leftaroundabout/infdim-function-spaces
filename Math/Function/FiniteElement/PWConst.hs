@@ -86,12 +86,12 @@ data Haar₀Tree (dn :: Dualness) (y :: *)
 
 type Haar₀ y = Haar₀Tree FunctionSpace y
 
-data Haar_D¹ y = Haar_D¹
+data Haar_D¹ dn y = Haar_D¹
     { pwconst_D¹_offset :: !y
-    , pwconst_D¹_variation :: Haar₀ y }
-deriving instance (Show y, Show (Diff y)) => Show (Haar_D¹ y)
+    , pwconst_D¹_variation :: Haar₀Tree dn y }
+deriving instance (Show y, Show (Diff y)) => Show (Haar_D¹ dn y)
 
-type instance Haar D¹ y = Haar_D¹ y
+type instance Haar D¹ y = Haar_D¹ FunctionSpace y
 
 fmapHaar₀Coeffs :: (TensorSpace y, TensorSpace z, Scalar y ~ Scalar z)
                     => (y-+>z) -> (Haar₀Tree dn y -+> Haar₀Tree dn z)
@@ -100,7 +100,7 @@ fmapHaar₀Coeffs f = LinearFunction go
        go (Haar₀ δ l r) = Haar₀ (f CC.$ δ) (go l) (go r)
 
 fmapHaarCoeffs :: (TensorSpace y, TensorSpace z, Scalar y ~ Scalar z)
-                    => (y-+>z) -> (Haar_D¹ y -+> Haar_D¹ z)
+                    => (y-+>z) -> (Haar_D¹ dn y -+> Haar_D¹ dn z)
 fmapHaarCoeffs f = LinearFunction $
             \(Haar_D¹ y₀ δs) -> Haar_D¹ (f CC.$ y₀)
                       $ getLinearFunction (fmapHaar₀Coeffs f) δs
@@ -118,7 +118,7 @@ fzipHaar₀CoeffsWith f = LinearFunction go
 
 fzipHaarCoeffsWith :: ( TensorSpace x, TensorSpace y, TensorSpace z
                       , Scalar x ~ Scalar y, Scalar y ~ Scalar z )
-                   => ((x,y)-+>z) -> ((Haar D¹ x, Haar D¹ y) -+> Haar D¹ z)
+                   => ((x,y)-+>z) -> ((Haar_D¹ dn x, Haar_D¹ dn y) -+> Haar_D¹ dn z)
 fzipHaarCoeffsWith f = LinearFunction
           $ \(Haar_D¹ x δxs, Haar_D¹ y δys)
                -> Haar_D¹ (f CC.$ (x,y))
@@ -180,21 +180,21 @@ instance VectorSpace y => VectorSpace (Haar₀Tree dn y) where
   _ *^ HaarZero = HaarZero
   μ *^ Haar₀ δlr δsl δsr = Haar₀ (μ*^δlr) (μ*^δsl) (μ*^δsr)
   
-instance (VAffineSpace y) => AffineSpace (Haar_D¹ y) where
-  type Diff (Haar_D¹ y) = Haar D¹ (Diff y)
+instance (VAffineSpace y) => AffineSpace (Haar_D¹ dn y) where
+  type Diff (Haar_D¹ dn y) = Haar_D¹ dn (Diff y)
   Haar_D¹ y₀ δ₀ .+^ Haar_D¹ y₁ δ₁ = Haar_D¹ (y₀.+^y₁) (δ₀.+^δ₁)
   Haar_D¹ y₀ δ₀ .-. Haar_D¹ y₁ δ₁ = Haar_D¹ (y₀.-.y₁) (δ₀.-.δ₁)
 
 instance (VAffineSpace y, Diff y ~ y, AdditiveGroup y)
-             => AdditiveGroup (Haar_D¹ y) where
+             => AdditiveGroup (Haar_D¹ dn y) where
   zeroV = Haar_D¹ zeroV zeroV
   (^+^) = (.+^)
   (^-^) = (.-.)
   negateV (Haar_D¹ y δ) = Haar_D¹ (negateV y) (negateV δ)
 
 instance (VectorSpace y, AffineSpace y, Diff y ~ y)
-             => VectorSpace (Haar_D¹ y) where
-  type Scalar (Haar_D¹ y) = Scalar y
+             => VectorSpace (Haar_D¹ dn y) where
+  type Scalar (Haar_D¹ dn y) = Scalar y
   μ *^ Haar_D¹ y δ = Haar_D¹ (μ*^y) (μ*^δ)
 
 instance (InnerSpace y, Fractional (Scalar y)) => InnerSpace (Haar₀ y) where
@@ -205,7 +205,7 @@ instance (InnerSpace y, Fractional (Scalar y)) => InnerSpace (Haar₀ y) where
 
 -- | 𝓛² product on [-1…1] functions, i.e. @𝑓<.>𝑔 ⩵ ₋₁∫¹ d𝑥 𝑓(𝑥)·𝑔(𝑥)@
 instance (InnerSpace y, Fractional (Scalar y), AffineSpace y, Diff y ~ y)
-             => InnerSpace (Haar_D¹ y) where
+             => InnerSpace (Haar_D¹ FunctionSpace y) where
   Haar_D¹ y₀ δ₀ <.> Haar_D¹ y₁ δ₁ = 2*(y₀<.>y₁ + δ₀<.>δ₁)
 
 instance ( VAffineSpace y
@@ -226,16 +226,16 @@ instance ( VAffineSpace y
 instance ( VAffineSpace y
          , Semimanifold y, Needle y ~ Diff y
          , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
-             => Semimanifold (Haar_D¹ y) where
-  type Needle (Haar_D¹ y) = Haar D¹ (Needle y)
-  type Interior (Haar_D¹ y) = Haar D¹ y
+             => Semimanifold (Haar_D¹ dn y) where
+  type Needle (Haar_D¹ dn y) = Haar_D¹ dn (Needle y)
+  type Interior (Haar_D¹ dn y) = Haar_D¹ dn y
   translateP = Tagged (.+^)
   toInterior = Just
   fromInterior = id
 instance ( VAffineSpace y
          , Semimanifold y, Needle y ~ Diff y
          , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
-             => PseudoAffine (Haar_D¹ y) where
+             => PseudoAffine (Haar_D¹ dn y) where
   (.-~!) = (.-.)
 
 instance ∀ y dn . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Scalar y ~ ℝ)
@@ -280,9 +280,10 @@ instance ∀ y dn . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Sca
              -> Tensor $ fmapHaar₀Coeffs (CC.fmap a) CC.$ f
   fzipTensorWith = bilinearFunction $ \a (Tensor f, Tensor g)
              -> Tensor $ fzipHaar₀CoeffsWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
-instance ∀ y . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Scalar y ~ ℝ)
-             => TensorSpace (Haar_D¹ y) where
-  type TensorProduct (Haar_D¹ y) w = Haar D¹ (y⊗w)
+instance ∀ y dn
+         . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Scalar y ~ ℝ)
+             => TensorSpace (Haar_D¹ dn y) where
+  type TensorProduct (Haar_D¹ dn y) w = Haar_D¹ dn (y⊗w)
   wellDefinedVector (Haar_D¹ y₀ δs)
        = Haar_D¹ <$> wellDefinedVector y₀ <*> wellDefinedVector δs
   wellDefinedTensor (Tensor (Haar_D¹ y₀ δs))
@@ -292,9 +293,9 @@ instance ∀ y . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Scalar
   linearManifoldWitness = case linearManifoldWitness :: LinearManifoldWitness y of
      LinearManifoldWitness BoundarylessWitness -> LinearManifoldWitness BoundarylessWitness
   coerceFmapTensorProduct = cftlp
-   where cftlp :: ∀ a b p . p (Haar D¹ y) -> Coercion a b
-                   -> Coercion (Haar D¹ (Tensor ℝ (Diff y) a))
-                               (Haar D¹ (Tensor ℝ (Diff y) b))
+   where cftlp :: ∀ a b p . p (Haar_D¹ dn y) -> Coercion a b
+                   -> Coercion (Haar_D¹ dn (Tensor ℝ (Diff y) a))
+                               (Haar_D¹ dn (Tensor ℝ (Diff y) b))
          cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
             Coercion -> Coercion
   zeroTensor = zeroV
@@ -471,7 +472,7 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                  
 
 instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
-               => QC.Arbitrary (Haar_D¹ y) where
+               => QC.Arbitrary (Haar_D¹ FunctionSpace y) where
   arbitrary = do
      n <- QC.getSize
           -- Magic numbers for the termination-probability: chosen empirically
