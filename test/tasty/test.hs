@@ -50,6 +50,14 @@ main = defaultMain $ testGroup "Tests"
       $ \f g h μ -> (f^+^g)<.>(μ*^h :: Haar D¹ ℝ)
                    ≃ μ*(f<.>h + g<.>h)
   ]
+ , testGroup "Dual space of 𝓛² Hilbert space"
+  [ testProperty "Co-Riesz functionals"
+      $ \f g -> (coRiesz$f)<.>^(g :: Haar D¹ ℝ) ≃ f<.>g
+  , testProperty "Linearity"
+      $ \f g μ h -> let f' = coRiesz$(f :: Haar D¹ ℝ)
+                    in f'<.>^(g ^+^ μ*^h :: Haar D¹ ℝ)
+                      ≃ f'<.>^g + μ*^(f'<.>^h)
+  ]
  , testGroup "Linear maps"
   [ testProperty "Identity map"
       $ \f -> ((id :: Haar D¹ ℝ+>Haar D¹ ℝ) $ f) ≃ f
