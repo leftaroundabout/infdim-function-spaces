@@ -470,6 +470,81 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                           (LinearMap δa :: (y⊗u)+>w)) CC.$ δyu )
                    ^+^ go al fl ^+^ go ar fr
                  
+instance ∀ y dn . ( LinearSpace y, AffineSpace y
+                  , Diff y ~ y, Needle y ~ y, Scalar y ~ ℝ
+                  , Diff (DualVector y) ~ DualVector y, Needle (DualVector y) ~ DualVector y
+                  , AffineSpace (DualVector y)
+                  , ValidDualness dn )
+             => LinearSpace (Haar_D¹ dn y) where
+  type DualVector (Haar_D¹ dn y) = Haar_D¹ (Dual dn) (DualVector y)
+  dualSpaceWitness = case ( dualSpaceWitness :: DualSpaceWitness y
+                          , dualityWitness :: DualityWitness dn ) of
+       (DualSpaceWitness, DualityWitness) -> DualSpaceWitness
+  linearId = LinearMap hId
+   where hId = case dualSpaceWitness :: DualSpaceWitness y of
+          DualSpaceWitness
+            -> Haar_D¹ (case linearId :: y+>y of
+                        LinearMap yId
+                            -> CC.fmap (LinearFunction
+                                             $ \y -> Haar_D¹ y zeroV)
+                                         CC.$ (Tensor yId :: DualVector y⊗y))
+                       (fmapHaar₀Coeffs (CC.fmap . LinearFunction
+                                          $ \δs -> Haar_D¹ zeroV δs) CC.$ getLinearMap
+                                              (linearId :: Haar₀Tree dn y+>Haar₀Tree dn y))
+  tensorId = LinearMap $ hId
+   where hId :: ∀ w . (LinearSpace w, Scalar w ~ ℝ)
+               => Haar_D¹ (Dual dn)
+                    (Tensor (Scalar (DualVector y))
+                            (DualVector y)
+                            (Tensor Double (DualVector w) (Tensor ℝ (Haar_D¹ dn y) w)))
+         hId = case ( dualSpaceWitness :: DualSpaceWitness y
+                    , dualSpaceWitness :: DualSpaceWitness w ) of
+          (DualSpaceWitness, DualSpaceWitness)
+            -> Haar_D¹ (case tensorId :: (y⊗w)+>(y⊗w) of
+                        LinearMap ywId
+                            -> CC.fmap (CC.fmap $ LinearFunction
+                                          $ \yw -> Tensor $ Haar_D¹ yw zeroV)
+                                       CC.$ (undefined -- Tensor ywId
+                                              :: DualVector y⊗(DualVector w⊗(y⊗w))))
+                       (case tensorId :: (Haar₀Tree dn y⊗w)+>(Haar₀Tree dn y⊗w) of
+                          LinearMap h₀ywId
+                           -> fmapHaar₀Coeffs (CC.fmap . CC.fmap . LinearFunction
+                                       $ \(Tensor q) -> Tensor (Haar_D¹ zeroV q))
+                                 CC.$ h₀ywId)
+  applyDualVector = bilinearFunction $ \(Haar_D¹ a₀ δa) (Haar_D¹ f₀ δf)
+      -> case dualSpaceWitness :: DualSpaceWitness y of
+           DualSpaceWitness -> (getLinearFunction applyDualVector a₀ CC.$ f₀)
+                             + (getLinearFunction applyDualVector δa CC.$ δf)
+  applyTensorFunctional = bilinearFunction $ \(LinearMap a) (Tensor f) -> go a f
+   where go :: ∀ u . (LinearSpace u, Scalar u ~ ℝ)
+             => Haar_D¹ (Dual dn) (DualVector y⊗DualVector u) -> Haar_D¹ dn (y⊗u) -> ℝ
+         go (Haar_D¹ (Tensor a₀) δa) (Haar_D¹ f₀ δf)
+          = case ( dualSpaceWitness :: DualSpaceWitness y
+                 , dualSpaceWitness :: DualSpaceWitness u ) of
+           (DualSpaceWitness, DualSpaceWitness)
+               -> (getLinearFunction applyDualVector (LinearMap a₀ :: y+>DualVector u)
+                                                              CC.$ f₀)
+                + (getLinearFunction applyDualVector
+                              (Coercion CC.$ δa) CC.$ δf)
+  applyLinear = bilinearFunction $ \(LinearMap a) f -> go a f
+   where go :: ∀ w . (TensorSpace w, Scalar w ~ ℝ)
+                => Haar_D¹ (Dual dn) (Tensor (Scalar (DualVector y)) (DualVector y) w)
+                      -> Haar_D¹ dn y -> w
+         go (Haar_D¹ (Tensor a₀) δa) (Haar_D¹ f₀ δf)
+           = ( (getLinearFunction applyLinear (LinearMap a₀ :: y+>w)) CC.$ f₀ )
+          ^+^ ( getLinearFunction applyLinear (LinearMap δa :: Haar₀Tree dn y+>w) CC.$ δf )
+  applyTensorLinMap = bilinearFunction $ \(LinearMap a) (Tensor f) -> go a f
+   where go :: ∀ u w . (LinearSpace u, Scalar u ~ ℝ, TensorSpace w, Scalar w ~ ℝ)
+                => Haar_D¹ (Dual dn) (Tensor
+                           (Scalar (DualVector y))
+                            (DualVector y)
+                            (Tensor Double (DualVector u) w))
+                 -> Haar_D¹ dn (y⊗u) -> w
+         go (Haar_D¹ (Tensor a₀) δa) (Haar_D¹ f₀ δf)
+               = ( (getLinearFunction applyTensorLinMap
+                          (LinearMap a₀ :: (y⊗u)+>w)) CC.$ f₀ )
+              ^+^ ( (getLinearFunction applyTensorLinMap $ LinearMap δa)
+                              CC.$ (Tensor δf :: Haar₀Tree dn y⊗u) )
 
 instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
                => QC.Arbitrary (Haar_D¹ FunctionSpace y) where
