@@ -4,7 +4,11 @@
 {-# LANGUAGE UnicodeSyntax        #-}
 {-# LANGUAGE KindSignatures       #-}
 {-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE AllowAmbiguousTypes  #-}
+
+import qualified Prelude as Hask
+import Control.Category.Constrained.Prelude
 
 import Test.Tasty
 import Test.Tasty.QuickCheck
@@ -13,6 +17,7 @@ import Math.Function.FiniteElement.PWConst
 import Data.VectorSpace
 import Data.Manifold.Types
 import Data.Semigroup
+import Math.LinearMap.Category
 
 main :: IO ()
 main = defaultMain $ testGroup "Tests"
@@ -44,6 +49,10 @@ main = defaultMain $ testGroup "Tests"
   , testProperty "Bilinearity"
       $ \f g h μ -> (f^+^g)<.>(μ*^h :: Haar D¹ ℝ)
                    ≃ μ*(f<.>h + g<.>h)
+  ]
+ , testGroup "Linear maps"
+  [ testProperty "Identity map"
+      $ \f -> ((id :: Haar D¹ ℝ+>Haar D¹ ℝ) $ f) ≃ f
   ]
  ]
 

@@ -36,7 +36,8 @@ test-suite tasty
   type:            exitcode-stdio-1.0
   hs-source-dirs:  test/tasty
   build-depends:   base, finiteElement-spaces
-                   , vector-space, manifolds
+                   , vector-space, manifolds, linearmap-category
+                   , constrained-categories
                    , QuickCheck
                    , tasty, tasty-quickcheck
   default-language:    Haskell2010
