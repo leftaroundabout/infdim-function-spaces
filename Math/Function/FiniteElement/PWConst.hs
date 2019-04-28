@@ -153,6 +153,20 @@ rightHalf = prism (\(D¹ x) -> D¹ $ (x+1)/2)
                   (\(D¹ x) -> if x > 0 then Right . D¹ $ x*2 - 1
                                       else Left $ D¹ x )
 
+boxDistribution :: (D¹, D¹) -> DualVector (Haar D¹ ℝ)
+boxDistribution (D¹ l, D¹ r)
+  | l > r            = boxDistribution (D¹ r, D¹ l)
+  | l > 1            = zeroV
+  | r < -1           = zeroV
+  | l < -1           = boxDistribution (D¹ (-1), D¹ r) ^* ((r+1)/(r-l))
+  | r > 1            = boxDistribution (D¹ l   , D¹ 1) ^* ((1-l)/(r-l))
+  | l == -1, r == 1  = Haar_D¹ 1 zeroV
+  | otherwise        = Haar_D¹ 1
+               $ case ( boxDistribution (D¹ $ l*2 + 1, D¹ $ r*2 + 1)
+                      , boxDistribution (D¹ $ l*2 - 1, D¹ $ r*2 - 1) ) of
+                  (Haar_D¹ wl lstru, Haar_D¹ wr rstru)
+                    -> Haar₀ (wr-wl) lstru rstru
+
 instance HaarSamplingDomain D¹ where
   evalHaarFunction = evalHaar_D¹
   homsampleHaarFunction = homsampleHaar_D¹
