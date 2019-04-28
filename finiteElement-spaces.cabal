@@ -26,6 +26,7 @@ library
                        , linearmap-category >=0.3 && <0.4
                        , constrained-categories >=0.3.1
                        , linear >=1.15 && <1.30
+                       , lens
                        , transformers, tagged
                        , QuickCheck
   -- hs-source-dirs:      

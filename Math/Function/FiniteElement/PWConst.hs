@@ -46,6 +46,7 @@ import Control.Applicative
 import Data.Tagged
 import Data.Type.Coercion
 import GHC.Generics
+import Control.Lens (Prism', prism, view, re)
 
 import qualified Test.QuickCheck as QC
 
@@ -139,13 +140,18 @@ homsampleHaar_D¹ :: (VAffineSpace y, Diff y ~ y, Fractional (Scalar y))
             => PowerOfTwo -> (D¹ -> y) -> Haar D¹ y
 homsampleHaar_D¹ (TwoToThe 0) f = Haar_D¹ (f $ D¹ 0) HaarZero
 homsampleHaar_D¹ (TwoToThe i) f
-   = case homsampleHaar_D¹ (TwoToThe $ i-1) <$> [f . leftHalf, f . rightHalf] of
+   = case homsampleHaar_D¹ (TwoToThe $ i-1) <$> [ f . view (re leftHalf)
+                                                , f . view (re rightHalf) ] of
        [Haar_D¹ y₀l sfl, Haar_D¹ y₀r sfr]
         -> Haar_D¹ ((y₀l^+^y₀r)^/2) $ Haar₀ ((y₀r^-^y₀l)^/2) sfl sfr
 
-leftHalf, rightHalf :: D¹ -> D¹
-leftHalf (D¹ x) = D¹ $ (x-1)/2
-rightHalf (D¹ x) = D¹ $ (x+1)/2
+leftHalf, rightHalf :: Prism' D¹ D¹
+leftHalf  = prism (\(D¹ x) -> D¹ $ (x-1)/2)
+                  (\(D¹ x) -> if x < 0 then Right . D¹ $ x*2 + 1
+                                       else Left $ D¹ x )
+rightHalf = prism (\(D¹ x) -> D¹ $ (x+1)/2)
+                  (\(D¹ x) -> if x > 0 then Right . D¹ $ x*2 - 1
+                                      else Left $ D¹ x )
 
 instance HaarSamplingDomain D¹ where
   evalHaarFunction = evalHaar_D¹
