@@ -154,17 +154,17 @@ rightHalf = prism' (\(D¹ x) -> D¹ $ (x+1)/2)
 
 boxDistribution :: (D¹, D¹) -> DualVector (Haar D¹ ℝ)
 boxDistribution (D¹ l, D¹ r)
-  | l > r            = boxDistribution (D¹ r, D¹ l)
-  | l > 1            = zeroV
-  | r < -1           = zeroV
-  | l < -1           = boxDistribution (D¹ (-1), D¹ r) ^* ((r+1)/(r-l))
-  | r > 1            = boxDistribution (D¹ l   , D¹ 1) ^* ((1-l)/(r-l))
-  | l == -1, r == 1  = Haar_D¹ 1 zeroV
-  | otherwise        = Haar_D¹ 1
-               $ case ( boxDistribution (D¹ $ l*2 + 1, D¹ $ r*2 + 1)
-                      , boxDistribution (D¹ $ l*2 - 1, D¹ $ r*2 - 1) ) of
-                  (Haar_D¹ wl lstru, Haar_D¹ wr rstru)
-                    -> Haar₀ (wr-wl) lstru rstru
+  | l > r      = boxDistribution (D¹ r, D¹ l)
+boxDistribution (D¹ (-1), D¹ 1)
+               = Haar_D¹ 1 zeroV
+boxDistribution (D¹ l, D¹ r)
+  | l<0, r>0   = Haar_D¹ 1 $ Haar₀ (wr-wl) lstru rstru
+  | l<0        = Haar_D¹ 1 $ Haar₀ (-wl)   lstru zeroV
+  | otherwise  = Haar_D¹ 1 $ Haar₀ wr      zeroV rstru
+ where Haar_D¹ wl lstru = boxDistribution (D¹ $ l*2 + 1, D¹ $ min 0 r*2 + 1)
+                            ^*if r>0 then l/(l-r) else 1
+       Haar_D¹ wr rstru = boxDistribution (D¹ $ max 0 l*2 - 1, D¹ $ r*2 - 1)
+                            ^*if l<0 then r/(r-l) else 1
 
 instance HaarSamplingDomain D¹ where
   evalHaarFunction = evalHaar_D¹
