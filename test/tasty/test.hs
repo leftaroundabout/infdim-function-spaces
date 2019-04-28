@@ -62,6 +62,18 @@ main = defaultMain $ testGroup "Tests"
   [ testProperty "Identity map"
       $ \f -> ((id :: Haar D¹ ℝ+>Haar D¹ ℝ) $ f) ≃ f
   ]
+ , testGroup "Distributions"
+  [ testProperty "Dirac evaluation of given Haar function"
+      $ \f p -> dirac p<.>^f ≃ evalHaarFunction f p
+  , testProperty "Dirac evaluation of sampled polynomial"
+      $ \a b c d res p
+          -> let f (D¹ x) = a*x^3/3 + b*x^2/2 + c*x + d
+                 exact = f p
+                 diracSampled = dirac p<.>^homsampleHaarFunction res f
+             in counterexample ("Exact: "<>show exact<>", Dirac: "<>show diracSampled)
+                 $ magnitude (diracSampled - exact)
+                    <= 5*maximum (abs<$>[a,b,c,d])/fromIntegral (getPowerOfTwo res)
+  ]
  ]
 
 retrieveSampledFn :: (D¹ -> ℝ) -> PowerOfTwo -> D¹ -> QC.Property
