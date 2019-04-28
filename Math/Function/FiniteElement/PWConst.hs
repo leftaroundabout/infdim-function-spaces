@@ -41,12 +41,13 @@ import Math.LinearMap.Category
 import qualified Control.Functor.Constrained as CC
 import qualified Control.Arrow.Constrained as CC
 
+import Data.Functor
 import Control.Monad
 import Control.Applicative
 import Data.Tagged
 import Data.Type.Coercion
 import GHC.Generics
-import Control.Lens (Prism', prism, view, re)
+import Control.Lens (Prism', prism', view, re)
 
 import qualified Test.QuickCheck as QC
 
@@ -146,12 +147,10 @@ homsampleHaar_D¹ (TwoToThe i) f
         -> Haar_D¹ ((y₀l^+^y₀r)^/2) $ Haar₀ ((y₀r^-^y₀l)^/2) sfl sfr
 
 leftHalf, rightHalf :: Prism' D¹ D¹
-leftHalf  = prism (\(D¹ x) -> D¹ $ (x-1)/2)
-                  (\(D¹ x) -> if x < 0 then Right . D¹ $ x*2 + 1
-                                       else Left $ D¹ x )
-rightHalf = prism (\(D¹ x) -> D¹ $ (x+1)/2)
-                  (\(D¹ x) -> if x > 0 then Right . D¹ $ x*2 - 1
-                                      else Left $ D¹ x )
+leftHalf  = prism' (\(D¹ x) -> D¹ $ (x-1)/2)
+                   (\(D¹ x) -> guard (x<=0) $> D¹ (x*2 + 1))
+rightHalf = prism' (\(D¹ x) -> D¹ $ (x+1)/2)
+                   (\(D¹ x) -> guard (x>=0) $> D¹ (x*2 - 1))
 
 boxDistribution :: (D¹, D¹) -> DualVector (Haar D¹ ℝ)
 boxDistribution (D¹ l, D¹ r)
