@@ -26,7 +26,10 @@
 {-# LANGUAGE DataKinds              #-}
 
 module Math.Function.FiniteElement.PWConst
-        ( Haar, HaarSamplingDomain(..)
+       ( -- * Functions
+           Haar, HaarSamplingDomain(..)
+         -- * Distributions
+        , dirac, boxDistribution
          -- * Utility
         , PowerOfTwo, getPowerOfTwo
         ) where
@@ -152,19 +155,23 @@ leftHalf  = prism' (\(D¹ x) -> D¹ $ (x-1)/2)
 rightHalf = prism' (\(D¹ x) -> D¹ $ (x+1)/2)
                    (\(D¹ x) -> guard (x>=0) $> D¹ (x*2 - 1))
 
-boxDistribution :: (D¹, D¹) -> DualVector (Haar D¹ ℝ)
-boxDistribution (D¹ l, D¹ r)
-  | l > r      = boxDistribution (D¹ r, D¹ l)
-boxDistribution (D¹ (-1), D¹ 1)
-               = Haar_D¹ 1 zeroV
-boxDistribution (D¹ l, D¹ r)
-  | l<0, r>0   = Haar_D¹ 1 $ Haar₀ (wr-wl) lstru rstru
-  | l<0        = Haar_D¹ 1 $ Haar₀ (-wl)   lstru zeroV
-  | otherwise  = Haar_D¹ 1 $ Haar₀ wr      zeroV rstru
+boxDistribution :: (VectorSpace y, Scalar y ~ ℝ)
+                     => (D¹, D¹) -> y -> Haar_D¹ DistributionSpace y
+boxDistribution (D¹ l, D¹ r) y
+  | l > r      = boxDistribution (D¹ r, D¹ l) y
+boxDistribution (D¹ (-1), D¹ 1) y
+               = Haar_D¹ y zeroV
+boxDistribution (D¹ l, D¹ r) y
+  | l<0, r>0   = Haar_D¹ y $ Haar₀ (wr^-^wl)    lstru rstru
+  | l<0        = Haar_D¹ y $ Haar₀ (negateV wl) lstru zeroV
+  | otherwise  = Haar_D¹ y $ Haar₀ wr           zeroV rstru
  where Haar_D¹ wl lstru = boxDistribution (D¹ $ l*2 + 1, D¹ $ min 0 r*2 + 1)
-                            ^*if r>0 then l/(l-r) else 1
+                            $ y^*if r>0 then l/(l-r) else 1
        Haar_D¹ wr rstru = boxDistribution (D¹ $ max 0 l*2 - 1, D¹ $ r*2 - 1)
-                            ^*if l<0 then r/(r-l) else 1
+                            $ y^*if l<0 then r/(r-l) else 1
+
+dirac :: D¹ -> DualVector (Haar D¹ ℝ)
+dirac x₀ = boxDistribution (x₀,x₀) 1
 
 instance HaarSamplingDomain D¹ where
   evalHaarFunction = evalHaar_D¹
