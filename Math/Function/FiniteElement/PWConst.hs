@@ -85,8 +85,8 @@ type family Dual (dn :: Dualness) where
 data Haar₀Tree (dn :: Dualness) (y :: *)
        = HaarZero
        | Haar₀ !y               -- ^ Offset-amplitude between the left and right half
-               (Haar₀Tree dn y) -- ^ Left half of the function domain
-               (Haar₀Tree dn y) -- ^ Right half, i.e. [0.5 .. 1[.
+               (Haar₀Tree dn y) -- ^ Left half of the function domain, [-1 .. 0[
+               (Haar₀Tree dn y) -- ^ Right half, i.e. [0 .. 1].
  deriving (Show)
 
 type Haar₀ y = Haar₀Tree FunctionSpace y
