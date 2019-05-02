@@ -31,7 +31,7 @@ module Math.Function.FiniteElement.PWConst
          -- * Distributions
         , dirac, boxDistribution
          -- * Utility
-        , PowerOfTwo, getPowerOfTwo
+        , PowerOfTwo(..), getPowerOfTwo
         ) where
 
 import Data.Manifold.Types
