@@ -82,24 +82,24 @@ type family Dual (dn :: Dualness) where
   Dual DistributionSpace = FunctionSpace
 
 -- | Piecewise-constant functions on the unit interval whose integral is zero.
-data Haar₀Tree (dn :: Dualness) (y :: *)
+data Haar0BiasTree (dn :: Dualness) (y :: *)
        = HaarZero
        | HaarUnbiased !y        -- ^ Offset-amplitude between the left and right half
-               (Haar₀Tree dn y) -- ^ Left half of the function domain, [-1 .. 0[
-               (Haar₀Tree dn y) -- ^ Right half, i.e. [0 .. 1].
+           (Haar0BiasTree dn y) -- ^ Left half of the function domain, [-1 .. 0[
+           (Haar0BiasTree dn y) -- ^ Right half, i.e. [0 .. 1].
  deriving (Show)
 
-type HaarUnbiased y = Haar₀Tree FunctionSpace y
+type HaarUnbiased y = Haar0BiasTree FunctionSpace y
 
 data Haar_D¹ dn y = Haar_D¹
     { pwconst_D¹_offset :: !y
-    , pwconst_D¹_variation :: Haar₀Tree dn y }
+    , pwconst_D¹_variation :: Haar0BiasTree dn y }
 deriving instance (Show y, Show (Diff y)) => Show (Haar_D¹ dn y)
 
 type instance Haar D¹ y = Haar_D¹ FunctionSpace y
 
 fmapHaarUnbiasedCoeffs :: (TensorSpace y, TensorSpace z, Scalar y ~ Scalar z)
-                    => (y-+>z) -> (Haar₀Tree dn y -+> Haar₀Tree dn z)
+                    => (y-+>z) -> (Haar0BiasTree dn y -+> Haar0BiasTree dn z)
 fmapHaarUnbiasedCoeffs f = LinearFunction go
  where go HaarZero = HaarZero
        go (HaarUnbiased δ l r) = HaarUnbiased (f CC.$ δ) (go l) (go r)
@@ -112,7 +112,7 @@ fmapHaarCoeffs f = LinearFunction $
 
 fzipHaarUnbiasedCoeffsWith :: ( TensorSpace x, TensorSpace y, TensorSpace z
                        , Scalar x ~ Scalar y, Scalar y ~ Scalar z )
-                    => ((x,y)-+>z) -> ((Haar₀Tree dn x, Haar₀Tree dn y) -+> Haar₀Tree dn z)
+                    => ((x,y)-+>z) -> ((Haar0BiasTree dn x, Haar0BiasTree dn y) -+> Haar0BiasTree dn z)
 fzipHaarUnbiasedCoeffsWith f = LinearFunction go
  where go (HaarZero, y) = getLinearFunction
                (fmapHaarUnbiasedCoeffs $ f CC.. LinearFunction (zeroV,)) $ y
@@ -184,8 +184,8 @@ instance QC.Arbitrary PowerOfTwo where
     return . TwoToThe . ceiling . logBase 2 $ fromInteger i
   shrink (TwoToThe i) = TwoToThe <$> [0 .. i-1]
 
-instance AdditiveGroup y => AffineSpace (Haar₀Tree dn y) where
-  type Diff (Haar₀Tree dn y) = Haar₀Tree dn y
+instance AdditiveGroup y => AffineSpace (Haar0BiasTree dn y) where
+  type Diff (Haar0BiasTree dn y) = Haar0BiasTree dn y
   HaarZero .+^ f = f
   f .+^ HaarZero = f
   HaarUnbiased δlr₀ δsl₀ δsr₀ .+^ HaarUnbiased δlr₁ δsl₁ δsr₁
@@ -194,15 +194,15 @@ instance AdditiveGroup y => AffineSpace (Haar₀Tree dn y) where
   HaarUnbiased δlr₀ δsl₀ δsr₀ .-. HaarUnbiased δlr₁ δsl₁ δsr₁
             = HaarUnbiased (δlr₀^-^δlr₁) (δsl₀.-.δsl₁) (δsr₀.-.δsr₁)
 
-instance AdditiveGroup y => AdditiveGroup (Haar₀Tree dn y) where
+instance AdditiveGroup y => AdditiveGroup (Haar0BiasTree dn y) where
   (^+^) = (.+^)
   (^-^) = (.-.)
   zeroV = HaarZero
   negateV HaarZero = HaarZero
   negateV (HaarUnbiased δlr δsl δsr) = HaarUnbiased (negateV δlr) (negateV δsl) (negateV δsr)
 
-instance VectorSpace y => VectorSpace (Haar₀Tree dn y) where
-  type Scalar (Haar₀Tree dn y) = Scalar y
+instance VectorSpace y => VectorSpace (Haar0BiasTree dn y) where
+  type Scalar (Haar0BiasTree dn y) = Scalar y
   _ *^ HaarZero = HaarZero
   μ *^ HaarUnbiased δlr δsl δsr = HaarUnbiased (μ*^δlr) (μ*^δsl) (μ*^δsr)
   
@@ -237,16 +237,16 @@ instance (InnerSpace y, Fractional (Scalar y), AffineSpace y, Diff y ~ y)
 instance ( VAffineSpace y
          , Semimanifold y, Needle y ~ Diff y
          , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
-             => Semimanifold (Haar₀Tree dn y) where
-  type Needle (Haar₀Tree dn y) = Haar₀Tree dn (Needle y)
-  type Interior (Haar₀Tree dn y) = Haar₀Tree dn y
+             => Semimanifold (Haar0BiasTree dn y) where
+  type Needle (Haar0BiasTree dn y) = Haar0BiasTree dn (Needle y)
+  type Interior (Haar0BiasTree dn y) = Haar0BiasTree dn y
   translateP = Tagged (.+^)
   toInterior = Just
   fromInterior = id
 instance ( VAffineSpace y
          , Semimanifold y, Needle y ~ Diff y
          , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
-             => PseudoAffine (Haar₀Tree dn y) where
+             => PseudoAffine (Haar0BiasTree dn y) where
   (.-~!) = (.-.)
 
 instance ( VAffineSpace y
@@ -265,8 +265,8 @@ instance ( VAffineSpace y
   (.-~!) = (.-.)
 
 instance ∀ y dn . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Scalar y ~ ℝ)
-             => TensorSpace (Haar₀Tree dn y) where
-  type TensorProduct (Haar₀Tree dn y) w = Haar₀Tree dn (y⊗w)
+             => TensorSpace (Haar0BiasTree dn y) where
+  type TensorProduct (Haar0BiasTree dn y) w = Haar0BiasTree dn (y⊗w)
   wellDefinedVector HaarZero = Just HaarZero
   wellDefinedVector (HaarUnbiased δ l r) = HaarUnbiased <$> wellDefinedVector δ
                                           <*> wellDefinedVector l
@@ -281,9 +281,9 @@ instance ∀ y dn . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Sca
   linearManifoldWitness = case linearManifoldWitness :: LinearManifoldWitness y of
      LinearManifoldWitness BoundarylessWitness -> LinearManifoldWitness BoundarylessWitness
   coerceFmapTensorProduct = cftlp
-   where cftlp :: ∀ a b p . p (Haar₀Tree dn y) -> Coercion a b
-                   -> Coercion (Haar₀Tree dn (Tensor ℝ (Diff y) a))
-                               (Haar₀Tree dn (Tensor ℝ (Diff y) b))
+   where cftlp :: ∀ a b p . p (Haar0BiasTree dn y) -> Coercion a b
+                   -> Coercion (Haar0BiasTree dn (Tensor ℝ (Diff y) a))
+                               (Haar0BiasTree dn (Tensor ℝ (Diff y) b))
          cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
             Coercion -> Coercion
   zeroTensor = zeroV
@@ -417,8 +417,8 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                   , Diff (DualVector y) ~ DualVector y, Needle (DualVector y) ~ DualVector y
                   , AffineSpace (DualVector y)
                   , ValidDualness dn )
-             => LinearSpace (Haar₀Tree dn y) where
-  type DualVector (Haar₀Tree dn y) = Haar₀Tree (Dual dn) (DualVector y)
+             => LinearSpace (Haar0BiasTree dn y) where
+  type DualVector (Haar0BiasTree dn y) = Haar0BiasTree (Dual dn) (DualVector y)
   dualSpaceWitness = case ( dualSpaceWitness :: DualSpaceWitness y
                           , dualityWitness :: DualityWitness dn ) of
        (DualSpaceWitness, DualityWitness) -> DualSpaceWitness
@@ -436,10 +436,10 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                                         $ \r -> HaarUnbiased zeroV zeroV r) CC.$ hId)
   tensorId = LinearMap $ hId
    where hId :: ∀ w . (LinearSpace w, Scalar w ~ ℝ)
-               => Haar₀Tree (Dual dn)
+               => Haar0BiasTree (Dual dn)
                     (Tensor (Scalar (DualVector y))
                             (DualVector y)
-                            (Tensor Double (DualVector w) (Tensor ℝ (Haar₀Tree dn y) w)))
+                            (Tensor Double (DualVector w) (Tensor ℝ (Haar0BiasTree dn y) w)))
          hId = case ( dualSpaceWitness :: DualSpaceWitness y
                     , dualSpaceWitness :: DualSpaceWitness w ) of
           (DualSpaceWitness, DualSpaceWitness)
@@ -454,7 +454,7 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                      (fmapHaarUnbiasedCoeffs (CC.fmap . CC.fmap . LinearFunction
                             $ \(Tensor r) -> Tensor $ HaarUnbiased zeroV zeroV r) CC.$ hId)
   applyDualVector = bilinearFunction $ \a f -> go a f
-   where go :: Haar₀Tree (Dual dn) (DualVector y) -> Haar₀Tree dn y -> ℝ
+   where go :: Haar0BiasTree (Dual dn) (DualVector y) -> Haar0BiasTree dn y -> ℝ
          go HaarZero _ = zeroV
          go _ HaarZero = zeroV
          go (HaarUnbiased δa al ar) (HaarUnbiased δy fl fr)
@@ -464,7 +464,7 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
   applyTensorFunctional = bilinearFunction $ \(LinearMap a) (Tensor f)
                         -> go a f
    where go :: ∀ u . (LinearSpace u, Scalar u ~ ℝ)
-             => Haar₀Tree (Dual dn) (DualVector y⊗DualVector u) -> Haar₀Tree dn (y⊗u) -> ℝ
+             => Haar0BiasTree (Dual dn) (DualVector y⊗DualVector u) -> Haar0BiasTree dn (y⊗u) -> ℝ
          go HaarZero _ = zeroV
          go _ HaarZero = zeroV
          go (HaarUnbiased (Tensor δa) al ar) (HaarUnbiased δy fl fr)
@@ -474,8 +474,8 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                     + go al fl + go ar fr
   applyLinear = bilinearFunction $ \(LinearMap a) f -> go a f
    where go :: ∀ w . (TensorSpace w, Scalar w ~ ℝ)
-                => Haar₀Tree (Dual dn) (Tensor (Scalar (DualVector y)) (DualVector y) w)
-                      -> Haar₀Tree dn y -> w
+                => Haar0BiasTree (Dual dn) (Tensor (Scalar (DualVector y)) (DualVector y) w)
+                      -> Haar0BiasTree dn y -> w
          go HaarZero _ = zeroV
          go _ HaarZero = zeroV
          go (HaarUnbiased (Tensor δa) al ar) (HaarUnbiased δy fl fr)
@@ -484,11 +484,11 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
   applyTensorLinMap = bilinearFunction $ \(LinearMap a) (Tensor f)
                  -> go a f
    where go :: ∀ u w . (LinearSpace u, Scalar u ~ ℝ, TensorSpace w, Scalar w ~ ℝ)
-                => Haar₀Tree (Dual dn) (Tensor
+                => Haar0BiasTree (Dual dn) (Tensor
                            (Scalar (DualVector y))
                             (DualVector y)
                             (Tensor Double (DualVector u) w))
-                 -> Haar₀Tree dn (y⊗u) -> w
+                 -> Haar0BiasTree dn (y⊗u) -> w
          go HaarZero _ = zeroV
          go _ HaarZero = zeroV
          go (HaarUnbiased (Tensor δa) al ar) (HaarUnbiased δyu fl fr)
@@ -516,7 +516,7 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                                          CC.$ (Tensor yId :: DualVector y⊗y))
                        (fmapHaarUnbiasedCoeffs (CC.fmap . LinearFunction
                                           $ \δs -> Haar_D¹ zeroV δs) CC.$ getLinearMap
-                                              (linearId :: Haar₀Tree dn y+>Haar₀Tree dn y))
+                                              (linearId :: Haar0BiasTree dn y+>Haar0BiasTree dn y))
   tensorId = LinearMap $ hId
    where hId :: ∀ w . (LinearSpace w, Scalar w ~ ℝ)
                => Haar_D¹ (Dual dn)
@@ -532,7 +532,7 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                                           $ \yw -> Tensor $ Haar_D¹ yw zeroV)
                                        CC.$ (undefined -- Tensor ywId
                                               :: DualVector y⊗(DualVector w⊗(y⊗w))))
-                       (case tensorId :: (Haar₀Tree dn y⊗w)+>(Haar₀Tree dn y⊗w) of
+                       (case tensorId :: (Haar0BiasTree dn y⊗w)+>(Haar0BiasTree dn y⊗w) of
                           LinearMap h₀ywId
                            -> fmapHaarUnbiasedCoeffs (CC.fmap . CC.fmap . LinearFunction
                                        $ \(Tensor q) -> Tensor (Haar_D¹ zeroV q))
@@ -558,7 +558,7 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                       -> Haar_D¹ dn y -> w
          go (Haar_D¹ (Tensor a₀) δa) (Haar_D¹ f₀ δf)
            = ( (getLinearFunction applyLinear (LinearMap a₀ :: y+>w)) CC.$ f₀ )
-          ^+^ ( getLinearFunction applyLinear (LinearMap δa :: Haar₀Tree dn y+>w) CC.$ δf )
+          ^+^ ( getLinearFunction applyLinear (LinearMap δa :: Haar0BiasTree dn y+>w) CC.$ δf )
   applyTensorLinMap = bilinearFunction $ \(LinearMap a) (Tensor f) -> go a f
    where go :: ∀ u w . (LinearSpace u, Scalar u ~ ℝ, TensorSpace w, Scalar w ~ ℝ)
                 => Haar_D¹ (Dual dn) (Tensor
@@ -570,7 +570,7 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                = ( (getLinearFunction applyTensorLinMap
                           (LinearMap a₀ :: (y⊗u)+>w)) CC.$ f₀ )
               ^+^ ( (getLinearFunction applyTensorLinMap $ LinearMap δa)
-                              CC.$ (Tensor δf :: Haar₀Tree dn y⊗u) )
+                              CC.$ (Tensor δf :: Haar0BiasTree dn y⊗u) )
 
 instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
                => QC.Arbitrary (Haar_D¹ FunctionSpace y) where
