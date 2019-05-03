@@ -59,6 +59,8 @@
 \usepackage{subcaption} %% For complex figures with subfigures/subcaptions
                         %% http://ctan.org/pkg/subcaption
 
+\usepackage{listings}
+\lstset{language=haskell}
 
 \begin{document}
 
@@ -181,6 +183,18 @@ Continuity has a straightforward physical interpretation. It can be argued that 
 if its values are supposed to be measurable: if it were not, then one would need to set up $x$ exactly before measuring $f(x)$ even approximately, but a physical setup can never be completely exact.
 % Contrast with 𝓛² Hilbert space, why that is often preferred in practice, Riesz representation theorem, Nyquist reduction to finite sampling
 
+\section{The space of PCM-sampled functions}
+% Discuss standard approach – pre-select, fixed resolution finite-dim space – problem: risk of underestimating required reso or else wasting resources on unnecessary reso
+It is possible to have an indeed infinite-dimensional vector-space type approximating $\mathcal{L}^2(D^1)$, with a PCM representation but the choice of a resolution deferred to runtime. The data structure itself is then simply an array (or list) of unspecified finite length $n$,
+\begin{lstlisting}
+newtype PCM_D¹ y = PCM_D¹ {
+          getPCMSampling :: [y] }
+\end{lstlisting}
+where the \lstinline`y` values correspond to equally-spaced samples of the represented function, i.e.
+\[
+  \left[f(-1 + \tfrac2n\cdot i)\ \middle|\ i\leftarrow[\tfrac12\;..\;n-\tfrac12]\right].
+\]
+A harmless, but insightful difficulty with this approach is that vector addition does \emph{not} simply reduce to component-wise addition anymore.
 
 %% Acknowledgments
 \begin{acks}                            %% acks environment is optional
