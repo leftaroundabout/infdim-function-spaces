@@ -168,7 +168,18 @@ The example implementation uses a very simple local basis that corresponds to a 
 
 \section{Introduction}
 
-Text of paper \ldots
+Consider the unit interval $D^1 = [-1,1] \subset \mathbb{R}$. This paper discusses functions on that domain, but the methods have been selected with thought to generalisation to unbounded multidimensional domains in mind.
+
+The set of functions $D^1 \to \mathbb{R}$ is a vector space, but it is not only infinite- but even uncountably-dimensional, which makes any storing of coefficients -- i.e., of discrete function values in the continuous domain -- impractical indeed.
+Fortunately, any subset of $\mathbb{R}^{D^1}$ which is closed under scaling and addition is a subspace. Well-studied examples include
+\begin{itemize}
+ \item $\mathcal{C}^0(D^1)$: continuous functions. These can be characterised thus: to obtain any function value $f(x)$ with at least precision $\varepsilon$, one can instead consider $f(\tilde{x})$ where $\tilde{x}$ needs to be merely \emph{close enough} to $x$, i.e. within a distance $\delta_{x,\varepsilon}$.
+ \item $\mathcal{C}^1(D^1)$: continuously differentiable functions. % Discuss how this essentially means just there's a more efficient finite-basis-approximation opportunity
+ \item $\mathcal{L}^2(D^1)$: square-integrable functions. % Integral definition
+\end{itemize}
+Continuity has a straightforward physical interpretation. It can be argued that a function on a non-discrete domain \emph{must} be continuous, at least almost everywhere,
+if its values are supposed to be measurable: if it were not, then one would need to set up $x$ exactly before measuring $f(x)$ even approximately, but a physical setup can never be completely exact.
+% Contrast with 𝓛² Hilbert space, why that is often preferred in practice, Riesz representation theorem, Nyquist reduction to finite sampling
 
 
 %% Acknowledgments
