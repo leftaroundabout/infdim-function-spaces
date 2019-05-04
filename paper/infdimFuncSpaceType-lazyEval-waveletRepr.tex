@@ -60,7 +60,8 @@
                         %% http://ctan.org/pkg/subcaption
 
 \usepackage{listings}
-\lstset{language=haskell}
+\lstset{ language=haskell%
+       , columns=flexible }
 
 \begin{document}
 
@@ -257,6 +258,14 @@ data HaarUnbiased y
                        !(HaarUnbiased y)
 \end{lstlisting}
 Here, the \lstinline`y` value represents now basically the difference in offset between the left and right halves, or by our convention: the offset in the right half and simultaneously the negated offset in the left half (which must be the same, for the integral to come out as zero).
+
+To still support functions with nonzero integral, one can simply add an absolute offset with a wrapper-type only at the top level:
+\begin{lstlisting}
+data Haar_D¹ dn y = Haar_D¹
+    { global_offset :: !y
+    , variation :: HaarUnbiased y }
+\end{lstlisting}
+The name “Haar” indicates that the basis functions of this data type (meaning those functions represented when exactly one of the fields of type ℝ in the \lstinline`HaarUnbiased ℝ` structure is 1, all other zero) are exactly the unnormalised Haar wavelets.
 
 %% Acknowledgments
 \begin{acks}                            %% acks environment is optional
