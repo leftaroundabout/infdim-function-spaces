@@ -48,4 +48,10 @@ executable build-finElemSpc-paper-documentation
   hs-source-dirs:  paper
   build-depends:   base
                    , process, directory
+                   , finiteElement-spaces
+                   , manifolds, vector-space
+                   , dynamic-plot >= 0.3
+                   , diagrams-lib, diagrams-cairo
+                   , data-default-class
+                   , lens
   default-language:    Haskell2010
