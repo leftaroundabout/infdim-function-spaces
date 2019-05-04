@@ -24,6 +24,24 @@ thisDocument = "infdimFuncSpaceType-lazyEval-waveletRepr"
 main :: IO ()
 main = do
   setCurrentDirectory workDir
+  let embedD¹ (l,r) f x
+       | x>l && x<r  = f . D¹ $ 2*(x-l)/(r-l) - 1
+       | otherwise   = 0/0
+  mkPlotFigure "Haar-domDecompose.pdf" (Dia.dims $ 560 ^& 480)
+     ( let f (D¹ x) = sin (3*x) - cos (7*x)/3 - 0.2
+           fHaar = homsampleHaarFunction (TwoToThe 10) f
+           (y₀, (fl, fr)) = multiscaleDecompose fHaar
+           δlr = (fst (multiscaleDecompose fr) - fst (multiscaleDecompose fl))/2
+           f₀ _ = y₀
+       in [ continFnPlot (embedD¹ (-1,1) f) & legendName "𝑓"
+          , continFnPlot (embedD¹ (-1,1) f₀) & legendName "offset"
+          , continFnPlot (embedD¹ (-1,1) $ \(D¹ x)
+                            -> if x<0 then -δlr else δlr) & legendName "δlr"
+          , continFnPlot (embedD¹ (-1,0) $ (+δlr)
+                                   . evalHaarFunction fl) & legendName "𝑓l"
+          , continFnPlot (embedD¹ ( 0,1) $ subtract δlr
+                                   . evalHaarFunction fr) & legendName "𝑓r" ] )
+     HorizontalCatLegend
   mapM_ (`callProcess`[thisDocument]) ["xelatex"]
    
 data LegendConfig = VerticalStackLegend | HorizontalCatLegend

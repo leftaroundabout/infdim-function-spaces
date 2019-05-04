@@ -258,7 +258,12 @@ data HaarUnbiased y
                        !(HaarUnbiased y)
 \end{lstlisting}
 Here, the \lstinline`y` value represents now basically the difference in offset between the left and right halves, or by our convention: the offset in the right half and simultaneously the negated offset in the left half (which must be the same, for the integral to come out as zero).
-
+\begin{figure}
+ \centering
+ \includegraphics[width=\linewidth]{Haar-domDecompose.pdf}
+ \caption{Example of how a function $f:D^1\to\mathbb{R}$ is decomposed into a constant offset, plus a step-function (Haar wavelet) for the offset-difference between left and right half, plus local fluctuations in each of the halves.}
+ \label{haarDomDecompose}
+\end{figure}
 To still support functions with nonzero integral, one can simply add an absolute offset with a wrapper-type only at the top level:
 \begin{lstlisting}
 data Haar_D¹ dn y = Haar_D¹

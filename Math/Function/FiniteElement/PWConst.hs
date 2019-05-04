@@ -31,7 +31,7 @@ module Math.Function.FiniteElement.PWConst
          -- * Distributions
         , dirac, boxDistribution
          -- * Utility
-        , PowerOfTwo(..), getPowerOfTwo
+        , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose
         ) where
 
 import Data.Manifold.Types
@@ -585,3 +585,9 @@ instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
            , (p'¹Terminate, HaarUnbiased <$> QC.arbitrary <*> genΔs pNext <*> genΔs pNext) ]
           where pNext = floor $ fromIntegral p'¹Terminate / 1.1
            
+
+multiscaleDecompose :: VAffineSpace y => Haar D¹ y -> (y, (Haar D¹ y, Haar D¹ y))
+multiscaleDecompose (Haar_D¹ y₀ HaarZero)
+         = (y₀, zeroV)
+multiscaleDecompose (Haar_D¹ y₀ (HaarUnbiased δlr fl fr))
+         = (y₀, (Haar_D¹ (negateV δlr) fl, Haar_D¹ δlr fr))
