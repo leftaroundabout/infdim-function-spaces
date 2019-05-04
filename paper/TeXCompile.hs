@@ -40,7 +40,9 @@ main = do
           , continFnPlot (embedD¹ (-1,0) $ (+δlr)
                                    . evalHaarFunction fl) & legendName "𝑓l"
           , continFnPlot (embedD¹ ( 0,1) $ subtract δlr
-                                   . evalHaarFunction fr) & legendName "𝑓r" ] )
+                                   . evalHaarFunction fr) & legendName "𝑓r"
+          , xAxisLabel "𝑥"
+          , yAxisLabel "𝑓(𝑥)" ] )
      HorizontalCatLegend
   mapM_ (`callProcess`[thisDocument]) ["xelatex"]
    
