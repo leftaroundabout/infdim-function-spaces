@@ -383,6 +383,30 @@ CoHaar_D¹ q0 qFluct <.>^ Haar_D¹ f0 fFluct
 \end{lstlisting}
 note that \emph{no} scaling/normalisation is performed (like it would be required if this were an integral-based inner product) as the recursive call zooms into the left and right subinterval.
 
+It is now quite easy to construct a functional for which \lstinline`<.>^` evaluates integration or averaging over an arbitrary interval: essentially, we think about how the function will be decomposed on the subdomains, but instead of actually accepting a \lstinline`Haar_D¹` value we record in the dual vector with what weight its coefficients would be used in the result:
+\begin{lstlisting}
+boxDistribution :: (D¹, D¹)  -- ^ Target interval
+                -> ℝ         -- ^ Total weight
+                -> Haar_D¹ DistributionSpace ℝ
+boxDistribution (D¹ l, D¹ r) y
+  | l > r      = boxDistribution (D¹ r, D¹ l) y
+boxDistribution (D¹ (-1), D¹ 1) y
+               = CoHaar_D¹ y zeroV
+boxDistribution (D¹ l, D¹ r) y
+  | l<0, r>0  -- intersecting both halves of domain
+      = CoHaar_D¹ y $ CoHaarUnbiased (wr-wl) lstru rstru
+  | l<0       -- intersecting only left half
+      = CoHaar_D¹ y $ CoHaarUnbiased  (-wl)  lstru 0
+  | otherwise -- intersecting only right half
+      = CoHaar_D¹ y $ CoHaarUnbiased   wr    0   rstru
+ where CoHaar_D¹ wl lstru = boxDistribution
+                      (D¹ $ l*2 + 1, D¹ $ min 0 r*2 + 1)
+                      (y * if r>0 then l/(l-r) else 1)
+       CoHaar_D¹ wr rstru = boxDistribution
+                      (D¹ $ max 0 l*2 - 1, D¹ $ r*2 - 1)
+                      (y * if l<0 then r/(r-l) else 1)
+\end{lstlisting}
+
 %% Acknowledgments
 \begin{acks}                            %% acks environment is optional
                                         %% contents suppressed with 'anonymous'
