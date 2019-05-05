@@ -281,9 +281,9 @@ with $x_i\in D^1$, $\sum_i w_i = 1$. For the choice of evaluation points and wei
 
 Crucially for our purposes, the calculation can be split up across the domain just like the recursive \lstinline`HaarUnbiased` data structure is:
 \[
-  \int_{D^1}\mathrm{d}x\:f(x)
-    = \frac12\int_{D^1}\mathrm{d}x\:f(\tfrac{x-1}2)
-    + \frac12\int_{D^1}\mathrm{d}x\:f(\tfrac{x+1}2)
+  \int_{D^1}\!\mathrm{d}x\:f(x)
+    = \frac12\int_{D^1}\!\mathrm{d}x\:f(\tfrac{x-1}2)
+    + \frac12\int_{D^1}\!\mathrm{d}x\:f(\tfrac{x+1}2)
 \]
 Observe that $\tfrac{x-1}2$ only evaluates on the left-, $\tfrac{x+1}2$ only on the right half of the domain.
 
@@ -293,7 +293,7 @@ homsampleHaar_D¹ :: ( VectorSpace y
                     , Fractional (Scalar y) )
             => PowerOfTwo -> (D¹ -> y) -> Haar_D¹ y
 homsampleHaar_D¹ (TwoToThe 0) f
-   = Haar_D¹ (f $ D¹ 0) HaarZero
+   = Haar_D¹ (f 0) HaarZero
 homsampleHaar_D¹ (TwoToThe i) f
    = case homsampleHaar_D¹ (TwoToThe $ i-1)
             <$> [ f . \x -> (x-1)/2
