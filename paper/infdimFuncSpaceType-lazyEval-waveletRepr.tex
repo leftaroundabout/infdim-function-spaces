@@ -411,6 +411,18 @@ The tree generated this way will in general have infinite depth, to select the d
 Furthermore, \lstinline`boxDistribution` itself only builds up the infinitely fine resolution where it is actually required, i.e. at the \emph{boundaries} of the target interval: on those subdivisions that are fully in the interval, again only to top-level coefficient of the function needs to be evaluated, whereas outside of the target the result will simply be zero.
 Thus, the tree has only two long branches, and \lstinline`<.>^` has only a complexity of $\mathcal{O}(\log n)$ in the resolution of the function which the distribution is contracted against. (Compare this with a PCM implementation, where a box distribution would need to contain $\mathcal{O}(n)$ nonzero entries, all of which would need to be evaluated.)
 
+Remarkably, all of this works even if the target “interval” actually has zero width:
+\begin{lstlisting}
+dirac :: D¹ -> CoHaar_D¹ ℝ
+dirac x0 = boxDistribution (x0,x0) 1
+\end{lstlisting}
+That implementation of the Dirac distribution does indeed evaluate functions of arbitrary resolution at one point. As tested with QuickCheck,
+\begin{lstlisting}
+  testProperty "Dirac eval of Haar function"
+   $ \f p -> dirac p<.>^f ~= evalHaarFunction f p
+\end{lstlisting}
+where the QuickCheck \lstinline`Arbitrary` instance generates arbitrarily deep tree structures, and picks any point on $D^1$ for evaluation. \lstinline`~=` checks here equality up to floating-point inaccuracy (in our test suite, allowing a relative error of $10^{-9}$).
+
 %% Acknowledgments
 \begin{acks}                            %% acks environment is optional
                                         %% contents suppressed with 'anonymous'
