@@ -266,7 +266,7 @@ Here, the \lstinline`y` value represents now basically the difference in offset 
 \end{figure}
 To still support functions with nonzero integral, one can simply add an absolute offset with a wrapper-type only at the top level:
 \begin{lstlisting}
-data Haar_D¹ dn y = Haar_D¹
+data Haar_D¹ y = Haar_D¹
     { global_offset :: !y
     , variation :: HaarUnbiased y }
 \end{lstlisting}
@@ -342,8 +342,46 @@ This is in physics written
 \[
   \delta^\ast(f) = \int_\mathbb{R}\!\mathrm{d}x\: \delta(x)\cdot f(x),
 \]
-pretending that the Dirac distribution is actually a real function.
+pretending that the Dirac distribution is a real function.
 
+One allure of this style of writing for numerical applications is that in the common fixed-finite resolution PCM discretisation, the Dirac distribution can be seen as a function \emph{without} requiring an “infinite peak”. Because if the smallest feature that can ever be resolved has a size of at least $h$, all features are \emph{only} characterised by the integral over an interval of that width, i.e. the rigorous-but-inexact definition
+\begin{align*}
+  \delta_h &:\quad \mathbb{R} \to \mathbb{R}
+ \\
+  \delta_h(x) &= \begin{cases} \frac1h & \text{if }|x|<\tfrac{h}2
+                          \\ 0         & \text{otherwise} \end{cases}
+\end{align*}
+is in that case equivalent to the unrigorous-but-exact definition including an infinity. The problem with this is that again it is necessary to know a priori the resolution which will be required, with a too low estimate provoking inaccurate results and a too high one wasting resources.
+
+We therefore question the suitability of PCM-like approaches for problems which involve in theory Dirac point-distributions (e.g. point masses in a gravity simulation). It turns out that the \lstinline`Haar_D¹` tree structure has a representation of the dual space which includes Dirac distribution \emph{exactly}, as well as distributions spread over an interval.
+
+The idea is to mirror the tree data structure (as Riesz suggests), but instead of begging an interpretation involving a Hilbert space's integral inner product, we simply read off the stored coefficients as they are. The conceivable complaint that these coefficients are “unphysical” because through the Haar wavelets they represent differences rather than actual sample values\footnote{%
+This would anyways be hypocritical, since in a fixed-resolution discretisation of $\mathcal{L}^2$ the coefficients \emph{also} don't strictly speaking correspond to concrete sample values, but rather to an integral over such values or even, in the Shannon-Nyquist derivation, to a discrete IFT of the truncation of the infinite sequence of Fourier coefficients.
+} is precluded because both the function-space type and its dual are intended to be used as abstract vector spaces with no public way to directly access the coefficients of either.
+
+What we do not need to require anymore is that the trees have finite depth, because there is conceptually no reason to evaluate a distribution at a single point as with \lstinline`evalPreIntg_D¹`, but only as a functional with a whole function, which we have already required to only have a finite feature-resolution. Thus the tree can be non-strict,
+\begin{lstlisting}
+data CoHaarUnbiased y
+     = CoHaarZero
+     | CoHaarUnbiased !y (HaarUnbiased y)
+                         (HaarUnbiased y)
+data CoHaar_D¹ y
+     = CoHaar_D¹ !y (CoHaarUnbiased y)
+\end{lstlisting}
+but because \lstinline`HaarUnbiased` is strict the functional evaluation is still guaranteed to terminate\footnote{%
+There is a striking comparison to be made here to the Agda programming language, in which data types are strict by default but there is also \emph{co-data} (coinductive types) allowing for infinite streams.
+}:
+\begin{lstlisting}
+(<.>^) :: CoHaar_D¹ ℝ -> Haar_D¹ ℝ -> ℝ
+CoHaar_D¹ q0 qFluct <.>^ Haar_D¹ f0 fFluct
+    = q0 * f0 + qFluct~<.>^fFluct
+ where CoHaarZero ~<.>^ _ = 0
+       _ ~<.>^ HaarZero = 0
+       CoHaarUnbiased δq ql qr
+            ~<.>^ HaarUnbiased δf fl fr
+          = δq * δf + ql~<.>^fl + qr~<.>^fr
+\end{lstlisting}
+note that \emph{no} scaling/normalisation is performed (like it would be required if this were an integral-based inner product) as the recursive call zooms into the left and right subinterval.
 
 %% Acknowledgments
 \begin{acks}                            %% acks environment is optional
