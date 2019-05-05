@@ -395,9 +395,9 @@ boxDistribution (D¹ (-1), D¹ 1) y
 boxDistribution (D¹ l, D¹ r) y
   | l<0, r>0  -- intersecting both halves of domain
       = CoHaar_D¹ y $ CoHaarUnbiased (wr-wl) lstru rstru
-  | l<0       -- intersecting only left half
+  | l<0       -- target intersects only left half
       = CoHaar_D¹ y $ CoHaarUnbiased  (-wl)  lstru 0
-  | otherwise -- intersecting only right half
+  | otherwise -- target intersects only right half
       = CoHaar_D¹ y $ CoHaarUnbiased   wr    0   rstru
  where CoHaar_D¹ wl lstru = boxDistribution
                       (D¹ $ l*2 + 1, D¹ $ min 0 r*2 + 1)
@@ -406,6 +406,10 @@ boxDistribution (D¹ l, D¹ r) y
                       (D¹ $ max 0 l*2 - 1, D¹ $ r*2 - 1)
                       (y * if l<0 then r/(r-l) else 1)
 \end{lstlisting}
+The tree generated this way will in general have infinite depth, to select the desired interval with any delimiters, but the distribution will only narrow in on this selection while the function it is contracted against actually has any structure down to that level. Where the function eventually approaches a constant, only the top-level coefficient is evaluated (as that corresponds to the integral, which is what is sought here).
+
+Furthermore, \lstinline`boxDistribution` itself only builds up the infinitely fine resolution where it is actually required, i.e. at the \emph{boundaries} of the target interval: on those subdivisions that are fully in the interval, again only to top-level coefficient of the function needs to be evaluated, whereas outside of the target the result will simply be zero.
+Thus, the tree has only two long branches, and \lstinline`<.>^` has only a complexity of $\mathcal{O}(\log n)$ in the resolution of the function which the distribution is contracted against. (Compare this with a PCM implementation, where a box distribution would need to contain $\mathcal{O}(n)$ nonzero entries, all of which would need to be evaluated.)
 
 %% Acknowledgments
 \begin{acks}                            %% acks environment is optional
