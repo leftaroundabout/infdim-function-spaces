@@ -302,7 +302,10 @@ homsampleHaar_D¹ (TwoToThe i) f
         -> Haar_D¹ ((y0l+y0r)/2)
              $ HaarUnbiased ((y0r-y0l)/2) sfl sfr
 \end{lstlisting}
-This construction is in DSP called a \emph{fast wavelet transform}.
+This algorithm is in DSP called a \emph{fast wavelet transform}, which starts out with a PCM-sampled array instead of a function-to-be-sampled.
+One advantage of our approach is that it is not really necessary to select one global a-priori maximum resolution (here the \lstinline`PowerOfTwo` parameter); instead, a heuristic can be added that refines the resolution \emph{locally} until the function is sufficiently well approximated.
+Such adaptive resolution is known to boost performance in many real-world applications, such as physics/engineering simulations (finite elements or finite volumes methods, where it is called adaptive mesh refinement). It is also the main principle behind image compression formats which use quantization on a wavelet expansion.
+The reason is that images or solutions to nonliner differential equations are often quite smooth in most of the domain, but include sharp edges / transients / shocks confined to a much smaller area.
 
 %% Acknowledgments
 \begin{acks}                            %% acks environment is optional
