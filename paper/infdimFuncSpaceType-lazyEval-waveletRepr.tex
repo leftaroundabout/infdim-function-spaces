@@ -425,6 +425,35 @@ That implementation of the Dirac distribution does indeed evaluate functions of 
 \end{lstlisting}
 where the QuickCheck \lstinline`Arbitrary` instance generates arbitrarily deep tree structures, and picks any point on $D^1$ for evaluation. \lstinline`~=` checks here equality up to floating-point inaccuracy (in our test suite, allowing a relative error of $10^{-9}$).
 
+\section{Tensor products and linear maps}
+Perhaps most important aspect about the dual space is that it gives rise to a storable implementation of arbitrary linear mappings.
+\begin{lstlisting}
+newtype LinearMap v w = LinearMap
+           (TensorProduct (DualVector v) w)
+\end{lstlisting}
+The \lstinline`TensorProduct` for a parameterised type like \lstinline`Haar_D¹` and \lstinline`CoHaar_D¹` -- generally, for any functor in the category of vector spaces%
+\footnote{They are in fact also functors in the \textbf{Hask} category, but we recommend keeping that instance a private implementation detail because fmapping a nonlinear function is not invariant of the choice of basis, i.e. it is not safe with respect to refactoring to another representations.
+} -- is simply given by instantiating the parameter with the right factor space.
+\begin{lstlisting}
+type instance Scalar y ~ ℝ
+   => TensorProduct (CoHaar_D¹ ℝ) w = CoHaar_D¹ w
+\end{lstlisting}
+So specifically, \lstinline`LinearMap (Haar_D¹ ℝ) (Haar_D¹ ℝ)` is represented by a distribution of functions, i.e. by of the type \lstinline`CoHaar_D¹ (Haar_D¹ ℝ)`.
+This type is important because it would be the type of the identity linear mapping, which is required for \lstinline`Haar_D¹ ℝ` to be a member of of an actual category and prerequisite for generalising several linear algebra algorithm from the finite-Euclidean case to infinite-dimensional spaces like \lstinline`Haar_D¹ ℝ`.
+This is another reason why \lstinline`CoHaar_D¹` must be non-strict: the identity mapping must use an infinite tree, namely
+\begin{lstlisting}
+id :: LinearMap (Haar_D¹ ℝ) (Haar_D¹ ℝ)
+id = LinearMap $ CoHaar_D¹
+           (Haar_D¹ 1 zeroV)
+           (fmap (\ δ -> Haar_D¹ 0 δ) idUnbiased)
+ where idUnbiased :: TensorProduct (CoHaarUnbiased ℝ)
+                                   (HaarUnbiased ℝ)
+       idUnbiased = CoHaarUnbiased
+        (CoHaar_D¹ 1 zeroV zeroV)
+        (fmap (\l -> HaarUnbiased 0 l zeroV) idUnbiased)
+        (fmap (\r -> HaarUnbiased 0 zeroV r) idUnbiased)
+\end{lstlisting}
+
 %% Acknowledgments
 \begin{acks}                            %% acks environment is optional
                                         %% contents suppressed with 'anonymous'
