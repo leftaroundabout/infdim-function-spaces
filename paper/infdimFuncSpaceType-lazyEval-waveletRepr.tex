@@ -188,7 +188,9 @@ if its values are supposed to be measurable: if it were not, then one would need
 
 \section{The space of PCM-sampled functions}
 % Discuss standard approach – pre-select, fixed resolution finite-dim space – problem: risk of underestimating required reso or else wasting resources on unnecessary reso
-It is possible to have an indeed infinite-dimensional vector-space type approximating $\mathcal{L}^2(D^1)$, with a PCM representation but the choice of a resolution deferred to runtime. The data structure itself is then simply an array (or list) of unspecified finite length $n$,
+It is possible to have an indeed infinite-dimensional vector-space type approximating $\mathcal{L}^2(D^1)$, with a PCM\footnote{%
+The abbreviation “PCM” stands for \emph{pulse code modulation}, the term used in digital signal processing for a signal in time domain that is sampled with a digital value proportional to the analogue voltage it represents on equal time intervals. We use it as a shorthand for general equal-spaced sampling. In numerical differential equations, it might rather be called an FD (finite differences) representation, though that would strictly speaking refer to the approximations of differential operators rather than the function itself.
+} representation but the choice of a resolution deferred to runtime. The data structure itself is then simply an array (or list) of unspecified finite length $n$,
 \begin{lstlisting}
 newtype PCM_D¹ y = PCM_D¹ {
           getPCMSampling :: [y] }
@@ -355,7 +357,7 @@ One allure of this style of writing for numerical applications is that in the co
 \end{align*}
 is in that case equivalent to the unrigorous-but-exact definition including an infinity. The problem with this is that again it is necessary to know a priori the resolution which will be required, with a too low estimate provoking inaccurate results and a too high one wasting resources.
 
-We therefore question the suitability of PCM-like approaches for problems which involve in theory Dirac point-distributions (e.g. point masses in a gravity simulation). It turns out that the \lstinline`Haar_D¹` tree structure has a representation of the dual space which includes Dirac distribution \emph{exactly}, as well as distributions spread over an interval.
+We therefore question the suitability of PCM or other fixed-resolution approaches for problems which involve in theory Dirac point-distributions (e.g. point masses in a gravity simulation). It turns out that the \lstinline`Haar_D¹` tree structure has a representation of the dual space which includes Dirac distribution \emph{exactly}, as well as distributions spread over an interval.
 
 The idea is to mirror the tree data structure (as Riesz suggests), but instead of begging an interpretation involving a Hilbert space's integral inner product, we simply read off the stored coefficients as they are. The conceivable complaint that these coefficients are “unphysical” because through the Haar wavelets they represent differences rather than actual sample values\footnote{%
 This would anyways be hypocritical, since in a fixed-resolution discretisation of $\mathcal{L}^2$ the coefficients \emph{also} don't strictly speaking correspond to concrete sample values, but rather to an integral over such values or even, in the Shannon-Nyquist derivation, to a discrete IFT of the truncation of the infinite sequence of Fourier coefficients.
