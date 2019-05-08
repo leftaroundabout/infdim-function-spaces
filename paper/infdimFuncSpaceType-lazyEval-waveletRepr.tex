@@ -65,6 +65,13 @@
        , basewidth={0.6em, 0.5em}%
        , basicstyle=\small }
 
+\theoremstyle{acmplain}
+\newtheorem{theorem}{Theorem}[section]
+\theoremstyle{acmdefinition}
+\newtheorem{remark}[theorem]{Remark}
+
+\usepackage{todonotes}
+
 \begin{document}
 
 %% Title information
@@ -127,11 +134,14 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-What is in numerics represented with “vectors” in form of arrays of numbers are often conceptually continuous functions, i.e. elements of a function vector-space.
-It would be desirable to express this explicitly with types in the numerical code. A naïve reason why this is normally not done is that the function spaces are infinite-dimensional, whereas the numerical code must run in finite time and memory.
+Vectors in numerical computation, i.e., arrays of numbers, are often conceptually continuous functions, i.e. elements of a function vector-space.
+We would like to reflect this explicitly with types in the numerical code.
+One apparent obstacle is that the function spaces are infinite-dimensional, although the numerical code must run in finite time and memory.
 
-We argue that this is not a hurdle: even in an infinite-dimensional space, the vectors \emph{can} in practice be stored in finite memory. What does require infinite data structures for doing linear algebra are actually just \emph{dual vectors}, also called \emph{distributions}.
-Those happen to be equivalent to vectors in the finite-dimensional case, which is why the distinction is usually blurred; but as we show an explicit type-level distinction between functions and distributions makes sense and allows directly expressing useful concepts such as the Dirac distribution, which are problematic in the standard finite-resolution picture.
+We argue that this can be overcome: even in an infinite-dimensional space, the vectors \emph{can} in practice be stored in finite memory.
+However, \emph{dual vectors} (corresponding essentially to \emph{distributions}) require infinite data structure.
+The distinction is usually lost in the finite dimensional case, since dual vectors are often simply represented as vectors (by implicitly choosing a scalar product establishing the correspondance).
+However, we shall see that an explicit type-level distinction between functions and distributions makes sense and allows directly expressing useful concepts such as the Dirac distribution, which are problematic in the standard finite-resolution picture.
 
 The example implementation uses a very simple local basis that corresponds to a Haar Wavelet transform.
 \end{abstract}
@@ -173,17 +183,26 @@ The example implementation uses a very simple local basis that corresponds to a 
 
 \section{Introduction}
 
-Consider the unit interval $D^1 = [-1,1] \subset \mathbb{R}$. This paper discusses functions on that domain, but the methods have been selected with thought to generalisation to unbounded multidimensional domains in mind.
+Consider the unit interval $D^1 = [-1,1] \subset \mathbb{R}$.
+This paper discusses functions on that domain, but the methods are written so as to straightforwardly generalise to unbounded multidimensional domains.
 
-The set of functions $D^1 \to \mathbb{R}$ is a vector space, but it is not only infinite- but even uncountably-dimensional, which makes any storing of coefficients -- i.e., of discrete function values in the continuous domain -- impractical indeed.
-Fortunately, any subset of $\mathbb{R}^{D^1}$ which is closed under scaling and addition is a subspace. Well-studied examples include
+The set $\mathbb{R}^{D^1}$ of functions $D^1 \to \mathbb{R}$ is a vector space, but it is, in a sense, too big.
+% but it is not only infinite- but even uncountably-dimensional, which makes any storing of coefficients -- i.e., of discrete function values in the continuous domain -- impractical indeed.
+% Fortunately, any subset of $\mathbb{R}^{D^1}$ which is closed under scaling and addition is a subspace.
+% Well-studied examples include
+It is easier to consider better behaved subspaces, often endowed with a natural, simpler topology.
 \begin{itemize}
- \item $\mathcal{C}^0(D^1)$: continuous functions. These can be characterised thus: to obtain any function value $f(x)$ with at least precision $\varepsilon$, one can instead consider $f(\tilde{x})$ where $\tilde{x}$ needs to be merely \emph{close enough} to $x$, i.e. within a distance $\delta_{x,\varepsilon}$.
+\item $\mathcal{C}^0(D^1)$: continuous functions.
+  % These can be characterised thus: to obtain any function value $f(x)$ with at least precision $\varepsilon$, one can instead consider $f(\tilde{x})$ where $\tilde{x}$ needs to be merely \emph{close enough} to $x$, i.e. within a distance $\delta_{x,\varepsilon}$.
  \item $\mathcal{C}^1(D^1)$: continuously differentiable functions. % Discuss how this essentially means just there's a more efficient finite-basis-approximation opportunity
  \item $\mathcal{L}^2(D^1)$: square-integrable functions. % Integral definition
 \end{itemize}
-Continuity has a straightforward physical interpretation. It can be argued that a function on a non-discrete domain \emph{must} be continuous, at least almost everywhere,
-if its values are supposed to be measurable: if it were not, then one would need to set up $x$ exactly before measuring $f(x)$ even approximately, but a physical setup can never be completely exact.
+\begin{remark}
+  Continuity has a straightforward physical interpretation.
+  One could argue that a function representing an observable value on a continuous domain \emph{must} be continuous, at least almost everywhere,
+  as a physical setup is never completely exact.
+  % otherwise, one would need to set up $x$ exactly before measuring $f(x)$ even approximately, but a physical setup can never be completely exact.
+\end{remark}
 % Contrast with 𝓛² Hilbert space, why that is often preferred in practice, Riesz representation theorem, Nyquist reduction to finite sampling
 
 \section{The space of PCM-sampled functions}
@@ -199,12 +218,17 @@ where the \lstinline`y` values correspond to equally-spaced samples of the repre
 \[
   \left[f(-1 + \tfrac2n\cdot i)\ \middle|\ i\leftarrow[\tfrac12\;..\;n-\tfrac12]\right].
 \]
-A harmless, but insightful difficulty with this approach is that vector addition does \emph{not} simply reduce to component-wise addition anymore.
+% A harmless, but insightful difficulty with this approach is that vector addition does \emph{not} simply reduce to component-wise addition anymore.
+Note that, as the length of the list is not fixed,
+vector addition does \emph{not} simply reduce to component-wise addition anymore.
 % Demonstrate code&example for `instance AdditiveGroup PCM_D¹`, involving interpolation
 
-A more fundamental problem with such an approach is that every vector needs to actually know its resolution. That is given in all purely forward-calculating applications; in that case vectors come in given and are processed by functions in the programming language, which do not store state.
+A more fundamental issue with such an approach is that every vector needs to know its resolution.
+That is given in all purely forward-calculating applications; in that case vectors come in given and are processed by functions in the programming language, which do not store state.
+\todo[inline, author=O]{I don't understand the last sentence}
 
-Very many applications however exploit the possibility of linear algebra to store linear mappings in an efficient way as matrices, and to also perform inverse calculations (i.e. solving linear or locally-linearised equations).
+% Very many applications however exploit the possibility of linear algebra to store linear mappings in an efficient way as matrices, and to also perform inverse calculations (i.e. solving linear or locally-linearised equations).
+In many applications, however, this vector representation is fruitful, as it is amenable to standard linear algebra techniques.
 % Cite Conal Elliott and/or other works that bring in cartesian closed categories; conclude that we want a category with, at the very least, identity mappings
 % Discuss inability of PCM to express complete identity (infinite resolution in the contravariant part), and perhaps that it's inefficient even for a finite-dim cutoff (quadratic complexity of dense matrices).
 
@@ -212,7 +236,10 @@ Very many applications however exploit the possibility of linear algebra to stor
 % Primer on functional analysis, dual spaces, the `LinearSpace` type class
 
 \section{Multiscale resolution}\label{mulScaleResoIntro}
-A moral to take away from the usefulness of spaces like $\mathcal{L}^2$ is that the infinite dimensionality can be handled easily if for any concrete result, only finite-width \emph{integrals} over the function are required, as that averages out small-scale fluctuations. To actually benefit from this, it is necessary to be able to obtain the integral without actually evaluating all the small-scale structure. That is the idea behind multiscale or wavelet methods. These are often derived as some orthonormal basis of $\mathcal{L}^2$, but we can also give a construction more from first principles.
+The main usefulness of spaces like $\mathcal{L}^2$ is that the infinite dimensionality can be managed easily if one only needs finite-width \emph{integrals} over the function, as these average out small-scale fluctuations.
+To benefit from this, we must find a way to compute the integral without evaluating all the small-scale structure.
+That is the idea behind multiscale or wavelet methods.
+These are often derived as some orthonormal basis of $\mathcal{L}^2$, but we can also give a construction more from first principles.
 
 To directly enable the $\mathcal{O}(1)$ evaluation of large-scale integrals, one might consider the following representation of $D^1\to \mathrm{y}$ functions:
 \begin{lstlisting}
@@ -230,11 +257,23 @@ The idea is to decompose a function into a constant offset (proportional to the 
               \\ f_\mathrm{r}(x_\mathrm{r}) & \text{if $x$ on right}
               \end{cases}
 \]
-The above \lstinline`PreIntg_D¹` data structure is a tree which has always infinite size; this can be handled in a language like Haskell through lazy evaluation, however only if all that is ever requested from the function are integrals over finite-extend subintervals. Pointwise evaluation would recurse infinitely.
+The data structure \lstinline`PreIntg_D¹` defined above is a binary tree which has always infinite size.
+This can be handled in a language with lazy evaluation like Haskell,
+but only if all that is ever requested from the function are integrals over finite-extend subintervals.
+Pointwise evaluation would recurse infinitely.
 
-Always and everywhere going to infinite resolution is overzealous for a function type. It is not really an $D^1\to \mathrm{y}$ function if it \emph{cannot} be evaluated at any individual point in $D^1$. In practice, for any given real-world measured function, there will be only finitely many data points available anywhere, so in practice one will at sufficiently small scale eventually store \emph{only} the offset, and presume that any even smaller fluctuations are neglectable, which is warranted to happen for a continuous function.
+% Always and everywhere going to infinite resolution is overzealous for a function type.
+Note also that it is not really an $D^1\to \mathrm{y}$ function if it \emph{cannot} be evaluated at any individual point in $D^1$.
+In practice, for any given real-world measured function, there will be only finitely many data points available at any given moment,
+so at a sufficiently small scale one would eventually store \emph{only} the offset,
+and assume that any smaller fluctuations are negligible.
+% which is warranted to happen for a continuous function.
+% one should be more precise, as to continuous functions here...
 
-This cutoff can be achieved by wrapping the substructure fields in \lstinline`Maybe` or, equivalenty, offering a dedicated constructor for the zero function, resulting in a conventional finite tree which could also be strictly evaluated (here enforced by the exclamation marks).
+This eventual cutoff can be implemented by wrapping the substructure fields in \lstinline`Maybe`.
+Here we instead define a specific constructor for the zero function (instead of the generic \lstinline`Nothing` constructor).
+We now obtain a conventional tree with finite depth.
+Note that it can now also be strictly evaluated (here enforced by the exclamation marks).
 \begin{lstlisting}
 data PreIntg_D¹ y
       = PreIntgZero
@@ -251,24 +290,30 @@ evalPreIntg_D¹ (PreIntg y0 l r) x
            then evalPreIntg_D¹ l (2*x+1)
            else evalPreIntg_D¹ r (2*x-1)
 \end{lstlisting}
-Here, \lstinline`2*x+1` or \lstinline`2*x-1` “zoom in” onto the left or right half subinterval, depending on where \lstinline`x` resides.
+Here, \lstinline`2*x+1` or \lstinline`2*x-1` “zoom in” onto the left or right half subinterval, depending on where \lstinline`x` lies.
 
 \par
-Awkward about \lstinline`data PreIntg_D¹` is that it contains redundant information: the offset already fixes what the integral over the complete function should be, but in fact there is nothing preventing the sub-interval functions from contributing their own part to the integral. This can be prevented if they are instead in a type that represents by construction integral-free functions. This means there can be no global offset, instead the highest-level structure is the offset \emph{difference} between the domain halves. This changes nothing about the data structure, just about its meaning:
+One downside of \lstinline`data PreIntg_D¹` is that it is redundant:
+the offset already fixes what the integral over the complete function should be,
+but there is nothing preventing the sub-interval functions from contributing their own part to the integral.
+One solution is to use a type which represents functions having vanishing integrals.
+This means there can be no global offset, instead the highest-level structure is the offset \emph{difference} between the domain halves.
+This changes nothing about the data structure, just about its meaning:
 \begin{lstlisting}
 data HaarUnbiased y
      = HaarZero
      | HaarUnbiased !y !(HaarUnbiased y)
                        !(HaarUnbiased y)
 \end{lstlisting}
-Here, the \lstinline`y` value represents now basically the difference in offset between the left and right halves, or by our convention: the offset in the right half and simultaneously the negated offset in the left half (which must be the same, for the integral to come out as zero).
+Here, the \lstinline`y` value now represents the difference in offset between the left and right halves,
+or, by our convention, the offset in the right half and, implicitly, the negated offset in the left half (which must be the same for the integral to vanish).
 \begin{figure}
  \centering
  \includegraphics[width=\linewidth]{Haar-domDecompose.pdf}
  \caption{Example of how a function $f:D^1\to\mathbb{R}$ is decomposed into a constant offset, plus a step-function (Haar wavelet) for the offset-difference between left and right half, plus local fluctuations in each of the halves.}
  \label{haarDomDecompose}
 \end{figure}
-To still support functions with nonzero integral, one can simply add an absolute offset with a wrapper-type only at the top level:
+One can support functions with nonzero integral by simply adding an absolute offset with a wrapper-type at the top level:
 \begin{lstlisting}
 data Haar_D¹ y = Haar_D¹
     { global_offset :: !y
@@ -276,12 +321,18 @@ data Haar_D¹ y = Haar_D¹
 \end{lstlisting}
 The name “Haar” indicates that the basis functions of this data type (meaning those functions represented when exactly one of the fields of type ℝ in the \lstinline`HaarUnbiased ℝ` structure is 1, all other zero) are exactly the unnormalised Haar wavelets.
 
-\section{Sampling}
-Both with traditional orthonormal-basis methods and the domain-decomposition approach introduced in section \ref{mulScaleResoIntro}, the numerical representations are conceptually obtained from a function on the interval by integration. In case the function is already given by an analytic or other numerical expression, it may be possible to calculate this integral exactly, but more typically it will in real-world applications actually be calculated numerically itself, from a finite sample of discrete points. All such methods (which if fact consistently describe the integral) amount to some weighted average of the sample points:
+\section{Integration}
+Whether using traditional orthonormal-basis methods, or the domain-decomposition approach introduced in \autoref{mulScaleResoIntro},
+the numerical representations are obtained from integrating the function on an interval.
+If the function is given as an analytic expression, it might be possible to calculate this integral exactly,
+but this is typically impossible, and one resorts to numerical approximations.
+All such approximations amount to some weighted average of the sample points:
 \[
   \int_{D^1}\!\mathrm{d}x\:f(x) \approx \sum_i w_i\cdot f(x_i)
 \]
-with $x_i\in D^1$, $\sum_i w_i = 1$. For the choice of evaluation points and weights there are many different considerations to achieve good accuracy efficiently, this shall not be discussed here.
+with $x_i\in D^1$, $\sum_i w_i = 1$.
+% For the choice of evaluation points and weights there are many different considerations to achieve good accuracy efficiently, this shall not be discussed here.
+The choice of the evaluation points $x_i$ and weights $w_i$ are subject to considerations of efficiency and accuracy which we will not discuss here.
 
 Crucially for our purposes, the calculation can be split up across the domain just like the recursive \lstinline`HaarUnbiased` data structure is:
 \[
@@ -291,7 +342,10 @@ Crucially for our purposes, the calculation can be split up across the domain ju
 \]
 Observe that $\tfrac{x-1}2$ only evaluates on the left-, $\tfrac{x+1}2$ only on the right half of the domain.
 
-This allows constructing the \lstinline`HaarUnbiased` tree in single pass with bottom-up propagation of the partial integrals, to obtain the offset estimates at each level without redundant computation. The choice of actually discrete numerical approximation only needs to be made at the smallest level; the simplest option is to only evaluate it at a single point in the middle and give that full weight (rectangular method). Thus the Haar representation can be obtained in $\mathcal{O}(n\cdot\log n)$ from a function on the interval:
+This allows constructing the \lstinline`HaarUnbiased` tree in single pass with bottom-up propagation of the partial integrals, to obtain the offset estimates at each level without redundant computation.
+The choice of of numerical approximation only occurs at the smallest level;
+the simplest possibility is to only evaluate it at a single point in the middle and give that full weight (rectangular method).
+Thus the Haar representation can be obtained in $\mathcal{O}(n\cdot\log n)$ from a function on the interval:
 \begin{lstlisting}
 homsampleHaar_D¹ :: ( VectorSpace y
                     , Fractional (Scalar y) )
@@ -307,9 +361,12 @@ homsampleHaar_D¹ (TwoToThe i) f
              $ HaarUnbiased ((y0r-y0l)/2) sfl sfr
 \end{lstlisting}
 This algorithm is in DSP called a \emph{fast wavelet transform}, which starts out with a PCM-sampled array instead of a function-to-be-sampled.
-One advantage of our approach is that it is not really necessary to select one global a-priori maximum resolution (here the \lstinline`PowerOfTwo` parameter); instead, a heuristic can be added that refines the resolution \emph{locally} until the function is sufficiently well approximated.
-Such adaptive resolution is known to boost performance in many real-world applications, such as physics/engineering simulations (finite elements or finite volumes methods, where it is called adaptive mesh refinement). It is also the main principle behind image compression formats which use quantization on a wavelet expansion.
+One advantage of our approach is that it is not necessary to select one global maximum resolution (here the \lstinline`PowerOfTwo` parameter); instead, a heuristic can be added that refines the resolution \emph{locally} until the function is satisfactorily approximated.
+\begin{remark}
+Similar adaptive resolution strategies often dramatically improve performance in real-world applications, such as physics/engineering simulations (finite elements or finite volumes methods, where they correspond to adaptive mesh refinement).
+It is also the main principle behind image compression formats which use quantization on a wavelet expansion.
 The reason is that images or solutions to nonliner differential equations are often quite smooth in most of the domain, but include sharp edges / transients / shocks confined to a much smaller area.
+\end{remark}
 
 \section{Dual space: functionals}
 The dual space of a function space $X$ contains itself functions, but at least in principle on a different domain:
