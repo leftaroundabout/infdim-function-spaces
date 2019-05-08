@@ -70,6 +70,8 @@
 \theoremstyle{acmdefinition}
 \newtheorem{remark}[theorem]{Remark}
 
+\usepackage{todonotes}
+
 \begin{document}
 
 %% Title information
@@ -216,12 +218,17 @@ where the \lstinline`y` values correspond to equally-spaced samples of the repre
 \[
   \left[f(-1 + \tfrac2n\cdot i)\ \middle|\ i\leftarrow[\tfrac12\;..\;n-\tfrac12]\right].
 \]
-A harmless, but insightful difficulty with this approach is that vector addition does \emph{not} simply reduce to component-wise addition anymore.
+% A harmless, but insightful difficulty with this approach is that vector addition does \emph{not} simply reduce to component-wise addition anymore.
+Note that, as the length of the list is not fixed,
+vector addition does \emph{not} simply reduce to component-wise addition anymore.
 % Demonstrate code&example for `instance AdditiveGroup PCM_D¹`, involving interpolation
 
-A more fundamental problem with such an approach is that every vector needs to actually know its resolution. That is given in all purely forward-calculating applications; in that case vectors come in given and are processed by functions in the programming language, which do not store state.
+A more fundamental issue with such an approach is that every vector needs to know its resolution.
+That is given in all purely forward-calculating applications; in that case vectors come in given and are processed by functions in the programming language, which do not store state.
+\todo[inline, author=O]{I don't understand the last sentence}
 
-Very many applications however exploit the possibility of linear algebra to store linear mappings in an efficient way as matrices, and to also perform inverse calculations (i.e. solving linear or locally-linearised equations).
+% Very many applications however exploit the possibility of linear algebra to store linear mappings in an efficient way as matrices, and to also perform inverse calculations (i.e. solving linear or locally-linearised equations).
+In many applications, however, this vector representation is fruitful, as it is amenable to standard linear algebra techniques.
 % Cite Conal Elliott and/or other works that bring in cartesian closed categories; conclude that we want a category with, at the very least, identity mappings
 % Discuss inability of PCM to express complete identity (infinite resolution in the contravariant part), and perhaps that it's inefficient even for a finite-dim cutoff (quadratic complexity of dense matrices).
 
