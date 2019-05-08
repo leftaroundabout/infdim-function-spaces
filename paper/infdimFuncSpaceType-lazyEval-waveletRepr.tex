@@ -293,21 +293,27 @@ evalPreIntg_D¹ (PreIntg y0 l r) x
 Here, \lstinline`2*x+1` or \lstinline`2*x-1` “zoom in” onto the left or right half subinterval, depending on where \lstinline`x` lies.
 
 \par
-Awkward about \lstinline`data PreIntg_D¹` is that it contains redundant information: the offset already fixes what the integral over the complete function should be, but in fact there is nothing preventing the sub-interval functions from contributing their own part to the integral. This can be prevented if they are instead in a type that represents by construction integral-free functions. This means there can be no global offset, instead the highest-level structure is the offset \emph{difference} between the domain halves. This changes nothing about the data structure, just about its meaning:
+One downside of \lstinline`data PreIntg_D¹` is that it is redundant:
+the offset already fixes what the integral over the complete function should be,
+but there is nothing preventing the sub-interval functions from contributing their own part to the integral.
+One solution is to use a type which represents functions having vanishing integrals.
+This means there can be no global offset, instead the highest-level structure is the offset \emph{difference} between the domain halves.
+This changes nothing about the data structure, just about its meaning:
 \begin{lstlisting}
 data HaarUnbiased y
      = HaarZero
      | HaarUnbiased !y !(HaarUnbiased y)
                        !(HaarUnbiased y)
 \end{lstlisting}
-Here, the \lstinline`y` value represents now basically the difference in offset between the left and right halves, or by our convention: the offset in the right half and simultaneously the negated offset in the left half (which must be the same, for the integral to come out as zero).
+Here, the \lstinline`y` value now represents the difference in offset between the left and right halves,
+or, by our convention, the offset in the right half and, implicitly, the negated offset in the left half (which must be the same for the integral to vanish).
 \begin{figure}
  \centering
  \includegraphics[width=\linewidth]{Haar-domDecompose.pdf}
  \caption{Example of how a function $f:D^1\to\mathbb{R}$ is decomposed into a constant offset, plus a step-function (Haar wavelet) for the offset-difference between left and right half, plus local fluctuations in each of the halves.}
  \label{haarDomDecompose}
 \end{figure}
-To still support functions with nonzero integral, one can simply add an absolute offset with a wrapper-type only at the top level:
+One can support functions with nonzero integral by simply adding an absolute offset with a wrapper-type at the top level:
 \begin{lstlisting}
 data Haar_D¹ y = Haar_D¹
     { global_offset :: !y
