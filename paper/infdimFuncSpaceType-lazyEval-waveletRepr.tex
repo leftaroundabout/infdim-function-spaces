@@ -321,12 +321,18 @@ data Haar_D¹ y = Haar_D¹
 \end{lstlisting}
 The name “Haar” indicates that the basis functions of this data type (meaning those functions represented when exactly one of the fields of type ℝ in the \lstinline`HaarUnbiased ℝ` structure is 1, all other zero) are exactly the unnormalised Haar wavelets.
 
-\section{Sampling}
-Both with traditional orthonormal-basis methods and the domain-decomposition approach introduced in section \ref{mulScaleResoIntro}, the numerical representations are conceptually obtained from a function on the interval by integration. In case the function is already given by an analytic or other numerical expression, it may be possible to calculate this integral exactly, but more typically it will in real-world applications actually be calculated numerically itself, from a finite sample of discrete points. All such methods (which if fact consistently describe the integral) amount to some weighted average of the sample points:
+\section{Integration}
+Whether using traditional orthonormal-basis methods, or the domain-decomposition approach introduced in \autoref{mulScaleResoIntro},
+the numerical representations are obtained from integrating the function on an interval.
+If the function is given as an analytic expression, it might be possible to calculate this integral exactly,
+but this is typically impossible, and one resorts to numerical approximations.
+All such approximations amount to some weighted average of the sample points:
 \[
   \int_{D^1}\!\mathrm{d}x\:f(x) \approx \sum_i w_i\cdot f(x_i)
 \]
-with $x_i\in D^1$, $\sum_i w_i = 1$. For the choice of evaluation points and weights there are many different considerations to achieve good accuracy efficiently, this shall not be discussed here.
+with $x_i\in D^1$, $\sum_i w_i = 1$.
+% For the choice of evaluation points and weights there are many different considerations to achieve good accuracy efficiently, this shall not be discussed here.
+The choice of the evaluation points $x_i$ and weights $w_i$ are subject to considerations of efficiency and accuracy which we will not discuss here.
 
 Crucially for our purposes, the calculation can be split up across the domain just like the recursive \lstinline`HaarUnbiased` data structure is:
 \[
