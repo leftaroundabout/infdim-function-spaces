@@ -270,7 +270,10 @@ and assume that any smaller fluctuations are negligible.
 % which is warranted to happen for a continuous function.
 % one should be more precise, as to continuous functions here...
 
-This cutoff can be achieved by wrapping the substructure fields in \lstinline`Maybe` or, equivalenty, offering a dedicated constructor for the zero function, resulting in a conventional finite tree which could also be strictly evaluated (here enforced by the exclamation marks).
+This eventual cutoff can be implemented by wrapping the substructure fields in \lstinline`Maybe`.
+Here we instead define a specific constructor for the zero function (instead of the generic \lstinline`Nothing` constructor).
+We now obtain a conventional tree with finite depth.
+Note that it can now also be strictly evaluated (here enforced by the exclamation marks).
 \begin{lstlisting}
 data PreIntg_D¹ y
       = PreIntgZero
@@ -287,7 +290,7 @@ evalPreIntg_D¹ (PreIntg y0 l r) x
            then evalPreIntg_D¹ l (2*x+1)
            else evalPreIntg_D¹ r (2*x-1)
 \end{lstlisting}
-Here, \lstinline`2*x+1` or \lstinline`2*x-1` “zoom in” onto the left or right half subinterval, depending on where \lstinline`x` resides.
+Here, \lstinline`2*x+1` or \lstinline`2*x-1` “zoom in” onto the left or right half subinterval, depending on where \lstinline`x` lies.
 
 \par
 Awkward about \lstinline`data PreIntg_D¹` is that it contains redundant information: the offset already fixes what the integral over the complete function should be, but in fact there is nothing preventing the sub-interval functions from contributing their own part to the integral. This can be prevented if they are instead in a type that represents by construction integral-free functions. This means there can be no global offset, instead the highest-level structure is the offset \emph{difference} between the domain halves. This changes nothing about the data structure, just about its meaning:
