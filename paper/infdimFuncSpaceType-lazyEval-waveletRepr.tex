@@ -65,6 +65,11 @@
        , basewidth={0.6em, 0.5em}%
        , basicstyle=\small }
 
+\theoremstyle{acmplain}
+\newtheorem{theorem}{Theorem}[section]
+\theoremstyle{acmdefinition}
+\newtheorem{remark}[theorem]{Remark}
+
 \begin{document}
 
 %% Title information
@@ -190,8 +195,12 @@ It is easier to consider better behaved subspaces, often endowed with a natural,
  \item $\mathcal{C}^1(D^1)$: continuously differentiable functions. % Discuss how this essentially means just there's a more efficient finite-basis-approximation opportunity
  \item $\mathcal{L}^2(D^1)$: square-integrable functions. % Integral definition
 \end{itemize}
-Continuity has a straightforward physical interpretation. It can be argued that a function on a non-discrete domain \emph{must} be continuous, at least almost everywhere,
-if its values are supposed to be measurable: if it were not, then one would need to set up $x$ exactly before measuring $f(x)$ even approximately, but a physical setup can never be completely exact.
+\begin{remark}
+  Continuity has a straightforward physical interpretation.
+  One could argue that a function representing an observable value on a continuous domain \emph{must} be continuous, at least almost everywhere,
+  as a physical setup is never completely exact.
+  % otherwise, one would need to set up $x$ exactly before measuring $f(x)$ even approximately, but a physical setup can never be completely exact.
+\end{remark}
 % Contrast with 𝓛² Hilbert space, why that is often preferred in practice, Riesz representation theorem, Nyquist reduction to finite sampling
 
 \section{The space of PCM-sampled functions}
