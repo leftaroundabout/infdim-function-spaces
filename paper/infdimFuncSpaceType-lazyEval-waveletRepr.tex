@@ -176,12 +176,17 @@ The example implementation uses a very simple local basis that corresponds to a 
 
 \section{Introduction}
 
-Consider the unit interval $D^1 = [-1,1] \subset \mathbb{R}$. This paper discusses functions on that domain, but the methods have been selected with thought to generalisation to unbounded multidimensional domains in mind.
+Consider the unit interval $D^1 = [-1,1] \subset \mathbb{R}$.
+This paper discusses functions on that domain, but the methods are written so as to straightforwardly generalise to unbounded multidimensional domains.
 
-The set of functions $D^1 \to \mathbb{R}$ is a vector space, but it is not only infinite- but even uncountably-dimensional, which makes any storing of coefficients -- i.e., of discrete function values in the continuous domain -- impractical indeed.
-Fortunately, any subset of $\mathbb{R}^{D^1}$ which is closed under scaling and addition is a subspace. Well-studied examples include
+The set $\mathbb{R}^{D^1}$ of functions $D^1 \to \mathbb{R}$ is a vector space, but it is, in a sense, too big.
+% but it is not only infinite- but even uncountably-dimensional, which makes any storing of coefficients -- i.e., of discrete function values in the continuous domain -- impractical indeed.
+% Fortunately, any subset of $\mathbb{R}^{D^1}$ which is closed under scaling and addition is a subspace.
+% Well-studied examples include
+It is easier to consider better behaved subspaces, often endowed with a natural, simpler topology.
 \begin{itemize}
- \item $\mathcal{C}^0(D^1)$: continuous functions. These can be characterised thus: to obtain any function value $f(x)$ with at least precision $\varepsilon$, one can instead consider $f(\tilde{x})$ where $\tilde{x}$ needs to be merely \emph{close enough} to $x$, i.e. within a distance $\delta_{x,\varepsilon}$.
+\item $\mathcal{C}^0(D^1)$: continuous functions.
+  % These can be characterised thus: to obtain any function value $f(x)$ with at least precision $\varepsilon$, one can instead consider $f(\tilde{x})$ where $\tilde{x}$ needs to be merely \emph{close enough} to $x$, i.e. within a distance $\delta_{x,\varepsilon}$.
  \item $\mathcal{C}^1(D^1)$: continuously differentiable functions. % Discuss how this essentially means just there's a more efficient finite-basis-approximation opportunity
  \item $\mathcal{L}^2(D^1)$: square-integrable functions. % Integral definition
 \end{itemize}
