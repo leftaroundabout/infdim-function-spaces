@@ -127,11 +127,14 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-What is in numerics represented with “vectors” in form of arrays of numbers are often conceptually continuous functions, i.e. elements of a function vector-space.
-It would be desirable to express this explicitly with types in the numerical code. A naïve reason why this is normally not done is that the function spaces are infinite-dimensional, whereas the numerical code must run in finite time and memory.
+Vectors in numerical computation, i.e., arrays of numbers, are often conceptually continuous functions, i.e. elements of a function vector-space.
+We would like to reflect this explicitly with types in the numerical code.
+One apparent obstacle is that the function spaces are infinite-dimensional, although the numerical code must run in finite time and memory.
 
-We argue that this is not a hurdle: even in an infinite-dimensional space, the vectors \emph{can} in practice be stored in finite memory. What does require infinite data structures for doing linear algebra are actually just \emph{dual vectors}, also called \emph{distributions}.
-Those happen to be equivalent to vectors in the finite-dimensional case, which is why the distinction is usually blurred; but as we show an explicit type-level distinction between functions and distributions makes sense and allows directly expressing useful concepts such as the Dirac distribution, which are problematic in the standard finite-resolution picture.
+We argue that this can be overcome: even in an infinite-dimensional space, the vectors \emph{can} in practice be stored in finite memory.
+However, \emph{dual vectors} (corresponding essentially to \emph{distributions}) require infinite data structure.
+The distinction is usually lost in the finite dimensional case, since dual vectors are often simply represented as vectors (by implicitly choosing a scalar product establishing the correspondance).
+However, we shall see that an explicit type-level distinction between functions and distributions makes sense and allows directly expressing useful concepts such as the Dirac distribution, which are problematic in the standard finite-resolution picture.
 
 The example implementation uses a very simple local basis that corresponds to a Haar Wavelet transform.
 \end{abstract}
