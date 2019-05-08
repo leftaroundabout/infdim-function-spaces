@@ -236,7 +236,10 @@ In many applications, however, this vector representation is fruitful, as it is 
 % Primer on functional analysis, dual spaces, the `LinearSpace` type class
 
 \section{Multiscale resolution}\label{mulScaleResoIntro}
-A moral to take away from the usefulness of spaces like $\mathcal{L}^2$ is that the infinite dimensionality can be handled easily if for any concrete result, only finite-width \emph{integrals} over the function are required, as that averages out small-scale fluctuations. To actually benefit from this, it is necessary to be able to obtain the integral without actually evaluating all the small-scale structure. That is the idea behind multiscale or wavelet methods. These are often derived as some orthonormal basis of $\mathcal{L}^2$, but we can also give a construction more from first principles.
+The main usefulness of spaces like $\mathcal{L}^2$ is that the infinite dimensionality can be managed easily if one only needs finite-width \emph{integrals} over the function, as these average out small-scale fluctuations.
+To benefit from this, we must find a way to compute the integral without evaluating all the small-scale structure.
+That is the idea behind multiscale or wavelet methods.
+These are often derived as some orthonormal basis of $\mathcal{L}^2$, but we can also give a construction more from first principles.
 
 To directly enable the $\mathcal{O}(1)$ evaluation of large-scale integrals, one might consider the following representation of $D^1\to \mathrm{y}$ functions:
 \begin{lstlisting}
@@ -254,9 +257,18 @@ The idea is to decompose a function into a constant offset (proportional to the 
               \\ f_\mathrm{r}(x_\mathrm{r}) & \text{if $x$ on right}
               \end{cases}
 \]
-The above \lstinline`PreIntg_D¹` data structure is a tree which has always infinite size; this can be handled in a language like Haskell through lazy evaluation, however only if all that is ever requested from the function are integrals over finite-extend subintervals. Pointwise evaluation would recurse infinitely.
+The data structure \lstinline`PreIntg_D¹` defined above is a binary tree which has always infinite size.
+This can be handled in a language with lazy evaluation like Haskell,
+but only if all that is ever requested from the function are integrals over finite-extend subintervals.
+Pointwise evaluation would recurse infinitely.
 
-Always and everywhere going to infinite resolution is overzealous for a function type. It is not really an $D^1\to \mathrm{y}$ function if it \emph{cannot} be evaluated at any individual point in $D^1$. In practice, for any given real-world measured function, there will be only finitely many data points available anywhere, so in practice one will at sufficiently small scale eventually store \emph{only} the offset, and presume that any even smaller fluctuations are neglectable, which is warranted to happen for a continuous function.
+% Always and everywhere going to infinite resolution is overzealous for a function type.
+Note also that it is not really an $D^1\to \mathrm{y}$ function if it \emph{cannot} be evaluated at any individual point in $D^1$.
+In practice, for any given real-world measured function, there will be only finitely many data points available at any given moment,
+so at a sufficiently small scale one would eventually store \emph{only} the offset,
+and assume that any smaller fluctuations are negligible.
+% which is warranted to happen for a continuous function.
+% one should be more precise, as to continuous functions here...
 
 This cutoff can be achieved by wrapping the substructure fields in \lstinline`Maybe` or, equivalenty, offering a dedicated constructor for the zero function, resulting in a conventional finite tree which could also be strictly evaluated (here enforced by the exclamation marks).
 \begin{lstlisting}
