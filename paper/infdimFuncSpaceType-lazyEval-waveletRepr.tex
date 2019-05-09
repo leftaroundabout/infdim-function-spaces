@@ -515,6 +515,25 @@ id = LinearMap $ CoHaar_D¹
         (fmap (\r -> HaarUnbiased 0 zeroV r) idUnbiased)
 \end{lstlisting}
 
+\section{Outlook}
+Although the Haar-wavelet-expansion type presented in this paper provides a useful starting point for numerical calculations on infinite-dimensional spaces, the fact that the represented functions are inherently discontinuous step-functions limits its usefulness for actual numerical applications. The step functions certainly are not differentiable\footnote{%
+They are differentiable \emph{almost} everywhere with derivative zero, but integrating that again would clearly not give back the original function but a constant!}.
+
+Even for pointwise evaluation alone, the piecewise constant structure means that it is relatively inefficient at approximating continuous functions, namely, the discretisation error $\varepsilon = f_\text{exact} - f_\text{Haar}$ reduces proportionally to the step size $\delta$, i.e. anti-proportionally to the required tree size.
+The adaptiveness of resolution can somewhat mitigate this (regions with small gradients have low $\varepsilon$ to begin with, so it is sufficient to focus on those with stronger gradient or even discontinuity), however this is limited unless the function really is constant on most of the domain.
+
+By contrast, piecewise linear functions can scale $\varepsilon \propto \delta^2$, cubic ones $\varepsilon \propto \delta^4$ and so on. Thus it would be desirable to combine such a higher-order local model with the tree-based multiscale structure.
+Comparison with wavelet theory suggests that this may not be as straightforward as it is to employ polynomial interpolation for a PCM sampling or for a finite elements model. Namely, the simplest piecewise-linear orthogonal wavelet is not a hat function by the rather complicated Strömberg wavelet.
+
+However, our approach has the advantage that it does not actually rely on $\mathcal{L}^2$-orthogonality, but uses domain decomposition and direct value readoff for its sampling process. Therefore it is plausible that the “mother wavelet” can be kept much more basic.
+In particular, a very simple way to construct a continuous function from a Haar-based one is through integration. Because the complete integral can always be evaluated in $\mathcal{O}(1)$, this would also still allow efficient random-access pointwise evaluation of the continuous function, unlike the integral of a PCM-sampled function (which would be $\mathcal{O}(n)$ for single-point evaluation).
+
+Another important generalisation will be mul\-ti-di\-men\-sio\-nal domains. In fact, \lstinline`Haar_D¹` already supports those in a sense because a function vector space on a product domain is isomorphic to the tensor product of the function spaces on the factor domains, i.e. \lstinline`Haar_D¹ (Haar_D¹ ℝ)` represents functions on $D^1\times D^1$. 
+However, this would largely circumvent the locality properties of the Haar expansions (since nearby points in y-direction would lie in completely different trees of the decomposition in x-direction). An efficient implementation would probably need to intersperse the di\-rec\-tion-split\-tings, to give a kind of $k\mathrm{d}$-tree structure in space an Morton Z order of the leaves.
+
+In summary: we have presented a data structure that can express function types in a way that better represents the mathematical (functional-analysis) notion of such an infinite-dimensional space than the mainstream numerical expansions do.
+It combines features of techniques from established numerical schemes (wavelets from multiscale analysis, tree backbones from Barnes-Hut style simulations, pa\-ra\-met\-ri\-ci\-ty/ten\-sor-pro\-duct from numerical linear algebra), and we expect that it can be extended to be of similar practical use while being more mathematically general and transparent.
+
 %% Acknowledgments
 \begin{acks}                            %% acks environment is optional
                                         %% contents suppressed with 'anonymous'
