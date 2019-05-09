@@ -223,6 +223,7 @@ The set $\mathbb{R}^{D^1}$ of functions $D^1 \to \mathbb{R}$ is a vector space, 
 % Fortunately, any subset of $\mathbb{R}^{D^1}$ which is closed under scaling and addition is a subspace.
 % Well-studied examples include
 It is easier to consider better behaved subspaces, often endowed with a natural, simpler topology.
+For instance,
 \begin{itemize}
 \item $\mathcal{C}^0(D^1)$: continuous functions.
   % These can be characterised thus: to obtain any function value $f(x)$ with at least precision $\varepsilon$, one can instead consider $f(\tilde{x})$ where $\tilde{x}$ needs to be merely \emph{close enough} to $x$, i.e. within a distance $\delta_{x,\varepsilon}$.
@@ -260,7 +261,7 @@ In some applications this is not a problem: for example
  \item In DSP, the input resolution is fixed by a physical ADC, and subsequent calculations (LTI filters etc.) simply leave it as-is or perhaps double the sampling.
  \item Explicit integrators for hyperbolic PDEs iterate a re\-so\-lu\-tion-pre\-ser\-ving pro\-pa\-ga\-tor-trans\-for\-ma\-tion in\-vol\-ving the pointwise value of the old state and a numerical approximation (e.g. finite differences) of its spatial derivatives. This calculation will depend on the given resolution, but there is no need to precompute and store it in something like a matrix that would need to be valid for any of the possible resolutions: even if change of resolution should be required, the transformation can just be recomputed from scratch.
 \end{itemize}
-Many other applications however require coefficients to be stored before the required resolution is even known.
+Many other applications, however, require coefficients to be stored before the required resolution is even known.
 This is both necessary for implicit methods / inverse problems -- i.e. where there is no explitly programmed way to deduce the result from an input, but rather an input needs to be “guessed” that will match the desired output\footnote{
 In practice, implicit methods use heuristics to choose a suitable resolution. A common approach is to just match the data count of the input to that of the intended output, which is reasonable enough since inversion is clearly dependent on some notion of isomorphism -- however, even an isomorphism does not necessarily preserve the highest, locally required resolution, but can “concentrate” data in given spots. This can again be taken into account with more heuristics to adaptively refine the mesh, or the extra detail can just be smoothed out (which can be useful to keep computation effort limited in nonlinear PDE solvers, however it is mathematically not really a correct solution then).
 }, but also for calculations which simply require a stored-coefficient form for efficiency.
@@ -297,7 +298,7 @@ but only if all that is ever requested from the function are integrals over fini
 Pointwise evaluation would recurse infinitely.
 
 % Always and everywhere going to infinite resolution is overzealous for a function type.
-Note also that it is not really an $D^1\to \mathrm{y}$ function if it \emph{cannot} be evaluated at any individual point in $D^1$.
+Note also that it is not really a function from $D^1$ to $\mathrm{y}$ if it \emph{cannot} be evaluated at any individual point in $D^1$.
 In practice, for any given real-world measured function, there will be only finitely many data points available at any given moment,
 so at a sufficiently small scale one would eventually store \emph{only} the offset,
 and assume that any smaller fluctuations are negligible.
@@ -305,7 +306,7 @@ and assume that any smaller fluctuations are negligible.
 % one should be more precise, as to continuous functions here...
 
 This eventual cutoff can be implemented by wrapping the substructure fields in \lstinline`Maybe`.
-Here we instead define a specific constructor for the zero function (instead of the generic \lstinline`Nothing` constructor).
+Here we define instead a specific constructor for the zero function (to improve the semantics of the generic \lstinline`Nothing` constructor).
 We now obtain a conventional tree with finite depth.
 Note that it can now also be strictly evaluated (here enforced by the exclamation marks).
 \begin{lstlisting}
@@ -314,7 +315,7 @@ data PreIntg_D¹ y
       | PreIntg !y !(PreIntg_D¹ y)
                    !(PreIntg_D¹ y)
 \end{lstlisting}
-Pointwise function evaluation is then readily implemented recursively
+Pointwise function evaluation is then readily implemented recursively:
 \begin{lstlisting}
 evalPreIntg_D¹ :: AdditiveGroup y
      => PreIntg_D¹ y -> D¹ -> y
@@ -409,7 +410,7 @@ The dual space of a function space $X$ consists of functions as well, but its do
  \\
   X^\ast \subset& \bigl(X \to \mathbb{R}\bigr).
 \end{align*}
-In fact, $X$ consists of \emph{continuous, linear} functions, also called \emph{functionals}.
+In fact, $X^{\ast}$ consists of \emph{continuous, linear} functions, also called \emph{functionals}.
 Although the space of functionals may initially seem much “bigger” than the space of functions,
 in the case of $X$ being a Hilbert space, $X^\ast$ is in fact isomorphic to $X$ (Riesz representation theorem).
 Of course, a crucial argument for this is that $X^\ast$ includes only continuous, linear functions.
@@ -422,20 +423,20 @@ Of course, a crucial argument for this is that $X^\ast$ includes only continuous
 % The reason that this does not contradict the Riesz theorem is that the standard Hilbert spaces of functions actually contain \emph{equivalence classes} of functions, rather than individual functions. In the $\mathcal{L}^2$ space, functions which differ only in a single point are considered the same vector.
 Note that in the case of $X = \mathcal{L}^2$, evaluation at a single point is not an element of $X^{\ast}$, as it cannot be defined in a consistent manner.
 
-On one hand, this can be physically motivated (limited precision, so it would never be possible to focus an experiment on a single point anyway).
+On the one hand, this can be physically motivated (limited precision, so it would never be possible to focus an experiment on a single point anyway).
 On the other hand, theoretical physics is actually thrive with calculations that do involve single-point evaluations.
 Mathematically, this just has to do with a judicious choice of function space.
 
 Pointwise evaluation corresponds to a distribution widely called \emph{Dirac distribution}, sometimes introduced informally as
 \begin{align*}
-  \delta &:\quad \mathbb{R} \to “\mathbb{R}\cup\{\infty\}”
+  \delta &\colon \mathbb{R} \to “\mathbb{R}\cup\{\infty\}”
  \\
   \delta(x) &= \begin{cases} “\infty” & \text{if }x=0
                           \\ 0        & \text{otherwise} \end{cases}.
 \end{align*}
 As a distribution, however, its definition is perfectly clear:
 \begin{align*}
-  \delta^\ast &:\quad (\mathbb{R} \to \mathbb{R}) \to \mathbb{R}
+  \delta^\ast &\colon (\mathbb{R} \to \mathbb{R}) \to \mathbb{R}
  \\
   \delta^\ast(f) &= f(0).
 \end{align*}
@@ -452,7 +453,7 @@ As the smallest feature that can ever be resolved has a size at least $h$,
 all features are \emph{only} characterised by the integral over an interval of that width,
 corresponding to the following approximation of $\delta$:
 \begin{align*}
-  \delta_h &:\quad \mathbb{R} \to \mathbb{R}
+  \delta_h &\colon \mathbb{R} \to \mathbb{R}
  \\
   \delta_h(x) &= \begin{cases} \frac1h & \text{if }|x|<\tfrac{h}2
                           \\ 0         & \text{otherwise} \end{cases}
@@ -556,7 +557,8 @@ where the QuickCheck \lstinline`Arbitrary` instance generates arbitrarily deep t
 \lstinline`~=` checks equality up to floating-point inaccuracy (in our test suite, the relative error  is set to $10^{-9}$).
 
 \section{Tensor products and linear maps}
-Perhaps most important aspect about the dual space is that it gives rise to a storable implementation of arbitrary linear mappings.
+
+One of the most salient aspects about the dual space implementation is that it allows for a \emph{storable} implementation of arbitrary linear mappings.
 \begin{lstlisting}
 newtype LinearMap v w = LinearMap
            (TensorProduct (DualVector v) w)
