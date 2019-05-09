@@ -371,14 +371,12 @@ The reason is that images or solutions to nonliner differential equations are of
 \end{remark}
 
 \section{Dual space: functionals}
-The dual space of a function space $X$ contains itself functions, but at least in principle on a different domain:
+The dual space of a function space $X$ consists of functions as well, but its domain is $X$ itself:
 \begin{align*}
   X \subset& (D^1 \to \mathbb{R})
  \\
-  X^\ast \subset& \bigl((D^1 \to \mathbb{R}) \to \mathbb{R}\bigr).
+  X^\ast \subset& \bigl(X \to \mathbb{R}\bigr).
 \end{align*}
-I.e., $X$ contains higher-order functions, also known as \emph{functionals}.
-The space of functionals intuitively seems to be much “bigger” than the space of functions, thus it should be a bit surprising that if $X$ is a Hilbert space, then $X^\ast$ is actually isomorphic to $X$ (Riesz representation theorem). Crucial for this is that $X^\ast$ includes only linear functions.
 
 But actually, even simple-looking linear functionals do not typically correspond to functions in $X$. In particular, there are two conspicuous classes of linear functionals which cannot both be mapped to functions in a consistent way:
 \begin{itemize}
