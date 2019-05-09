@@ -1,5 +1,5 @@
 %% For double-blind review submission, w/o CCS and ACM Reference (max submission space)
-\documentclass[sigplan,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+\documentclass[final,sigplan,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
 %% For double-blind review submission, w/ CCS and ACM Reference
 %\documentclass[sigplan,review,anonymous]{acmart}\settopmatter{printfolios=true}
 %% For single-blind review submission, w/o CCS and ACM Reference (max submission space)
@@ -60,17 +60,48 @@
                         %% http://ctan.org/pkg/subcaption
 
 \usepackage{listings}
-\lstset{ language=haskell%
-       , columns=flexible%
-       , basewidth={0.6em, 0.5em}%
-       , basicstyle=\small }
+\lstset{
+  % language=haskell%
+       % , columns=flexible%
+       , basewidth={0.6em, 0.5em},%
+  frame=none,
+  xleftmargin=2pt,
+  stepnumber=1,
+  numbers=left,
+  numbersep=5pt,
+  numberstyle=\ttfamily\tiny\color[gray]{0.3},
+  belowcaptionskip=\bigskipamount,
+  captionpos=b,
+  escapeinside={*'}{'*},
+  language=haskell,
+  tabsize=2,
+  emphstyle={\bf},
+  commentstyle=\it,
+  stringstyle=\mdseries\ttfamily,
+  showspaces=false,
+  % keywordstyle=\bfseries\sffamily,
+  keywordstyle=\bfseries\ttfamily,
+  columns=flexible,
+  % basicstyle=\small\rmfamily,
+  basicstyle=\small\ttfamily ,
+  showstringspaces=false,
+  morecomment=[l]\%,
+  }
+
+\ifxetex
+\usepackage{fontspec}
+\setmonofont[Scale=.8]{DejaVu Sans Mono}
+\else
+\usepackage{inconsolata}
+\fi
 
 \theoremstyle{acmplain}
 \newtheorem{theorem}{Theorem}[section]
 \theoremstyle{acmdefinition}
 \newtheorem{remark}[theorem]{Remark}
 
-\usepackage{todonotes}
+\usepackage[obeyFinal]{todonotes}
+
 
 \begin{document}
 
@@ -134,13 +165,14 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-Vectors in numerical computation, i.e., arrays of numbers, are often conceptually continuous functions, i.e. elements of a function vector-space.
-We would like to reflect this explicitly with types in the numerical code.
-One apparent obstacle is that the function spaces are infinite-dimensional, although the numerical code must run in finite time and memory.
+Vectors in numerical computation, i.e., arrays of numbers, often represent continuous functions.
+We would like to reflect this with \emph{types}.
+One apparent obstacle is that spaces of functions are typically infinite-dimensional,
+while the code must run in finite time and memory.
 
 We argue that this can be overcome: even in an infinite-dimensional space, the vectors \emph{can} in practice be stored in finite memory.
 However, \emph{dual vectors} (corresponding essentially to \emph{distributions}) require infinite data structure.
-The distinction is usually lost in the finite dimensional case, since dual vectors are often simply represented as vectors (by implicitly choosing a scalar product establishing the correspondance).
+The distinction is usually lost in the finite dimensional case, since dual vectors are often simply represented as vectors (by implicitly choosing a scalar product establishing the correspondence).
 However, we shall see that an explicit type-level distinction between functions and distributions makes sense and allows directly expressing useful concepts such as the Dirac distribution, which are problematic in the standard finite-resolution picture.
 
 The example implementation uses a very simple local basis that corresponds to a Haar Wavelet transform.
@@ -171,7 +203,7 @@ The example implementation uses a very simple local basis that corresponds to a 
 
 %% Keywords
 %% comma separated list
-\keywords{keyword1, keyword2, keyword3}  %% \keywords are mandatory in final camera-ready submission
+\keywords{wavelet, multiresolution, lazy evaluation}  %% \keywords are mandatory in final camera-ready submission
 
 
 %% \maketitle
@@ -191,6 +223,7 @@ The set $\mathbb{R}^{D^1}$ of functions $D^1 \to \mathbb{R}$ is a vector space, 
 % Fortunately, any subset of $\mathbb{R}^{D^1}$ which is closed under scaling and addition is a subspace.
 % Well-studied examples include
 It is easier to consider better behaved subspaces, often endowed with a natural, simpler topology.
+For instance,
 \begin{itemize}
 \item $\mathcal{C}^0(D^1)$: continuous functions.
   % These can be characterised thus: to obtain any function value $f(x)$ with at least precision $\varepsilon$, one can instead consider $f(\tilde{x})$ where $\tilde{x}$ needs to be merely \emph{close enough} to $x$, i.e. within a distance $\delta_{x,\varepsilon}$.
@@ -228,7 +261,7 @@ In some applications this is not a problem: for example
  \item In DSP, the input resolution is fixed by a physical ADC, and subsequent calculations (LTI filters etc.) simply leave it as-is or perhaps double the sampling.
  \item Explicit integrators for hyperbolic PDEs iterate a re\-so\-lu\-tion-pre\-ser\-ving pro\-pa\-ga\-tor-trans\-for\-ma\-tion in\-vol\-ving the pointwise value of the old state and a numerical approximation (e.g. finite differences) of its spatial derivatives. This calculation will depend on the given resolution, but there is no need to precompute and store it in something like a matrix that would need to be valid for any of the possible resolutions: even if change of resolution should be required, the transformation can just be recomputed from scratch.
 \end{itemize}
-Many other applications however require coefficients to be stored before the required resolution is even known.
+Many other applications, however, require coefficients to be stored before the required resolution is even known.
 This is both necessary for implicit methods / inverse problems -- i.e. where there is no explitly programmed way to deduce the result from an input, but rather an input needs to be “guessed” that will match the desired output\footnote{
 In practice, implicit methods use heuristics to choose a suitable resolution. A common approach is to just match the data count of the input to that of the intended output, which is reasonable enough since inversion is clearly dependent on some notion of isomorphism -- however, even an isomorphism does not necessarily preserve the highest, locally required resolution, but can “concentrate” data in given spots. This can again be taken into account with more heuristics to adaptively refine the mesh, or the extra detail can just be smoothed out (which can be useful to keep computation effort limited in nonlinear PDE solvers, however it is mathematically not really a correct solution then).
 }, but also for calculations which simply require a stored-coefficient form for efficiency.
@@ -265,7 +298,7 @@ but only if all that is ever requested from the function are integrals over fini
 Pointwise evaluation would recurse infinitely.
 
 % Always and everywhere going to infinite resolution is overzealous for a function type.
-Note also that it is not really an $D^1\to \mathrm{y}$ function if it \emph{cannot} be evaluated at any individual point in $D^1$.
+Note also that it is not really a function from $D^1$ to $\mathrm{y}$ if it \emph{cannot} be evaluated at any individual point in $D^1$.
 In practice, for any given real-world measured function, there will be only finitely many data points available at any given moment,
 so at a sufficiently small scale one would eventually store \emph{only} the offset,
 and assume that any smaller fluctuations are negligible.
@@ -273,7 +306,7 @@ and assume that any smaller fluctuations are negligible.
 % one should be more precise, as to continuous functions here...
 
 This eventual cutoff can be implemented by wrapping the substructure fields in \lstinline`Maybe`.
-Here we instead define a specific constructor for the zero function (instead of the generic \lstinline`Nothing` constructor).
+Here we define instead a specific constructor for the zero function (to improve the semantics of the generic \lstinline`Nothing` constructor).
 We now obtain a conventional tree with finite depth.
 Note that it can now also be strictly evaluated (here enforced by the exclamation marks).
 \begin{lstlisting}
@@ -282,7 +315,7 @@ data PreIntg_D¹ y
       | PreIntg !y !(PreIntg_D¹ y)
                    !(PreIntg_D¹ y)
 \end{lstlisting}
-Pointwise function evaluation is then readily implemented recursively
+Pointwise function evaluation is then readily implemented recursively:
 \begin{lstlisting}
 evalPreIntg_D¹ :: AdditiveGroup y
      => PreIntg_D¹ y -> D¹ -> y
@@ -371,58 +404,81 @@ The reason is that images or solutions to nonliner differential equations are of
 \end{remark}
 
 \section{Dual space: functionals}
-The dual space of a function space $X$ contains itself functions, but at least in principle on a different domain:
+The dual space of a function space $X$ consists of functions as well, but its domain is $X$ itself:
 \begin{align*}
   X \subset& (D^1 \to \mathbb{R})
  \\
-  X^\ast \subset& \bigl((D^1 \to \mathbb{R}) \to \mathbb{R}\bigr).
+  X^\ast \subset& \bigl(X \to \mathbb{R}\bigr).
 \end{align*}
-I.e., $X$ contains higher-order functions, also known as \emph{functionals}.
-The space of functionals intuitively seems to be much “bigger” than the space of functions, thus it should be a bit surprising that if $X$ is a Hilbert space, then $X^\ast$ is actually isomorphic to $X$ (Riesz representation theorem). Crucial for this is that $X^\ast$ includes only linear functions.
+In fact, $X^{\ast}$ consists of \emph{continuous, linear} functions, also called \emph{functionals}.
+Although the space of functionals may initially seem much “bigger” than the space of functions,
+in the case of $X$ being a Hilbert space, $X^\ast$ is in fact isomorphic to $X$ (Riesz representation theorem).
+Of course, a crucial argument for this is that $X^\ast$ includes only continuous, linear functions.
 
-But actually, even simple-looking linear functionals do not typically correspond to functions in $X$. In particular, there are two conspicuous classes of linear functionals which cannot both be mapped to functions in a consistent way:
-\begin{itemize}
- \item Evaluation at a single point (or a discrete collection of points). % Add example formula
- \item Integration over an interval.  % +example
-\end{itemize}
-The reason that this does not contradict the Riesz theorem is that the standard Hilbert spaces of functions actually contain \emph{equivalence classes} of functions, rather than individual functions. In the $\mathcal{L}^2$ space, functions which differ only in a single point are considered the same vector.
+% But actually, even simple-looking linear functionals do not typically correspond to functions in $X$. In particular, there are two conspicuous classes of linear functionals which cannot both be mapped to functions in a consistent way:
+% \begin{itemize}
+%  \item Evaluation at a single point (or a discrete collection of points). % Add example formula
+%  \item Integration over an interval.  % +example
+% \end{itemize}
+% The reason that this does not contradict the Riesz theorem is that the standard Hilbert spaces of functions actually contain \emph{equivalence classes} of functions, rather than individual functions. In the $\mathcal{L}^2$ space, functions which differ only in a single point are considered the same vector.
+Note that in the case of $X = \mathcal{L}^2$, evaluation at a single point is not an element of $X^{\ast}$, as it cannot be defined in a consistent manner.
 
-On one hand, this can be physically motivated (limited precision, so it would never be possible to focus an experiment on a single point anyway).
-On the other hand, theoretical physics is actually thrive with calculations that do involve single-point evaluations. There they are called \emph{Dirac distribution}, often introduced informally as
+On the one hand, this can be physically motivated (limited precision, so it would never be possible to focus an experiment on a single point anyway).
+On the other hand, theoretical physics is actually thrive with calculations that do involve single-point evaluations.
+Mathematically, this just has to do with a judicious choice of function space.
+
+Pointwise evaluation corresponds to a distribution widely called \emph{Dirac distribution}, sometimes introduced informally as
 \begin{align*}
-  \delta &:\quad \mathbb{R} \to “\mathbb{R}\cup\{\infty\}”
+  \delta &\colon \mathbb{R} \to “\mathbb{R}\cup\{\infty\}”
  \\
   \delta(x) &= \begin{cases} “\infty” & \text{if }x=0
                           \\ 0        & \text{otherwise} \end{cases}.
 \end{align*}
-But the actual \emph{intention} behind this is simply the functional
+As a distribution, however, its definition is perfectly clear:
 \begin{align*}
-  \delta^\ast &:\quad (\mathbb{R} \to \mathbb{R}) \to \mathbb{R}
+  \delta^\ast &\colon (\mathbb{R} \to \mathbb{R}) \to \mathbb{R}
  \\
   \delta^\ast(f) &= f(0).
 \end{align*}
-This is in physics written
+\begin{remark}
+The previous equation is sometimes written informally as
 \[
   \delta^\ast(f) = \int_\mathbb{R}\!\mathrm{d}x\: \delta(x)\cdot f(x),
 \]
-pretending that the Dirac distribution is a real function.
+as if $\delta$ was a function.
+\end{remark}
 
-One allure of this style of writing for numerical applications is that in the common fixed-finite resolution PCM discretisation, the Dirac distribution can be seen as a function \emph{without} requiring an “infinite peak”. Because if the smallest feature that can ever be resolved has a size of at least $h$, all features are \emph{only} characterised by the integral over an interval of that width, i.e. the rigorous-but-inexact definition
+In the common fixed-finite resolution PCM discretisation, the Dirac distribution can be replaced by a function \emph{without} requiring an “infinite peak”.
+As the smallest feature that can ever be resolved has a size at least $h$,
+all features are \emph{only} characterised by the integral over an interval of that width,
+corresponding to the following approximation of $\delta$:
 \begin{align*}
-  \delta_h &:\quad \mathbb{R} \to \mathbb{R}
+  \delta_h &\colon \mathbb{R} \to \mathbb{R}
  \\
   \delta_h(x) &= \begin{cases} \frac1h & \text{if }|x|<\tfrac{h}2
                           \\ 0         & \text{otherwise} \end{cases}
 \end{align*}
-is in that case equivalent to the unrigorous-but-exact definition including an infinity. The problem with this is that again it is necessary to know a priori the resolution which will be required, with a too low estimate provoking inaccurate results and a too high one wasting resources.
+% is in that case equivalent to the unrigorous-but-exact definition including an infinity.
+The problem with this is that it is still necessary to know the resolution a priori.
+Furthermore, too low estimates produce inaccurate results,
+while too high ones unnecessarily increase the computational burden.
 
-We therefore question the suitability of PCM or other fixed-resolution approaches for problems which involve in theory Dirac point-distributions (e.g. point masses in a gravity simulation). It turns out that the \lstinline`Haar_D¹` tree structure has a representation of the dual space which includes Dirac distribution \emph{exactly}, as well as distributions spread over an interval.
+We therefore argue that PCM or other fixed-resolution approaches are not suitable for problems involving Dirac point-distributions (e.g., point masses in a gravity simulation).
+It turns out that the \lstinline`Haar_D¹` tree structure has a representation of the dual space which includes Dirac distribution \emph{exactly},
+as well as distributions spread across an interval.
 
-The idea is to mirror the tree data structure (as Riesz suggests), but instead of begging an interpretation involving a Hilbert space's integral inner product, we simply read off the stored coefficients as they are. The conceivable complaint that these coefficients are “unphysical” because through the Haar wavelets they represent differences rather than actual sample values\footnote{%
+The idea is to mirror the tree data structure (as Riesz suggests),
+but instead of using a Hilbert space inner product,
+we simply read off the stored coefficients as they are.
+One could argue that these coefficients are “unphysical” because via the Haar wavelets they represent differences rather than actual sample values\footnote{%
 This would anyways be hypocritical, since in a fixed-resolution discretisation of $\mathcal{L}^2$ the coefficients \emph{also} don't strictly speaking correspond to concrete sample values, but rather to an integral over such values or even, in the Shannon-Nyquist derivation, to a discrete IFT of the truncation of the infinite sequence of Fourier coefficients.
-} is precluded because both the function-space type and its dual are intended to be used as abstract vector spaces with no public way to directly access the coefficients of either.
+} but in fact, both the function-space type and its dual are intended to be used as abstract vector spaces with no public way to directly access the coefficients of either.
 
-What we do not need to require anymore is that the trees have finite depth, because there is conceptually no reason to evaluate a distribution at a single point as with \lstinline`evalPreIntg_D¹`, but only as a functional with a whole function, which we have already required to only have a finite feature-resolution. Thus the tree can be non-strict,
+Notice that the trees now need \emph{not} have finite depth,
+because there is no reason to evaluate a distribution at a single point as with \lstinline`evalPreIntg_D¹`,
+but only as a functional with a whole function,
+which is already required to have only a finite feature-resolution.
+Thus the tree can now be non-strict,
 \begin{lstlisting}
 data CoHaarUnbiased y
      = CoHaarZero
@@ -432,7 +488,7 @@ data CoHaar_D¹ y
      = CoHaar_D¹ !y (CoHaarUnbiased y)
 \end{lstlisting}
 but because \lstinline`HaarUnbiased` is strict the functional evaluation is still guaranteed to terminate\footnote{%
-There is a striking comparison to be made here to the Agda programming language, in which data types are strict by default but there is also \emph{co-data} (coinductive types) allowing for infinite streams.
+This is in striking analogy with the Agda programming language, in which data types are strict by default but there is also \emph{co-data} (coinductive types) allowing for infinite streams.
 }:
 \begin{lstlisting}
 (<.>^) :: CoHaar_D¹ ℝ -> Haar_D¹ ℝ -> ℝ
@@ -444,9 +500,16 @@ CoHaar_D¹ q0 qFluct <.>^ Haar_D¹ f0 fFluct
             ~<.>^ HaarUnbiased δf fl fr
           = δq * δf + ql~<.>^fl + qr~<.>^fr
 \end{lstlisting}
-note that \emph{no} scaling/normalisation is performed (like it would be required if this were an integral-based inner product) as the recursive call zooms into the left and right subinterval.
+note that \emph{no} scaling/normalisation is performed
+(as would be the case if this were an integral-based inner product)
+as the recursive call zooms into the left and right subinterval.
 
-It is now quite easy to construct a functional for which \lstinline`<.>^` evaluates integration or averaging over an arbitrary interval: essentially, we think about how the function will be decomposed on the subdomains, but instead of actually accepting a \lstinline`Haar_D¹` value we record in the dual vector with what weight its coefficients would be used in the result:
+We are now in a position to construct a functional for which \lstinline`<.>^` evaluates the integral over an arbitrary interval:
+we regard the function as decomposed on the subdomains,
+but instead of accepting a \lstinline`Haar_D¹` value,
+% we record in the dual vector with what weight its coefficients would be used in the result:
+we record the weights of the dual vector:
+\todo[inline, author=OV]{This makes no sense}
 \begin{lstlisting}
 boxDistribution :: (D¹, D¹)  -- ^ Target interval
                 -> ℝ         -- ^ Total weight
@@ -469,25 +532,33 @@ boxDistribution (D¹ l, D¹ r) y
                       (D¹ $ max 0 l*2 - 1, D¹ $ r*2 - 1)
                       (y * if l<0 then r/(r-l) else 1)
 \end{lstlisting}
-The tree generated this way will in general have infinite depth, to select the desired interval with any delimiters, but the distribution will only narrow in on this selection while the function it is contracted against actually has any structure down to that level. Where the function eventually approaches a constant, only the top-level coefficient is evaluated (as that corresponds to the integral, which is what is sought here).
+The tree generated this way will in general have infinite depth in order to select the desired interval with any delimiters.
+However, the distribution will only narrow in on this selection provided that the function on which we evaluate has any structure at that level.
+When the function is eventually constant, only the top-level coefficient is evaluated (as that corresponds to the integral, which is what is sought here).
 
-Furthermore, \lstinline`boxDistribution` itself only builds up the infinitely fine resolution where it is actually required, i.e. at the \emph{boundaries} of the target interval: on those subdivisions that are fully in the interval, again only to top-level coefficient of the function needs to be evaluated, whereas outside of the target the result will simply be zero.
-Thus, the tree has only two long branches, and \lstinline`<.>^` has only a complexity of $\mathcal{O}(\log n)$ in the resolution of the function which the distribution is contracted against. (Compare this with a PCM implementation, where a box distribution would need to contain $\mathcal{O}(n)$ nonzero entries, all of which would need to be evaluated.)
+Furthermore, \lstinline`boxDistribution` itself only builds up the infinitely fine resolution where it is actually required, i.e., at the \emph{boundaries} of the target interval:
+on those subdivisions that are fully in the interval, again only to top-level coefficient of the function needs to be evaluated, whereas outside of the target the result will simply be zero.
+Thus, the tree has only two long branches, and \lstinline`<.>^` has only a complexity of $\mathcal{O}(\log n)$ in the resolution of the function which the distribution is contracted against.
+(Compare this with a PCM implementation, where a box distribution would need to contain $\mathcal{O}(n)$ nonzero entries, all of which would need to be evaluated.)
 
 Remarkably, all of this works even if the target “interval” actually has zero width:
 \begin{lstlisting}
 dirac :: D¹ -> CoHaar_D¹ ℝ
 dirac x0 = boxDistribution (x0,x0) 1
 \end{lstlisting}
-That implementation of the Dirac distribution does indeed evaluate functions of arbitrary resolution at one point. As tested with QuickCheck,
+
+That implementation of the Dirac distribution does indeed evaluate functions of arbitrary resolution at one point.
+As tested with QuickCheck,
 \begin{lstlisting}
   testProperty "Dirac eval of Haar function"
    $ \f p -> dirac p<.>^f ~= evalHaarFunction f p
 \end{lstlisting}
-where the QuickCheck \lstinline`Arbitrary` instance generates arbitrarily deep tree structures, and picks any point on $D^1$ for evaluation. \lstinline`~=` checks here equality up to floating-point inaccuracy (in our test suite, allowing a relative error of $10^{-9}$).
+where the QuickCheck \lstinline`Arbitrary` instance generates arbitrarily deep tree structures, and picks any point on $D^1$ for evaluation.
+\lstinline`~=` checks equality up to floating-point inaccuracy (in our test suite, the relative error  is set to $10^{-9}$).
 
 \section{Tensor products and linear maps}
-Perhaps most important aspect about the dual space is that it gives rise to a storable implementation of arbitrary linear mappings.
+
+One of the most salient aspects about the dual space implementation is that it allows for a \emph{storable} implementation of arbitrary linear mappings.
 \begin{lstlisting}
 newtype LinearMap v w = LinearMap
            (TensorProduct (DualVector v) w)
