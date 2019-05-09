@@ -377,33 +377,43 @@ The dual space of a function space $X$ consists of functions as well, but its do
  \\
   X^\ast \subset& \bigl(X \to \mathbb{R}\bigr).
 \end{align*}
+In fact, $X$ consists of \emph{continuous, linear} functions, also called \emph{functionals}.
+Although the space of functionals may initially seem much “bigger” than the space of functions,
+in the case of $X$ being a Hilbert space, $X^\ast$ is in fact isomorphic to $X$ (Riesz representation theorem).
+Of course, a crucial argument for this is that $X^\ast$ includes only continuous, linear functions.
 
-But actually, even simple-looking linear functionals do not typically correspond to functions in $X$. In particular, there are two conspicuous classes of linear functionals which cannot both be mapped to functions in a consistent way:
-\begin{itemize}
- \item Evaluation at a single point (or a discrete collection of points). % Add example formula
- \item Integration over an interval.  % +example
-\end{itemize}
-The reason that this does not contradict the Riesz theorem is that the standard Hilbert spaces of functions actually contain \emph{equivalence classes} of functions, rather than individual functions. In the $\mathcal{L}^2$ space, functions which differ only in a single point are considered the same vector.
+% But actually, even simple-looking linear functionals do not typically correspond to functions in $X$. In particular, there are two conspicuous classes of linear functionals which cannot both be mapped to functions in a consistent way:
+% \begin{itemize}
+%  \item Evaluation at a single point (or a discrete collection of points). % Add example formula
+%  \item Integration over an interval.  % +example
+% \end{itemize}
+% The reason that this does not contradict the Riesz theorem is that the standard Hilbert spaces of functions actually contain \emph{equivalence classes} of functions, rather than individual functions. In the $\mathcal{L}^2$ space, functions which differ only in a single point are considered the same vector.
+Note that in the case of $X = \mathcal{L}^2$, evaluation at a single point is not an element of $X^{\ast}$, as it cannot be defined in a consistent manner.
 
 On one hand, this can be physically motivated (limited precision, so it would never be possible to focus an experiment on a single point anyway).
-On the other hand, theoretical physics is actually thrive with calculations that do involve single-point evaluations. There they are called \emph{Dirac distribution}, often introduced informally as
+On the other hand, theoretical physics is actually thrive with calculations that do involve single-point evaluations.
+Mathematically, this just has to do with a judicious choice of function space.
+
+Pointwise evaluation corresponds to a distribution widely called \emph{Dirac distribution}, sometimes introduced informally as
 \begin{align*}
   \delta &:\quad \mathbb{R} \to “\mathbb{R}\cup\{\infty\}”
  \\
   \delta(x) &= \begin{cases} “\infty” & \text{if }x=0
                           \\ 0        & \text{otherwise} \end{cases}.
 \end{align*}
-But the actual \emph{intention} behind this is simply the functional
+As a distribution, however, its definition is perfectly clear:
 \begin{align*}
   \delta^\ast &:\quad (\mathbb{R} \to \mathbb{R}) \to \mathbb{R}
  \\
   \delta^\ast(f) &= f(0).
 \end{align*}
-This is in physics written
+\begin{remark}
+The previous equation is sometimes written informally as
 \[
   \delta^\ast(f) = \int_\mathbb{R}\!\mathrm{d}x\: \delta(x)\cdot f(x),
 \]
-pretending that the Dirac distribution is a real function.
+as if $\delta$ was a function.
+\end{remark}
 
 One allure of this style of writing for numerical applications is that in the common fixed-finite resolution PCM discretisation, the Dirac distribution can be seen as a function \emph{without} requiring an “infinite peak”. Because if the smallest feature that can ever be resolved has a size of at least $h$, all features are \emph{only} characterised by the integral over an interval of that width, i.e. the rigorous-but-inexact definition
 \begin{align*}
