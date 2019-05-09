@@ -444,22 +444,37 @@ The previous equation is sometimes written informally as
 as if $\delta$ was a function.
 \end{remark}
 
-One allure of this style of writing for numerical applications is that in the common fixed-finite resolution PCM discretisation, the Dirac distribution can be seen as a function \emph{without} requiring an “infinite peak”. Because if the smallest feature that can ever be resolved has a size of at least $h$, all features are \emph{only} characterised by the integral over an interval of that width, i.e. the rigorous-but-inexact definition
+In the common fixed-finite resolution PCM discretisation, the Dirac distribution can be replaced by a function \emph{without} requiring an “infinite peak”.
+As the smallest feature that can ever be resolved has a size at least $h$,
+all features are \emph{only} characterised by the integral over an interval of that width,
+corresponding to the following approximation of $\delta$:
 \begin{align*}
   \delta_h &:\quad \mathbb{R} \to \mathbb{R}
  \\
   \delta_h(x) &= \begin{cases} \frac1h & \text{if }|x|<\tfrac{h}2
                           \\ 0         & \text{otherwise} \end{cases}
 \end{align*}
-is in that case equivalent to the unrigorous-but-exact definition including an infinity. The problem with this is that again it is necessary to know a priori the resolution which will be required, with a too low estimate provoking inaccurate results and a too high one wasting resources.
+% is in that case equivalent to the unrigorous-but-exact definition including an infinity.
+The problem with this is that it is still necessary to know the resolution a priori.
+Furthermore, too low estimates produce inaccurate results,
+while too high ones unnecessarily increase the computational burden.
 
-We therefore question the suitability of PCM or other fixed-resolution approaches for problems which involve in theory Dirac point-distributions (e.g. point masses in a gravity simulation). It turns out that the \lstinline`Haar_D¹` tree structure has a representation of the dual space which includes Dirac distribution \emph{exactly}, as well as distributions spread over an interval.
+We therefore argue that PCM or other fixed-resolution approaches are not suitable for problems involving Dirac point-distributions (e.g., point masses in a gravity simulation).
+It turns out that the \lstinline`Haar_D¹` tree structure has a representation of the dual space which includes Dirac distribution \emph{exactly},
+as well as distributions spread across an interval.
 
-The idea is to mirror the tree data structure (as Riesz suggests), but instead of begging an interpretation involving a Hilbert space's integral inner product, we simply read off the stored coefficients as they are. The conceivable complaint that these coefficients are “unphysical” because through the Haar wavelets they represent differences rather than actual sample values\footnote{%
+The idea is to mirror the tree data structure (as Riesz suggests),
+but instead of using a Hilbert space inner product,
+we simply read off the stored coefficients as they are.
+One could argue that these coefficients are “unphysical” because via the Haar wavelets they represent differences rather than actual sample values\footnote{%
 This would anyways be hypocritical, since in a fixed-resolution discretisation of $\mathcal{L}^2$ the coefficients \emph{also} don't strictly speaking correspond to concrete sample values, but rather to an integral over such values or even, in the Shannon-Nyquist derivation, to a discrete IFT of the truncation of the infinite sequence of Fourier coefficients.
-} is precluded because both the function-space type and its dual are intended to be used as abstract vector spaces with no public way to directly access the coefficients of either.
+} but in fact, both the function-space type and its dual are intended to be used as abstract vector spaces with no public way to directly access the coefficients of either.
 
-What we do not need to require anymore is that the trees have finite depth, because there is conceptually no reason to evaluate a distribution at a single point as with \lstinline`evalPreIntg_D¹`, but only as a functional with a whole function, which we have already required to only have a finite feature-resolution. Thus the tree can be non-strict,
+Notice that the trees now need \emph{not} have finite depth,
+because there is no reason to evaluate a distribution at a single point as with \lstinline`evalPreIntg_D¹`,
+but only as a functional with a whole function,
+which is already required to have only a finite feature-resolution.
+Thus the tree can now be non-strict,
 \begin{lstlisting}
 data CoHaarUnbiased y
      = CoHaarZero
@@ -469,7 +484,7 @@ data CoHaar_D¹ y
      = CoHaar_D¹ !y (CoHaarUnbiased y)
 \end{lstlisting}
 but because \lstinline`HaarUnbiased` is strict the functional evaluation is still guaranteed to terminate\footnote{%
-There is a striking comparison to be made here to the Agda programming language, in which data types are strict by default but there is also \emph{co-data} (coinductive types) allowing for infinite streams.
+This is in striking analogy with the Agda programming language, in which data types are strict by default but there is also \emph{co-data} (coinductive types) allowing for infinite streams.
 }:
 \begin{lstlisting}
 (<.>^) :: CoHaar_D¹ ℝ -> Haar_D¹ ℝ -> ℝ
@@ -481,9 +496,16 @@ CoHaar_D¹ q0 qFluct <.>^ Haar_D¹ f0 fFluct
             ~<.>^ HaarUnbiased δf fl fr
           = δq * δf + ql~<.>^fl + qr~<.>^fr
 \end{lstlisting}
-note that \emph{no} scaling/normalisation is performed (like it would be required if this were an integral-based inner product) as the recursive call zooms into the left and right subinterval.
+note that \emph{no} scaling/normalisation is performed
+(as would be the case if this were an integral-based inner product)
+as the recursive call zooms into the left and right subinterval.
 
-It is now quite easy to construct a functional for which \lstinline`<.>^` evaluates integration or averaging over an arbitrary interval: essentially, we think about how the function will be decomposed on the subdomains, but instead of actually accepting a \lstinline`Haar_D¹` value we record in the dual vector with what weight its coefficients would be used in the result:
+We are now in a position to construct a functional for which \lstinline`<.>^` evaluates the integral over an arbitrary interval:
+we regard the function as decomposed on the subdomains,
+but instead of accepting a \lstinline`Haar_D¹` value,
+% we record in the dual vector with what weight its coefficients would be used in the result:
+we record the weights of the dual vector:
+\todo[inline, author=OV]{This makes no sense}
 \begin{lstlisting}
 boxDistribution :: (D¹, D¹)  -- ^ Target interval
                 -> ℝ         -- ^ Total weight
@@ -506,22 +528,29 @@ boxDistribution (D¹ l, D¹ r) y
                       (D¹ $ max 0 l*2 - 1, D¹ $ r*2 - 1)
                       (y * if l<0 then r/(r-l) else 1)
 \end{lstlisting}
-The tree generated this way will in general have infinite depth, to select the desired interval with any delimiters, but the distribution will only narrow in on this selection while the function it is contracted against actually has any structure down to that level. Where the function eventually approaches a constant, only the top-level coefficient is evaluated (as that corresponds to the integral, which is what is sought here).
+The tree generated this way will in general have infinite depth in order to select the desired interval with any delimiters.
+However, the distribution will only narrow in on this selection provided that the function on which we evaluate has any structure at that level.
+When the function is eventually constant, only the top-level coefficient is evaluated (as that corresponds to the integral, which is what is sought here).
 
-Furthermore, \lstinline`boxDistribution` itself only builds up the infinitely fine resolution where it is actually required, i.e. at the \emph{boundaries} of the target interval: on those subdivisions that are fully in the interval, again only to top-level coefficient of the function needs to be evaluated, whereas outside of the target the result will simply be zero.
-Thus, the tree has only two long branches, and \lstinline`<.>^` has only a complexity of $\mathcal{O}(\log n)$ in the resolution of the function which the distribution is contracted against. (Compare this with a PCM implementation, where a box distribution would need to contain $\mathcal{O}(n)$ nonzero entries, all of which would need to be evaluated.)
+Furthermore, \lstinline`boxDistribution` itself only builds up the infinitely fine resolution where it is actually required, i.e., at the \emph{boundaries} of the target interval:
+on those subdivisions that are fully in the interval, again only to top-level coefficient of the function needs to be evaluated, whereas outside of the target the result will simply be zero.
+Thus, the tree has only two long branches, and \lstinline`<.>^` has only a complexity of $\mathcal{O}(\log n)$ in the resolution of the function which the distribution is contracted against.
+(Compare this with a PCM implementation, where a box distribution would need to contain $\mathcal{O}(n)$ nonzero entries, all of which would need to be evaluated.)
 
 Remarkably, all of this works even if the target “interval” actually has zero width:
 \begin{lstlisting}
 dirac :: D¹ -> CoHaar_D¹ ℝ
 dirac x0 = boxDistribution (x0,x0) 1
 \end{lstlisting}
-That implementation of the Dirac distribution does indeed evaluate functions of arbitrary resolution at one point. As tested with QuickCheck,
+
+That implementation of the Dirac distribution does indeed evaluate functions of arbitrary resolution at one point.
+As tested with QuickCheck,
 \begin{lstlisting}
   testProperty "Dirac eval of Haar function"
    $ \f p -> dirac p<.>^f ~= evalHaarFunction f p
 \end{lstlisting}
-where the QuickCheck \lstinline`Arbitrary` instance generates arbitrarily deep tree structures, and picks any point on $D^1$ for evaluation. \lstinline`~=` checks here equality up to floating-point inaccuracy (in our test suite, allowing a relative error of $10^{-9}$).
+where the QuickCheck \lstinline`Arbitrary` instance generates arbitrarily deep tree structures, and picks any point on $D^1$ for evaluation.
+\lstinline`~=` checks equality up to floating-point inaccuracy (in our test suite, the relative error  is set to $10^{-9}$).
 
 \section{Tensor products and linear maps}
 Perhaps most important aspect about the dual space is that it gives rise to a storable implementation of arbitrary linear mappings.
