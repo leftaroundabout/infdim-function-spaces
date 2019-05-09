@@ -224,10 +224,10 @@ vector addition does \emph{not} simply reduce to component-wise addition anymore
 
 A more fundamental issue with such an approach is that every vector needs to know its resolution.
 In some applications this is not a problem: for example
-\begin{item}
+\begin{itemize}
  \item In DSP, the input resolution is fixed by a physical ADC, and subsequent calculations (LTI filters etc.) simply leave it as-is or perhaps double the sampling.
- \item Explicit integrators for hyperbolic PDEs iterate a resolution-preserving propagator-transformation involving the pointwise value of the old state and a numerical approximation (e.g. finite differences) of its spatial derivatives. This calculation will depend on the given resolution, but there is no need to precompute and store it in something like a matrix that would need to be valid for any of the possible resolutions: even if.
-\end{item}
+ \item Explicit integrators for hyperbolic PDEs iterate a re\-so\-lu\-tion-pre\-ser\-ving pro\-pa\-ga\-tor-trans\-for\-ma\-tion in\-vol\-ving the pointwise value of the old state and a numerical approximation (e.g. finite differences) of its spatial derivatives. This calculation will depend on the given resolution, but there is no need to precompute and store it in something like a matrix that would need to be valid for any of the possible resolutions: even if change of resolution should be required, the transformation can just be recomputed from scratch.
+\end{itemize}
 Many other applications however require coefficients to be stored before the required resolution is even known.
 This is both necessary for implicit methods / inverse problems -- i.e. where there is no explitly programmed way to deduce the result from an input, but rather an input needs to be “guessed” that will match the desired output\footnote{
 In practice, implicit methods use heuristics to choose a suitable resolution. A common approach is to just match the data count of the input to that of the intended output, which is reasonable enough since inversion is clearly dependent on some notion of isomorphism -- however, even an isomorphism does not necessarily preserve the highest, locally required resolution, but can “concentrate” data in given spots. This can again be taken into account with more heuristics to adaptively refine the mesh, or the extra detail can just be smoothed out (which can be useful to keep computation effort limited in nonlinear PDE solvers, however it is mathematically not really a correct solution then).
