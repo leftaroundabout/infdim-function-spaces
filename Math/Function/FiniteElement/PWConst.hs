@@ -34,6 +34,8 @@ module Math.Function.FiniteElement.PWConst
         , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose
         ) where
 
+import Math.Function.Duals.Meta
+
 import Data.Manifold.Types
 import Data.Manifold.PseudoAffine
 import Data.Complex
@@ -74,12 +76,6 @@ class HaarSamplingDomain x where
             => Haar x y -> x -> y
   homsampleHaarFunction :: (VAffineSpace y, Diff y ~ y, Fractional (Scalar y))
             => PowerOfTwo -> (x -> y) -> Haar x y
-
-data Dualness = FunctionSpace | DistributionSpace
-
-type family Dual (dn :: Dualness) where
-  Dual FunctionSpace = DistributionSpace
-  Dual DistributionSpace = FunctionSpace
 
 -- | Piecewise-constant functions on the unit interval whose integral is zero.
 data Haar0BiasTree (dn :: Dualness) (y :: *)
@@ -403,14 +399,6 @@ instance ∀ y . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Scalar
   fzipTensorWith = bilinearFunction $ \a (Tensor (HaarD¹Dual f), Tensor (HaarD¹Dual g))
              -> Tensor . HaarD¹Dual
                   $ fzipHaarCoeffsWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
-
-data DualityWitness (dn :: Dualness) where
-  DualityWitness :: (ValidDualness (Dual dn), Dual (Dual dn) ~ dn)
-           => DualityWitness dn
-class ValidDualness (dn :: Dualness) where
-  dualityWitness :: DualityWitness dn
-instance ValidDualness FunctionSpace where dualityWitness = DualityWitness
-instance ValidDualness DistributionSpace where dualityWitness = DualityWitness
 
 instance ∀ y dn . ( LinearSpace y, AffineSpace y
                   , Diff y ~ y, Needle y ~ y, Scalar y ~ ℝ
