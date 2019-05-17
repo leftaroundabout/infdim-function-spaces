@@ -11,6 +11,7 @@
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE GADTs                  #-}
 {-# LANGUAGE LambdaCase             #-}
 {-# LANGUAGE ConstraintKinds        #-}
@@ -31,7 +32,7 @@ module Math.Function.FiniteElement.PWConst
          -- * Distributions
         , dirac, boxDistribution
          -- * Utility
-        , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose
+        , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose, VAffineSpace
         ) where
 
 import Math.Function.Duals.Meta
@@ -45,6 +46,7 @@ import Data.VectorSpace
 import Math.LinearMap.Category
 import qualified Control.Functor.Constrained as CC
 import qualified Control.Arrow.Constrained as CC
+import qualified Control.Applicative.Constrained as CC
 
 import Data.Functor
 import Control.Monad
@@ -94,36 +96,57 @@ deriving instance (Show y, Show (Diff y)) => Show (Haar_D¹ dn y)
 
 type instance Haar D¹ y = Haar_D¹ FunctionSpace y
 
-fmapHaarUnbiasedCoeffs :: (TensorSpace y, TensorSpace z, Scalar y ~ Scalar z)
-                    => (y-+>z) -> (Haar0BiasTree dn y -+> Haar0BiasTree dn z)
-fmapHaarUnbiasedCoeffs f = LinearFunction go
- where go HaarZero = HaarZero
-       go (HaarUnbiased δ l r) = HaarUnbiased (f CC.$ δ) (go l) (go r)
+instance CC.Functor (Haar0BiasTree dn) (LinearFunction ℝ) (LinearFunction ℝ) where
+  fmap f = LinearFunction go
+   where go HaarZero = HaarZero
+         go (HaarUnbiased δ l r) = HaarUnbiased (f CC.$ δ) (go l) (go r)
 
-fmapHaarCoeffs :: (TensorSpace y, TensorSpace z, Scalar y ~ Scalar z)
-                    => (y-+>z) -> (Haar_D¹ dn y -+> Haar_D¹ dn z)
-fmapHaarCoeffs f = LinearFunction $
+instance CC.Functor (Haar_D¹ dn) (LinearFunction ℝ) (LinearFunction ℝ) where
+  fmap = fmapLFH
+   where fmapLFH :: ∀ y z . (TensorSpace y, TensorSpace z, Scalar y ~ ℝ, Scalar z ~ ℝ)
+             => (y-+>z) -> (Haar_D¹ dn y-+>Haar_D¹ dn z)
+         fmapLFH f = case (linearManifoldWitness @z, linearManifoldWitness @y) of
+          (LinearManifoldWitness _, LinearManifoldWitness _) ->
+           LinearFunction $
             \(Haar_D¹ y₀ δs) -> Haar_D¹ (f CC.$ y₀)
-                      $ getLinearFunction (fmapHaarUnbiasedCoeffs f) δs
+                      $ getLinearFunction (CC.fmap f) δs
 
-fzipHaarUnbiasedCoeffsWith :: ( TensorSpace x, TensorSpace y, TensorSpace z
-                       , Scalar x ~ Scalar y, Scalar y ~ Scalar z )
-                    => ((x,y)-+>z) -> ((Haar0BiasTree dn x, Haar0BiasTree dn y) -+> Haar0BiasTree dn z)
-fzipHaarUnbiasedCoeffsWith f = LinearFunction go
- where go (HaarZero, y) = getLinearFunction
-               (fmapHaarUnbiasedCoeffs $ f CC.. LinearFunction (zeroV,)) $ y
-       go (x, HaarZero) = getLinearFunction
-               (fmapHaarUnbiasedCoeffs $ f CC.. LinearFunction (,zeroV)) $ x
-       go (HaarUnbiased δx lx rx, HaarUnbiased δy ly ry)
-            = HaarUnbiased (f CC.$ (δx,δy)) (go (lx,ly)) (go (rx,ry))
+instance CC.Monoidal (Haar0BiasTree dn) (LinearFunction ℝ) (LinearFunction ℝ) where
+  pureUnit = LinearFunction $ \Origin -> HaarZero
+  fzipWith = fzwLFH
+   where fzwLFH :: ∀ a b c .
+                   ( TensorSpace a, TensorSpace b, TensorSpace c
+                   , Scalar a ~ ℝ, Scalar b ~ ℝ, Scalar c ~ ℝ )
+              => ((a,b)-+>c)
+               -> ((Haar0BiasTree dn a, Haar0BiasTree dn b) -+> Haar0BiasTree dn c)
+         fzwLFH = case ( linearManifoldWitness @a
+                       , linearManifoldWitness @b
+                       , linearManifoldWitness @c ) of
+          (LinearManifoldWitness _, LinearManifoldWitness _, LinearManifoldWitness _)
+           -> \f ->
+            let go (HaarZero, y) = getLinearFunction
+                 (CC.fmap (f CC.. LinearFunction (zeroV,))) $ y
+                go (x, HaarZero) = getLinearFunction
+                 (CC.fmap (f CC.. LinearFunction (,zeroV))) $ x
+                go (HaarUnbiased δx lx rx, HaarUnbiased δy ly ry)
+                 = HaarUnbiased (f CC.$ (δx,δy)) (go (lx,ly)) (go (rx,ry))
+            in LinearFunction go
 
-fzipHaarCoeffsWith :: ( TensorSpace x, TensorSpace y, TensorSpace z
-                      , Scalar x ~ Scalar y, Scalar y ~ Scalar z )
+instance CC.Monoidal (Haar_D¹ dn) (LinearFunction ℝ) (LinearFunction ℝ) where
+  pureUnit = LinearFunction $ \Origin -> zeroV
+  fzipWith = fzwLFH
+   where fzwLFH :: ∀ x y z dn . 
+                      ( TensorSpace x, TensorSpace y, TensorSpace z
+                      , Scalar x ~ ℝ, Scalar y ~ ℝ, Scalar z ~ ℝ )
                    => ((x,y)-+>z) -> ((Haar_D¹ dn x, Haar_D¹ dn y) -+> Haar_D¹ dn z)
-fzipHaarCoeffsWith f = LinearFunction
-          $ \(Haar_D¹ x δxs, Haar_D¹ y δys)
-               -> Haar_D¹ (f CC.$ (x,y))
-                          (getLinearFunction (fzipHaarUnbiasedCoeffsWith f) (δxs,δys))
+         fzwLFH = case ( linearManifoldWitness @x
+                       , linearManifoldWitness @y
+                       , linearManifoldWitness @z ) of
+          (LinearManifoldWitness _, LinearManifoldWitness _, LinearManifoldWitness _)
+             -> \f -> LinearFunction
+                   $ \(Haar_D¹ x δxs, Haar_D¹ y δys)
+                        -> Haar_D¹ (f CC.$ (x,y))
+                                   (getLinearFunction (CC.fzipWith f) (δxs,δys))
          
 evalHaar_D¹ :: VAffineSpace y => Haar D¹ y -> D¹ -> y
 evalHaar_D¹ (Haar_D¹ offs varis) x = offs .+^ evalVari varis x
@@ -283,13 +306,13 @@ instance ∀ y dn . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Sca
          cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
             Coercion -> Coercion
   zeroTensor = zeroV
-  toFlatTensor = LinearFunction Tensor CC.. fmapHaarUnbiasedCoeffs toFlatTensor
-  fromFlatTensor = fmapHaarUnbiasedCoeffs fromFlatTensor CC.. LinearFunction getTensorProduct
+  toFlatTensor = LinearFunction Tensor CC.. CC.fmap toFlatTensor
+  fromFlatTensor = CC.fmap fromFlatTensor CC.. LinearFunction getTensorProduct
   addTensors (Tensor f) (Tensor g) = Tensor $ f^+^g
   scaleTensor = bilinearFunction $ \μ (Tensor f) -> Tensor $ μ*^f
   negateTensor = LinearFunction $ \(Tensor f) -> Tensor $ negateV f
   tensorProduct = bilinearFunction
-         $ \f w -> Tensor $ fmapHaarUnbiasedCoeffs (LinearFunction $ \y -> y⊗w) CC.$ f
+         $ \f w -> Tensor $ CC.fmap (LinearFunction $ \y -> y⊗w) CC.$ f
   transposeTensor = LinearFunction $
        \(Tensor (HaarUnbiased δyw δsl δsr))
            -> (CC.fmap (LinearFunction $ \δy -> HaarUnbiased δy zeroV zeroV)
@@ -299,9 +322,9 @@ instance ∀ y dn . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Sca
              ^+^ (CC.fmap (LinearFunction $ \δysr -> HaarUnbiased zeroV zeroV δysr)
                  CC.. transposeTensor CC.$ Tensor δsr)
   fmapTensor = bilinearFunction $ \a (Tensor f)
-             -> Tensor $ fmapHaarUnbiasedCoeffs (CC.fmap a) CC.$ f
+             -> Tensor $ CC.fmap (CC.fmap a) CC.$ f
   fzipTensorWith = bilinearFunction $ \a (Tensor f, Tensor g)
-             -> Tensor $ fzipHaarUnbiasedCoeffsWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
+             -> Tensor $ CC.fzipWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
 instance ∀ y dn
          . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Scalar y ~ ℝ)
              => TensorSpace (Haar_D¹ dn y) where
@@ -321,20 +344,20 @@ instance ∀ y dn
          cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
             Coercion -> Coercion
   zeroTensor = zeroV
-  toFlatTensor = LinearFunction Tensor CC.. fmapHaarCoeffs toFlatTensor
-  fromFlatTensor = fmapHaarCoeffs fromFlatTensor CC.. LinearFunction getTensorProduct
+  toFlatTensor = LinearFunction Tensor CC.. CC.fmap toFlatTensor
+  fromFlatTensor = CC.fmap fromFlatTensor CC.. LinearFunction getTensorProduct
   addTensors (Tensor f) (Tensor g) = Tensor $ f^+^g
   scaleTensor = bilinearFunction $ \μ (Tensor f) -> Tensor $ μ*^f
   negateTensor = LinearFunction $ \(Tensor f) -> Tensor $ negateV f
   tensorProduct = bilinearFunction
-         $ \f w -> Tensor $ fmapHaarCoeffs (LinearFunction $ \y -> y⊗w) CC.$ f
+         $ \f w -> Tensor $ CC.fmap (LinearFunction $ \y -> y⊗w) CC.$ f
   transposeTensor = LinearFunction $
        \(Tensor (Haar_D¹ yw₀ δs))
            -> (CC.fmap (LinearFunction $ (`Haar_D¹`zeroV)) CC.. transposeTensor CC.$ yw₀)
   fmapTensor = bilinearFunction $ \a (Tensor f)
-             -> Tensor $ fmapHaarCoeffs (CC.fmap a) CC.$ f
+             -> Tensor $ CC.fmap (CC.fmap a) CC.$ f
   fzipTensorWith = bilinearFunction $ \a (Tensor f, Tensor g)
-             -> Tensor $ fzipHaarCoeffsWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
+             -> Tensor $ CC.fzipWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
 
 
 
@@ -379,26 +402,26 @@ instance ∀ y . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Scalar
             Coercion -> Coercion
   zeroTensor = zeroV
   toFlatTensor = LinearFunction (Tensor . HaarD¹Dual)
-                   CC.. fmapHaarCoeffs toFlatTensor
+                   CC.. CC.fmap toFlatTensor
                    CC.. LinearFunction getHaarD¹Dual
   fromFlatTensor = LinearFunction HaarD¹Dual
-                   CC.. fmapHaarCoeffs fromFlatTensor
+                   CC.. CC.fmap fromFlatTensor
                    CC.. LinearFunction (getHaarD¹Dual . getTensorProduct)
   addTensors (Tensor f) (Tensor g) = Tensor $ f^+^g
   scaleTensor = bilinearFunction $ \μ (Tensor f) -> Tensor $ μ*^f
   negateTensor = LinearFunction $ \(Tensor f) -> Tensor $ negateV f
   tensorProduct = bilinearFunction
          $ \(HaarD¹Dual f) w -> Tensor . HaarD¹Dual
-             $ fmapHaarCoeffs (LinearFunction $ \y -> y⊗w) CC.$ f
+             $ CC.fmap (LinearFunction $ \y -> y⊗w) CC.$ f
   transposeTensor = LinearFunction $
        \(Tensor (HaarD¹Dual (Haar_D¹ yw₀ δs)))
            -> (CC.fmap (LinearFunction $ HaarD¹Dual . (`Haar_D¹`zeroV))
                     CC.. transposeTensor CC.$ yw₀)
   fmapTensor = bilinearFunction $ \a (Tensor (HaarD¹Dual f))
-             -> Tensor . HaarD¹Dual $ fmapHaarCoeffs (CC.fmap a) CC.$ f
+             -> Tensor . HaarD¹Dual $ CC.fmap (CC.fmap a) CC.$ f
   fzipTensorWith = bilinearFunction $ \a (Tensor (HaarD¹Dual f), Tensor (HaarD¹Dual g))
              -> Tensor . HaarD¹Dual
-                  $ fzipHaarCoeffsWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
+                  $ CC.fzipWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
 
 instance ∀ y dn . ( LinearSpace y, AffineSpace y
                   , Diff y ~ y, Needle y ~ y, Scalar y ~ ℝ
@@ -418,9 +441,9 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                             -> CC.fmap (LinearFunction
                                              $ \y -> HaarUnbiased y zeroV zeroV)
                                          CC.$ (Tensor yId :: DualVector y⊗y))
-                     (fmapHaarUnbiasedCoeffs (CC.fmap . LinearFunction
+                     (CC.fmap (CC.fmap . LinearFunction
                                         $ \l -> HaarUnbiased zeroV l zeroV) CC.$ hId)
-                     (fmapHaarUnbiasedCoeffs (CC.fmap  . LinearFunction
+                     (CC.fmap (CC.fmap  . LinearFunction
                                         $ \r -> HaarUnbiased zeroV zeroV r) CC.$ hId)
   tensorId = LinearMap $ hId
    where hId :: ∀ w . (LinearSpace w, Scalar w ~ ℝ)
@@ -437,9 +460,9 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                                           $ \yw -> Tensor $ HaarUnbiased yw zeroV zeroV)
                                        CC.$ (Tensor ywId
                                               :: DualVector y⊗(DualVector w⊗(y⊗w))))
-                     (fmapHaarUnbiasedCoeffs (CC.fmap . CC.fmap . LinearFunction
+                     (CC.fmap (CC.fmap . CC.fmap . LinearFunction
                             $ \(Tensor l) -> Tensor $ HaarUnbiased zeroV l zeroV) CC.$ hId)
-                     (fmapHaarUnbiasedCoeffs (CC.fmap . CC.fmap . LinearFunction
+                     (CC.fmap (CC.fmap . CC.fmap . LinearFunction
                             $ \(Tensor r) -> Tensor $ HaarUnbiased zeroV zeroV r) CC.$ hId)
   applyDualVector = bilinearFunction $ \a f -> go a f
    where go :: Haar0BiasTree (Dual dn) (DualVector y) -> Haar0BiasTree dn y -> ℝ
@@ -502,7 +525,7 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                             -> CC.fmap (LinearFunction
                                              $ \y -> Haar_D¹ y zeroV)
                                          CC.$ (Tensor yId :: DualVector y⊗y))
-                       (fmapHaarUnbiasedCoeffs (CC.fmap . LinearFunction
+                       (CC.fmap (CC.fmap . LinearFunction
                                           $ \δs -> Haar_D¹ zeroV δs) CC.$ getLinearMap
                                               (linearId :: Haar0BiasTree dn y+>Haar0BiasTree dn y))
   tensorId = LinearMap $ hId
@@ -522,7 +545,7 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                                               :: DualVector y⊗(DualVector w⊗(y⊗w))))
                        (case tensorId :: (Haar0BiasTree dn y⊗w)+>(Haar0BiasTree dn y⊗w) of
                           LinearMap h₀ywId
-                           -> fmapHaarUnbiasedCoeffs (CC.fmap . CC.fmap . LinearFunction
+                           -> CC.fmap (CC.fmap . CC.fmap . LinearFunction
                                        $ \(Tensor q) -> Tensor (Haar_D¹ zeroV q))
                                  CC.$ h₀ywId)
   applyDualVector = bilinearFunction $ \(Haar_D¹ a₀ δa) (Haar_D¹ f₀ δf)
