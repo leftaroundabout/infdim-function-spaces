@@ -36,6 +36,7 @@ module Math.Function.FiniteElement.PWConst
         ) where
 
 import Math.Function.Duals.Meta
+import Math.Function.FiniteElement.Internal.Util
 
 import Data.Manifold.Types
 import Data.Manifold.PseudoAffine
@@ -64,14 +65,6 @@ import qualified Test.QuickCheck as QC
 --   The name refers to the fact that this type effectively contains a decomposition
 --   in a basis of Haar wavelets.
 type family Haar x y
-
--- | This constraint should in principle be just `AffineSpace`, but this conflicts
---   with the way the 'TensorSpace' class is set up, so we instead require
---   a vector space.
--- 
---   Ideally, the functions should ultimately be generalised to work even on
---   'PseudoAffine' manifolds.
-type VAffineSpace y = (AffineSpace y, VectorSpace (Diff y), Diff y ~ y)
 
 class HaarSamplingDomain x where
   evalHaarFunction :: VAffineSpace y
@@ -155,10 +148,6 @@ evalHaar_D¹ (Haar_D¹ offs varis) x = offs .+^ evalVari varis x
         | x<0        = evalVari lh (D¹ $ x*2 + 1) ^-^ δlr
         | otherwise  = evalVari rh (D¹ $ x*2 - 1) ^+^ δlr
 
-newtype PowerOfTwo = TwoToThe { binaryExponent :: Int } deriving (Eq, Ord, Show)
-getPowerOfTwo :: PowerOfTwo -> Integer
-getPowerOfTwo (TwoToThe ex) = 2^ex
-
 homsampleHaar_D¹ :: (VAffineSpace y, Diff y ~ y, Fractional (Scalar y))
             => PowerOfTwo -> (D¹ -> y) -> Haar D¹ y
 homsampleHaar_D¹ (TwoToThe 0) f = Haar_D¹ (f $ D¹ 0) HaarZero
@@ -167,12 +156,6 @@ homsampleHaar_D¹ (TwoToThe i) f
                                                 , f . view (re rightHalf) ] of
        [Haar_D¹ y₀l sfl, Haar_D¹ y₀r sfr]
         -> Haar_D¹ ((y₀l^+^y₀r)^/2) $ HaarUnbiased ((y₀r^-^y₀l)^/2) sfl sfr
-
-leftHalf, rightHalf :: Prism' D¹ D¹
-leftHalf  = prism' (\(D¹ x) -> D¹ $ (x-1)/2)
-                   (\(D¹ x) -> guard (x<=0) $> D¹ (x*2 + 1))
-rightHalf = prism' (\(D¹ x) -> D¹ $ (x+1)/2)
-                   (\(D¹ x) -> guard (x>=0) $> D¹ (x*2 - 1))
 
 boxDistribution :: (VectorSpace y, Scalar y ~ ℝ)
                      => (D¹, D¹) -> y -> Haar_D¹ DistributionSpace y
