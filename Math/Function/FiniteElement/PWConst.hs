@@ -55,7 +55,7 @@ import Control.Applicative
 import Data.Tagged
 import Data.Type.Coercion
 import GHC.Generics
-import Control.Lens (Prism', prism', view, re)
+import Control.Lens (Prism', prism', view, re, (^.))
 
 import qualified Test.QuickCheck as QC
 
@@ -144,9 +144,9 @@ instance CC.Monoidal (Haar_D¹ dn) (LinearFunction ℝ) (LinearFunction ℝ) whe
 evalHaar_D¹ :: VAffineSpace y => Haar D¹ y -> D¹ -> y
 evalHaar_D¹ (Haar_D¹ offs varis) x = offs .+^ evalVari varis x
  where evalVari HaarZero _ = zeroV
-       evalVari (HaarUnbiased δlr lh rh) (D¹ x)
-        | x<0        = evalVari lh (D¹ $ x*2 + 1) ^-^ δlr
-        | otherwise  = evalVari rh (D¹ $ x*2 - 1) ^+^ δlr
+       evalVari (HaarUnbiased δlr lh rh) p = case p^.halves of
+        Left pl  -> evalVari lh pl ^-^ δlr
+        Right pr -> evalVari rh pr ^+^ δlr
 
 homsampleHaar_D¹ :: (VAffineSpace y, Diff y ~ y, Fractional (Scalar y))
             => PowerOfTwo -> (D¹ -> y) -> Haar D¹ y
