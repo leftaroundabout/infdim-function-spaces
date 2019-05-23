@@ -11,6 +11,7 @@
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE LambdaCase             #-}
 
 module Math.Function.FiniteElement.Internal.Util where
 
@@ -19,9 +20,6 @@ import Data.AffineSpace
 import Data.Manifold.Types
 
 import Control.Lens
-import Data.Functor
-import Control.Applicative
-import Control.Monad
 
 -- | This constraint should in principle be just `AffineSpace`, but this conflicts
 --   with the way the 'TensorSpace' class is set up, so we instead require
@@ -36,7 +34,11 @@ getPowerOfTwo :: PowerOfTwo -> Integer
 getPowerOfTwo (TwoToThe ex) = 2^ex
 
 leftHalf, rightHalf :: Prism' D¹ D¹
-leftHalf  = prism' (\(D¹ x) -> D¹ $ (x-1)/2)
-                   (\(D¹ x) -> guard (x<=0) $> D¹ (x*2 + 1))
-rightHalf = prism' (\(D¹ x) -> D¹ $ (x+1)/2)
-                   (\(D¹ x) -> guard (x>=0) $> D¹ (x*2 - 1))
+leftHalf  = halves . _Left
+rightHalf = halves . _Right
+
+halves :: Iso' D¹ (Either D¹ D¹)
+halves = iso (\(D¹ x) -> if x < 0 then Left  . D¹ $ x*2 + 1
+                                  else Right . D¹ $ x*2 - 1)
+             (\case Left  (D¹ x) -> D¹ $ (x-1)/2
+                    Right (D¹ x) -> D¹ $ (x+1)/2)
