@@ -178,12 +178,16 @@ dirac :: D¹ -> DualVector (Haar D¹ ℝ)
 dirac x₀ = boxDistribution (x₀,x₀) 1
 
 
+-- | Given a function @𝑓@, yield the integral @\𝑥 -> ₀∫ˣ d𝑡 𝑓(𝑡)@. Note that integration
+--   is from zero, i.e. from the middle of the domain.
 integrateHaarFunction :: (VectorSpace y, Scalar y ~ ℝ) => Haar D¹ y -> D¹ -> y
-integrateHaarFunction = \(Haar_D¹ y₀ f) p@(D¹ x) -> x*^y₀ ^+^ down f p^/2
- where down HaarZero _ = zeroV
+integrateHaarFunction f = \p -> antideriv f p ^-^ c
+ where c = antideriv f (D¹ 0)
+       antideriv (Haar_D¹ y₀ f) p@(D¹ x) = x*^y₀ ^+^ down f p^/2
+       down HaarZero _ = zeroV
        down (HaarUnbiased δlr fl fr) p = ( case p^.halves of
-        Left pl  -> integrateHaarFunction (Haar_D¹ (negateV δlr) fl) pl
-        Right pr -> integrateHaarFunction (Haar_D¹          δlr  fr) pr ) ^-^ δlr
+        Left pl  -> antideriv (Haar_D¹ (negateV δlr) fl) pl
+        Right pr -> antideriv (Haar_D¹          δlr  fr) pr ) ^-^ δlr
 
 
 instance HaarSamplingDomain D¹ where
