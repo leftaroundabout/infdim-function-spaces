@@ -76,10 +76,15 @@ class HaarSamplingDomain x where
 
 -- | Piecewise-constant functions on the unit interval whose integral is zero.
 data Haar0BiasTree (dn :: Dualness) (y :: *)
-       = HaarZero
-       | HaarUnbiased !y        -- ^ Offset-amplitude between the left and right half
-           (Haar0BiasTree dn y) -- ^ Left half of the function domain, [-1 .. 0[
-           (Haar0BiasTree dn y) -- ^ Right half, i.e. [0 .. 1].
+  = HaarZero
+  | HaarUnbiased
+     { haarUnbiasedOffsAmpl :: !y
+         -- ^ Offset-amplitude between the left and right half
+     , haarUnbiasedLHFFluct :: (Haar0BiasTree dn y)
+         -- ^ Left half of the function domain, \([-1\ldots 0[\)
+     , haarUnbiasedRHFFluct :: (Haar0BiasTree dn y)
+         -- ^ Right half, i.e. \([0\ldots 1]\).
+     }
  deriving (Show)
 
 type HaarUnbiased y = Haar0BiasTree FunctionSpace y
@@ -178,7 +183,8 @@ dirac :: D¹ -> DualVector (Haar D¹ ℝ)
 dirac x₀ = boxDistribution (x₀,x₀) 1
 
 
--- | Given a function @𝑓@, yield the integral @\𝑥 -> ₀∫ˣ d𝑡 𝑓(𝑡)@. Note that integration
+-- | Given a function \(f\), yield the integral
+--   \(\backslash x \mapsto \int\limits_0^x \mathrm{d}t\: f(t)\). Note that integration
 --   is from zero, i.e. from the middle of the domain.
 integrateHaarFunction :: (VectorSpace y, Scalar y ~ ℝ) => Haar D¹ y -> D¹ -> y
 integrateHaarFunction f = \p -> antideriv f p ^-^ c
