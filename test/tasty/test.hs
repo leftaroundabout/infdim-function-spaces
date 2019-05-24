@@ -74,6 +74,16 @@ main = defaultMain $ testGroup "Tests"
                  $ magnitude (diracSampled - exact)
                     <= 5*maximum (abs<$>[a,b,c,d])/fromIntegral (getPowerOfTwo res)
   ]
+ , testGroup "Calculus"
+  [ testProperty "Integration of random Haar function"
+      $ \f (Positive res) p@(D¹ x)
+          -> let trapz = trapezoidal res (evalHaarFunction f . D¹) x
+                 haary = integrateHaarFunction f p
+             in counterexample ("Trapezoidal: "<>show trapz<>", Haar: "<>show haary)
+                  $ magnitude (haary - trapz)
+                     <= 10*magnitude f/fromIntegral res
+                    
+  ]
  ]
 
 retrieveSampledFn :: (D¹ -> ℝ) -> PowerOfTwo -> D¹ -> QC.Property
@@ -85,6 +95,13 @@ retrieveSampledFn f res p = counterexample
          p
        exact = f p
        discrepancy = abs $ sampled ^-^ exact
+
+-- | Reference numerical calculation of integral from 0 to x.
+trapezoidal :: Int -> (ℝ -> ℝ) -> ℝ -> ℝ
+trapezoidal n 𝑓 𝑥t
+  | 𝑥t < 0     = -trapezoidal n (𝑓 . negate) (negate 𝑥t)
+  | otherwise  = (𝑓 0 + 𝑓 𝑥t)/(2*𝑛) + sum [𝑓 x | x<-[1/𝑛, 2/𝑛 .. 𝑥t]]^/𝑛
+ where 𝑛 = fromIntegral n
 
 infix 4 ≃
 (≃) :: (InnerSpace v, Scalar v ~ ℝ, Show v) => v -> v -> QC.Property
