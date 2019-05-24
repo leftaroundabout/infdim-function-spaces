@@ -75,13 +75,26 @@ main = defaultMain $ testGroup "Tests"
                     <= 5*maximum (abs<$>[a,b,c,d])/fromIntegral (getPowerOfTwo res)
   ]
  , testGroup "Calculus"
-  [ testProperty "Integration of random Haar function"
+  [ testProperty "Integration of polynomial"
+      $ \a b c d res p@(D¹ xp)
+          -> let f (D¹ x) = a*x^3 + b*x^2 + c*x + d
+                 ʃf (D¹ x) = a*x^4/4 + b*x^3/3 + c*x^2/2 + d*x
+                 exact = ʃf p
+                 haary = integrateHaarFunction (homsampleHaarFunction res f) p
+                 trapz = trapezoidal (fromInteger $ getPowerOfTwo res) (f . D¹) xp
+             in counterexample ("Analytic: "<>show exact
+                                <>", Numerical: "<>show haary
+                                <>", Trapezoidal: "<>show trapz)
+                 $ max (magnitude (haary - exact))
+                       (magnitude (trapz - exact))
+                    <= 5*maximum (abs<$>[a,b,c,d])/fromIntegral (getPowerOfTwo res)
+  , testProperty "Integration of random Haar function"
       $ \f (Positive res) p@(D¹ x)
           -> let trapz = trapezoidal res (evalHaarFunction f . D¹) x
                  haary = integrateHaarFunction f p
              in counterexample ("Trapezoidal: "<>show trapz<>", Haar: "<>show haary)
                   $ magnitude (haary - trapz)
-                     <= 10*magnitude f/fromIntegral res
+                     <= 30*magnitude f/fromIntegral res
                     
   ]
  ]

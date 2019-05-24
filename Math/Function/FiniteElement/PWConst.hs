@@ -189,7 +189,7 @@ dirac x₀ = boxDistribution (x₀,x₀) 1
 integrateHaarFunction :: (VectorSpace y, Scalar y ~ ℝ) => Haar D¹ y -> D¹ -> y
 integrateHaarFunction f = \p -> antideriv f p ^-^ c
  where c = antideriv f $ D¹ 0
-       antideriv (Haar_D¹ y₀ f) p@(D¹ x) = x*^y₀ ^+^ down f p^/2
+       antideriv (Haar_D¹ y₀ ff) p@(D¹ x) = x*^y₀ ^+^ down ff p^/2
        down HaarZero _ = zeroV
        down (HaarUnbiased δlr fl fr) p = ( case p^.halves of
         Left pl  -> antideriv (Haar_D¹ (negateV δlr) fl) pl
