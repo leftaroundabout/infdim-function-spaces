@@ -31,6 +31,8 @@ module Math.Function.FiniteElement.PWConst
            Haar, HaarSamplingDomain(..)
          -- * Distributions
         , dirac, boxDistribution
+         -- * Calculus
+        , integrateHaarFunction
          -- * Utility
         , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose, VAffineSpace
         ) where
@@ -174,6 +176,15 @@ boxDistribution (D¹ l, D¹ r) y
 
 dirac :: D¹ -> DualVector (Haar D¹ ℝ)
 dirac x₀ = boxDistribution (x₀,x₀) 1
+
+
+integrateHaarFunction :: (VectorSpace y, Scalar y ~ ℝ) => Haar D¹ y -> D¹ -> y
+integrateHaarFunction = \(Haar_D¹ y₀ f) p@(D¹ x) -> x*^y₀ ^+^ down f p^/2
+ where down HaarZero _ = zeroV
+       down (HaarUnbiased δlr fl fr) p = ( case p^.halves of
+        Left pl  -> integrateHaarFunction (Haar_D¹ (negateV δlr) fl) pl
+        Right pr -> integrateHaarFunction (Haar_D¹          δlr  fr) pr ) ^-^ δlr
+
 
 instance HaarSamplingDomain D¹ where
   evalHaarFunction = evalHaar_D¹
