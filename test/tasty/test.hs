@@ -76,12 +76,12 @@ main = defaultMain $ testGroup "Tests"
   ]
  , testGroup "Calculus"
   [ testProperty "Integration of polynomial"
-      $ \a b c d res p@(D¹ xp)
+      $ \a b c d res intv@(D¹ xl, D¹ xr)
           -> let f (D¹ x) = a*x^3 + b*x^2 + c*x + d
                  ʃf (D¹ x) = a*x^4/4 + b*x^3/3 + c*x^2/2 + d*x
-                 exact = ʃf p
-                 haary = integrateHaarFunction (homsampleHaarFunction res f) p
-                 trapz = trapezoidal (fromInteger $ getPowerOfTwo res) (f . D¹) xp
+                 exact = ʃf (D¹ xr) - ʃf (D¹ xl)
+                 haary = integrateHaarFunction (homsampleHaarFunction res f) intv
+                 trapz = trapezoidal (fromInteger $ getPowerOfTwo res) (f . D¹) (xl,xr)
              in counterexample ("Analytic: "<>show exact
                                 <>", Numerical: "<>show haary
                                 <>", Trapezoidal: "<>show trapz)
@@ -89,8 +89,8 @@ main = defaultMain $ testGroup "Tests"
                        (magnitude (trapz - exact))
                     <= 5*maximum (abs<$>[a,b,c,d])/fromIntegral (getPowerOfTwo res)
   , testProperty "Integration of random Haar function"
-      $ \f (Positive res) p@(D¹ x)
-          -> let trapz = trapezoidal res (evalHaarFunction f . D¹) x
+      $ \f (Positive res) p@(D¹ xl, D¹ xr)
+          -> let trapz = trapezoidal res (evalHaarFunction f . D¹) (xl,xr)
                  haary = integrateHaarFunction f p
              in counterexample ("Trapezoidal: "<>show trapz<>", Haar: "<>show haary)
                   $ magnitude (haary - trapz)
@@ -110,11 +110,13 @@ retrieveSampledFn f res p = counterexample
        discrepancy = abs $ sampled ^-^ exact
 
 -- | Reference numerical calculation of integral from 0 to x.
-trapezoidal :: Int -> (ℝ -> ℝ) -> ℝ -> ℝ
-trapezoidal n 𝑓 𝑥t
-  | 𝑥t < 0     = -trapezoidal n (𝑓 . negate) (negate 𝑥t)
-  | otherwise  = (𝑓 0 + 𝑓 𝑥t)/(2*𝑛) + sum [𝑓 x | x<-[1/𝑛, 2/𝑛 .. 𝑥t]]^/𝑛
+trapezoidal :: Int -> (ℝ -> ℝ) -> (ℝ, ℝ) -> ℝ
+trapezoidal n 𝑓 (𝑥l, 𝑥r)
+  | 𝑥r < 𝑥l     = -trapezoidal n 𝑓 (𝑥r,𝑥l)
+  | otherwise  = (𝑓 𝑥l + 𝑓 𝑥r)*ℎ/2
+                  + sum [𝑓 x | x<-[𝑥l+ℎ, 𝑥l+2*ℎ .. 𝑥r-ℎ]]*ℎ
  where 𝑛 = fromIntegral n
+       ℎ = (𝑥r-𝑥l)/𝑛
 
 infix 4 ≃
 (≃) :: (InnerSpace v, Scalar v ~ ℝ, Show v) => v -> v -> QC.Property

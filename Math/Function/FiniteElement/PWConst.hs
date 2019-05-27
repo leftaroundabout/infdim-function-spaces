@@ -183,14 +183,13 @@ dirac :: D¹ -> DualVector (Haar D¹ ℝ)
 dirac x₀ = boxDistribution (x₀,x₀) 1
 
 
--- | Given a function \(f\), yield the integral
---   \(\backslash x \mapsto \int\limits_0^x \mathrm{d}t\: f(t)\). Note that integration
---   is from zero, i.e. from the middle of the domain.
-integrateHaarFunction :: (VectorSpace y, Scalar y ~ ℝ) => Haar D¹ y -> D¹ -> y
-integrateHaarFunction f = \p -> antideriv f p ^+^ c
- where c = -- antideriv f $ D¹ 0
-          case f of Haar_D¹ _ (HaarUnbiased yr _ _) -> yr
-                    _ -> zeroV
+-- | Given a function \(f\) and an interval \((\ell,r)\), yield the integral
+--   \(\backslash x \mapsto \int\limits_{\ell}^r \mathrm{d}t\: f(t)\).
+integrateHaarFunction :: (VectorSpace y, Scalar y ~ ℝ) => Haar D¹ y -> (D¹,D¹) -> y
+integrateHaarFunction f = \(l,r) -> antideriv f r ^+^ c l
+ where c (D¹ 0) = case f of Haar_D¹ _ (HaarUnbiased yr _ _) -> yr
+                            _                               -> zeroV
+       c l = negateV $ antideriv f l
        antideriv (Haar_D¹ y₀ ff) p@(D¹ x) = x*^y₀ ^+^ down ff p^/2
        down HaarZero _ = zeroV
        down (HaarUnbiased δlr fl fr) p = ( case p^.halves of
