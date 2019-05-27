@@ -112,7 +112,8 @@ retrieveSampledFn f res p = counterexample
 -- | Reference numerical calculation of integral from 0 to x.
 trapezoidal :: Int -> (ℝ -> ℝ) -> (ℝ, ℝ) -> ℝ
 trapezoidal n 𝑓 (𝑥l, 𝑥r)
-  | 𝑥r < 𝑥l     = -trapezoidal n 𝑓 (𝑥r,𝑥l)
+  | 𝑥r == 𝑥l   = 0
+  | 𝑥r < 𝑥l    = -trapezoidal n 𝑓 (𝑥r,𝑥l)
   | otherwise  = (𝑓 𝑥l + 𝑓 𝑥r)*ℎ/2
                   + sum [𝑓 x | x<-[𝑥l+ℎ, 𝑥l+2*ℎ .. 𝑥r-ℎ]]*ℎ
  where 𝑛 = fromIntegral n
