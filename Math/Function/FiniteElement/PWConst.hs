@@ -187,8 +187,10 @@ dirac x₀ = boxDistribution (x₀,x₀) 1
 --   \(\backslash x \mapsto \int\limits_0^x \mathrm{d}t\: f(t)\). Note that integration
 --   is from zero, i.e. from the middle of the domain.
 integrateHaarFunction :: (VectorSpace y, Scalar y ~ ℝ) => Haar D¹ y -> D¹ -> y
-integrateHaarFunction f = \p -> antideriv f p ^-^ c
- where c = antideriv f $ D¹ 0
+integrateHaarFunction f = \p -> antideriv f p ^+^ c
+ where c = -- antideriv f $ D¹ 0
+          case f of Haar_D¹ _ (HaarUnbiased yr _ _) -> yr
+                    _ -> zeroV
        antideriv (Haar_D¹ y₀ ff) p@(D¹ x) = x*^y₀ ^+^ down ff p^/2
        down HaarZero _ = zeroV
        down (HaarUnbiased δlr fl fr) p = ( case p^.halves of
