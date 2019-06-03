@@ -18,7 +18,7 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Math.Function.FiniteElement.PWConst
---                     Math.Function.FiniteElement.PWLinear
+                       Math.Function.FiniteElement.PWLinear
   other-modules:       Math.Function.Duals.Meta
                        Math.Function.FiniteElement.Internal.Util
                        Math.Function.FiniteElement.PWConst.Internal
