@@ -94,8 +94,7 @@ main = defaultMain $ testGroup "Tests"
                  haary = integrateHaarFunction f p
              in counterexample ("Trapezoidal: "<>show trapz<>", Haar: "<>show haary)
                   $ magnitude (haary - trapz)
-                     <= 30*magnitude f/fromIntegral res
-                    
+                     <= magnitude f/(fromIntegral res*detailScale f)
   ]
  ]
 

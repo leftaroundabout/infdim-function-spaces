@@ -34,7 +34,7 @@ module Math.Function.FiniteElement.PWConst
          -- * Calculus
         , integrateHaarFunction
          -- * Utility
-        , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose, VAffineSpace
+        , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose, VAffineSpace, detailScale
         ) where
 
 import Math.Function.Duals.Meta
@@ -607,3 +607,9 @@ multiscaleDecompose (Haar_D¹ y₀ HaarZero)
          = (y₀, zeroV)
 multiscaleDecompose (Haar_D¹ y₀ (HaarUnbiased δlr fl fr))
          = (y₀, (Haar_D¹ (negateV δlr) fl, Haar_D¹ δlr fr))
+
+-- | The size of the smallest features present in the function.
+detailScale :: Haar D¹ y -> Needle D¹
+detailScale (Haar_D¹ _ f) = go f
+ where go HaarZero = 1
+       go (HaarUnbiased _ l r) = min (go l) (go r)/2
