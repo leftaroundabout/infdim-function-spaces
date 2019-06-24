@@ -433,3 +433,15 @@ evalCHaar_D¹ (CHaar_D¹ intg yl yr (CHaarUnbiased δilr ym fl fr)) (D¹ x)
                 ^+^ evalCHaar_D¹ (CHaar_D¹ (negateV δilr) yl ym fl) (D¹ $ x*2+1)
   | otherwise  = (1-x)*^intg
                 ^+^ evalCHaar_D¹ (CHaar_D¹ (        δilr) ym yr fl) (D¹ $ x*2-1)
+
+homsampleCHaar_D¹ :: (VAffineSpace y, Scalar y ~ ℝ)
+     => PowerOfTwo -> (D¹ -> y) -> CHaar_D¹ FunctionSpace y
+homsampleCHaar_D¹ (TwoToThe 0) f
+   = CHaar_D¹ ((fl^+^fm^*2^+^fr)^/4) fl fr CHaarZero
+ where [fl,fm,fr] = f . D¹ <$> [-1, 0, 1]
+homsampleCHaar_D¹ (TwoToThe n) f
+   = case homsampleCHaar_D¹ (TwoToThe $ n-1) <$> [ f . view (re leftHalf)
+                                                 , f . view (re rightHalf) ] of
+      [CHaar_D¹ il ll rl fl, CHaar_D¹ ir lr rr fr]
+        -> CHaar_D¹ ((il^+^ir)^/2) ll rr
+            $ CHaarUnbiased ((ir^-^il)^/2) ((rl^+^lr)^/2) fl fr
