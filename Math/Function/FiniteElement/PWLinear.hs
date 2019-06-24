@@ -339,6 +339,7 @@ instance VAffineSpace y => AffineSpace (CHaar_D¹ dn y) where
             $ CHaarUnbiased (δlr₀.+^δlr₁) (yMid₀.+^yMid₁) δsl δsr
   CHaar_D¹ intg yl yr CHaarZero .+^ fr
     = CHaar_D¹ intg yl yr (CHaarUnbiased (yr^-^yl) zeroV zeroV zeroV)
+        .+^ fr
   f .+^ g = g .+^ f
   f .-. g = f .+^ negateV g
 
@@ -361,6 +362,10 @@ instance (VectorSpace y, VAffineSpace y)
   type Scalar (Contihaar0BiasTree dn y) = Scalar y
   _ *^ CHaarZero = CHaarZero
   μ *^ CHaarUnbiased δlr yMid δsl δsr = CHaarUnbiased (μ*^δlr) (μ*^yMid) (μ*^δsl) (μ*^δsr)
+instance (VectorSpace y, VAffineSpace y)
+             => VectorSpace (CHaar_D¹ dn y) where
+  type Scalar (CHaar_D¹ dn y) = Scalar y
+  μ *^ CHaar_D¹ intg yl yr f = CHaar_D¹ (μ*^intg) (μ*^yl) (μ*^yr) (μ*^f)
 
 instance (TensorSpace y, VAffineSpace y, Scalar y ~ ℝ)
              => TensorSpace (Contihaar0BiasTree dn y) where
