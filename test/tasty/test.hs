@@ -98,6 +98,14 @@ main = defaultMain $ testGroup "Tests"
                   $ magnitude (haary - trapz)
                      <= magnitude f/(fromIntegral res*detailScale f)
   ]
+ , testGroup "CHaar sampling on real interval"
+  [ testProperty "Identity function" . retrieveSampledFn @'CHaar
+         $ \(D¹ x) -> x
+  , testProperty "Quadratic function" . retrieveSampledFn @'CHaar
+         $ \(D¹ x) -> x^2
+  , testProperty "4th-order polynomial" . retrieveSampledFn @'CHaar
+         $ \(D¹ x) -> x^4/9 + x^3/2 - x^2/3 - x - 0.3
+  ]
  ]
 
 
@@ -115,6 +123,12 @@ instance RetrievableFunctionSampling 'Haar where
   homsampleFunction = homsampleHaarFunction
   evalFunction = evalHaarFunction
   allowedRelDiscrepancy res = 3/fromIntegral (getPowerOfTwo res)
+
+instance RetrievableFunctionSampling 'CHaar where
+  type FunctionSampling 'CHaar x y = CHaar x y
+  homsampleFunction = homsampleCHaarFunction
+  evalFunction = evalCHaarFunction
+  allowedRelDiscrepancy res = 2/fromIntegral (getPowerOfTwo res)^2
 
 retrieveSampledFn :: ∀ f . RetrievableFunctionSampling f
                => (D¹ -> ℝ) -> PowerOfTwo -> D¹ -> QC.Property
