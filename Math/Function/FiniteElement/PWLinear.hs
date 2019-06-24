@@ -28,9 +28,10 @@
 
 module Math.Function.FiniteElement.PWLinear
        ( -- * Functions
-           HaarI, HaarISamplingDomain(..)
+          HaarI, HaarISamplingDomain(..)
+        , CHaar, CHaarSamplingDomain(..)
          -- * Utility
-        , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose, VAffineSpace
+        , PowerOfTwo(..), getPowerOfTwo, VAffineSpace
         ) where
 
 import Math.Function.Duals.Meta
@@ -262,6 +263,19 @@ instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
            
 
 
+-- | Piecewise-linear function with regular, power-of-two subdivisions, but
+--   not necessarily with homogeneous resolution. 
+--   The name refers to the fact that the storage information is similar to Haar-wavelets,
+--   i.e. the integral is stored at the top-level and fluctuations only locally.
+--   But unlike with Haar wavelets, @CHaar@ functions are continuous everywhere.
+type family CHaar x y
+
+class CHaarSamplingDomain x where
+  evalCHaarFunction :: (VAffineSpace y, Scalar y ~ ℝ)
+            => CHaar x y -> x -> y
+  homsampleCHaarFunction :: (VAffineSpace y, Diff y ~ y, Scalar y ~ ℝ)
+            => PowerOfTwo -> (x -> y) -> CHaar x y
+
 
 data Contihaar0BiasTree (dn :: Dualness) (y :: *)
   = CHaarZero
@@ -454,3 +468,9 @@ homsampleCHaar_D¹ (TwoToThe n) f
                -> let intg = (il^+^ir)^/2
                   in ( intg, \p@(D¹ x) -> f p ^-^ intg^*if x<0 then 1+x
                                                                else 1-x )
+
+type instance CHaar D¹ y = CHaar_D¹ FunctionSpace y
+
+instance CHaarSamplingDomain D¹ where
+  homsampleCHaarFunction = homsampleCHaar_D¹
+  evalCHaarFunction = evalCHaar_D¹
