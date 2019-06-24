@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE UnicodeSyntax        #-}
+{-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE KindSignatures       #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -14,6 +15,7 @@ import Test.Tasty
 import Test.Tasty.QuickCheck
 import qualified Test.QuickCheck as QC
 import Math.Function.FiniteElement.PWConst
+import Math.Function.FiniteElement.PWLinear
 import Data.VectorSpace
 import Data.Manifold.Types
 import Data.Semigroup
@@ -22,11 +24,11 @@ import Math.LinearMap.Category
 main :: IO ()
 main = defaultMain $ testGroup "Tests"
  [ testGroup "Haar sampling on real line"
-  [ testProperty "Identity function" . retrieveSampledFn
+  [ testProperty "Identity function" . retrieveSampledFn @'Haar
          $ \(D¹ x) -> x
-  , testProperty "Quadratic function" . retrieveSampledFn
+  , testProperty "Quadratic function" . retrieveSampledFn @'Haar
          $ \(D¹ x) -> x^2
-  , testProperty "4th-order polynomial" . retrieveSampledFn
+  , testProperty "4th-order polynomial" . retrieveSampledFn @'Haar
          $ \(D¹ x) -> x^4/9 + x^3/2 - x^2/3 - x - 0.3
   , testProperty "Additivity of sampled form"
          $ \cfs₀ cfs₁ res
@@ -98,12 +100,29 @@ main = defaultMain $ testGroup "Tests"
   ]
  ]
 
-retrieveSampledFn :: (D¹ -> ℝ) -> PowerOfTwo -> D¹ -> QC.Property
+
+data FunctionSamplingScheme
+  = Haar | HaarI | CHaar
+
+class RetrievableFunctionSampling (f :: FunctionSamplingScheme) where
+  type FunctionSampling f x y :: *
+  homsampleFunction :: PowerOfTwo -> (D¹ -> ℝ) -> FunctionSampling f D¹ ℝ
+  evalFunction :: FunctionSampling f D¹ ℝ -> D¹ -> ℝ
+  allowedRelDiscrepancy :: PowerOfTwo -> ℝ
+
+instance RetrievableFunctionSampling 'Haar where
+  type FunctionSampling 'Haar x y = Haar x y
+  homsampleFunction = homsampleHaarFunction
+  evalFunction = evalHaarFunction
+  allowedRelDiscrepancy res = 3/fromIntegral (getPowerOfTwo res)
+
+retrieveSampledFn :: ∀ f . RetrievableFunctionSampling f
+               => (D¹ -> ℝ) -> PowerOfTwo -> D¹ -> QC.Property
 retrieveSampledFn f res p = counterexample
    ("Exact: "<>show exact<>", sampled: "<>show sampled<>", discrepancy: "<>show discrepancy)
-    $ discrepancy <= 3/fromIntegral (getPowerOfTwo res)
- where sampled = evalHaarFunction
-         (homsampleHaarFunction res f)
+    $ discrepancy <= allowedRelDiscrepancy @f res
+ where sampled = (evalFunction @f)
+         ((homsampleFunction @f) res f)
          p
        exact = f p
        discrepancy = abs $ sampled ^-^ exact
