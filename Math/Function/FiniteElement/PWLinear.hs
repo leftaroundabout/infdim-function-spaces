@@ -261,3 +261,143 @@ instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
   arbitrary = HaarI_D¹ <$> QC.arbitrary <*> QC.arbitrary
            
 
+
+
+data Contihaar0BiasTree (dn :: Dualness) (y :: *)
+  = CHaarZero
+  | CHaarUnbiased
+     { chaarUnbiasedIntgOffsAmpl :: !y
+         -- ^ Integral-amplitude between the left and right half
+     , chaarMidpointCctn :: !y
+         -- ^ Function value at the middle of the domain, measured from the
+         --   triangular integral model.
+     , haarUnbiasedLHFFluct :: (Contihaar0BiasTree dn y)
+         -- ^ Fluctuations in left half of the function domain, \([-1\ldots 0[\)
+     , haarUnbiasedRHFFluct :: (Contihaar0BiasTree dn y)
+         -- ^ Fluctuations in right half, i.e. \([0\ldots 1]\).
+     }
+
+instance VAffineSpace y => Semimanifold (Contihaar0BiasTree dn y) where
+  type Needle (Contihaar0BiasTree dn y) = Contihaar0BiasTree dn y
+  type Interior (Contihaar0BiasTree dn y) = Contihaar0BiasTree dn y
+  toInterior = Just
+  fromInterior = id
+  translateP = Tagged (.+^)
+instance VAffineSpace y => PseudoAffine (Contihaar0BiasTree dn y) where
+  (.-~!) = (.-.)
+instance VAffineSpace y => AffineSpace (Contihaar0BiasTree dn y) where
+  type Diff (Contihaar0BiasTree dn y) = Contihaar0BiasTree dn y
+  CHaarZero .+^ f = f
+  f .+^ CHaarZero = f
+  CHaarUnbiased δlr₀ yMid₀ δsl₀ δsr₀ .+^ CHaarUnbiased δlr₁ yMid₁ δsl₁ δsr₁
+            = CHaarUnbiased (δlr₀^+^δlr₁) (yMid₀^+^yMid₁) (δsl₀.+^δsl₁) (δsr₀.+^δsr₁)
+  CHaarZero .-. CHaarZero = CHaarZero
+  CHaarUnbiased δlr₁ yMid₁ δsl₁ δsr₁ .-. CHaarUnbiased δlr₀ yMid₀ δsl₀ δsr₀
+            = CHaarUnbiased (δlr₁^-^δlr₀) (yMid₁.-.yMid₀) (δsl₁.-.δsl₀) (δsr₁.-.δsr₀)
+
+instance VAffineSpace y => AdditiveGroup (Contihaar0BiasTree dn y) where
+  (^+^) = (.+^)
+  (^-^) = (.-.)
+  zeroV = CHaarZero
+  negateV CHaarZero = CHaarZero
+  negateV (CHaarUnbiased δlr yMid δsl δsr)
+      = CHaarUnbiased (negateV δlr) (negateV yMid) (negateV δsl) (negateV δsr)
+
+instance (VectorSpace y, VAffineSpace y)
+             => VectorSpace (Contihaar0BiasTree dn y) where
+  type Scalar (Contihaar0BiasTree dn y) = Scalar y
+  _ *^ CHaarZero = CHaarZero
+  μ *^ CHaarUnbiased δlr yMid δsl δsr = CHaarUnbiased (μ*^δlr) (μ*^yMid) (μ*^δsl) (μ*^δsr)
+
+instance (TensorSpace y, VAffineSpace y, Scalar y ~ ℝ)
+             => TensorSpace (Contihaar0BiasTree dn y) where
+  type TensorProduct (Contihaar0BiasTree dn y) w = Contihaar0BiasTree dn (y⊗w)
+  wellDefinedVector CHaarZero = Just CHaarZero
+  wellDefinedVector (CHaarUnbiased δ m l r) = CHaarUnbiased <$> wellDefinedVector δ
+                                          <*> wellDefinedVector m
+                                          <*> wellDefinedVector l
+                                          <*> wellDefinedVector r
+  wellDefinedTensor (Tensor CHaarZero) = Just $ Tensor CHaarZero
+  wellDefinedTensor (Tensor (CHaarUnbiased δ m l r)) = Tensor <$>
+                                   (CHaarUnbiased <$> wellDefinedVector δ
+                                          <*> wellDefinedVector m
+                                          <*> wellDefinedVector l
+                                          <*> wellDefinedVector r)
+  scalarSpaceWitness = case scalarSpaceWitness :: ScalarSpaceWitness y of
+     ScalarSpaceWitness -> ScalarSpaceWitness
+  linearManifoldWitness = case linearManifoldWitness :: LinearManifoldWitness y of
+     LinearManifoldWitness BoundarylessWitness -> LinearManifoldWitness BoundarylessWitness
+  coerceFmapTensorProduct = cftlp
+   where cftlp :: ∀ a b p . p (Contihaar0BiasTree dn y) -> Coercion a b
+                   -> Coercion (Contihaar0BiasTree dn (Tensor ℝ (Diff y) a))
+                               (Contihaar0BiasTree dn (Tensor ℝ (Diff y) b))
+         cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
+            Coercion -> Coercion
+  zeroTensor = zeroV
+  toFlatTensor = LinearFunction Tensor CC.. CC.fmap toFlatTensor
+  fromFlatTensor = CC.fmap fromFlatTensor CC.. LinearFunction getTensorProduct
+  addTensors (Tensor f) (Tensor g) = Tensor $ f^+^g
+  scaleTensor = bilinearFunction $ \μ (Tensor f) -> Tensor $ μ*^f
+  negateTensor = LinearFunction $ \(Tensor f) -> Tensor $ negateV f
+  tensorProduct = bilinearFunction
+         $ \f w -> Tensor $ CC.fmap (LinearFunction $ \y -> y⊗w) CC.$ f
+  transposeTensor = LinearFunction $
+       \(Tensor (CHaarUnbiased δyw ywMid δsl δsr))
+           -> (CC.fmap (LinearFunction $ \δy -> CHaarUnbiased δy zeroV zeroV zeroV)
+                 CC.. transposeTensor CC.$ δyw)
+             ^+^ (CC.fmap (LinearFunction $ \yMid -> CHaarUnbiased zeroV yMid zeroV zeroV)
+                 CC.. transposeTensor CC.$ ywMid)
+             ^+^ (CC.fmap (LinearFunction $ \δysl -> CHaarUnbiased zeroV zeroV δysl zeroV)
+                 CC.. transposeTensor CC.$ Tensor δsl)
+             ^+^ (CC.fmap (LinearFunction $ \δysr -> CHaarUnbiased zeroV zeroV zeroV δysr)
+                 CC.. transposeTensor CC.$ Tensor δsr)
+  fmapTensor = bilinearFunction $ \a (Tensor f)
+             -> Tensor $ CC.fmap (CC.fmap a) CC.$ f
+  fzipTensorWith = bilinearFunction $ \a (Tensor f, Tensor g)
+             -> Tensor $ CC.fzipWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
+
+
+instance CC.Functor (Contihaar0BiasTree dn) (LinearFunction ℝ) (LinearFunction ℝ) where
+  fmap f = LinearFunction go
+   where go CHaarZero = CHaarZero
+         go (CHaarUnbiased δ m l r) = CHaarUnbiased (f CC.$ δ) (f CC.$ m) (go l) (go r)
+
+instance CC.Monoidal (Contihaar0BiasTree dn) (LinearFunction ℝ) (LinearFunction ℝ) where
+  pureUnit = LinearFunction $ \Origin -> CHaarZero
+  fzipWith = fzwLFH
+   where fzwLFH :: ∀ a b c .
+                   ( TensorSpace a, TensorSpace b, TensorSpace c
+                   , Scalar a ~ ℝ, Scalar b ~ ℝ, Scalar c ~ ℝ )
+              => ((a,b)-+>c)
+               -> ((Contihaar0BiasTree dn a, Contihaar0BiasTree dn b)
+                      -+> Contihaar0BiasTree dn c)
+         fzwLFH = case ( linearManifoldWitness @a
+                       , linearManifoldWitness @b
+                       , linearManifoldWitness @c ) of
+          (LinearManifoldWitness _, LinearManifoldWitness _, LinearManifoldWitness _)
+           -> \f ->
+            let go (CHaarZero, y) = getLinearFunction
+                 (CC.fmap (f CC.. LinearFunction (zeroV,))) $ y
+                go (x, CHaarZero) = getLinearFunction
+                 (CC.fmap (f CC.. LinearFunction (,zeroV))) $ x
+                go (CHaarUnbiased δx xm lx rx, CHaarUnbiased δy ym ly ry)
+                 = CHaarUnbiased (f CC.$ (δx,δy)) (f CC.$ (xm,ym)) (go (lx,ly)) (go (rx,ry))
+            in LinearFunction go
+
+
+data CHaar_D¹ dn y = CHaar_D¹
+  { _chaar_D¹_fullIntegral :: !y
+  , _chaar_D¹_boundaryConditionL, _chaar_D¹_boundaryConditionR :: !y
+  , _chaar_D¹_functionCourse :: Contihaar0BiasTree dn y }
+
+evalCHaar_D¹ :: (VAffineSpace y, Scalar y ~ ℝ)
+     => CHaar_D¹ FunctionSpace y -> D¹ -> y
+evalCHaar_D¹ (CHaar_D¹ intg yl yr CHaarZero) (D¹ x)
+  | x < 0      = (1+x)*^iym ^-^ x*^yl
+  | otherwise  = x*^yr ^+^ (1-x)*^iym
+ where iym = intg ^-^ yl ^-^ yr
+evalCHaar_D¹ (CHaar_D¹ intg yl yr (CHaarUnbiased δilr ym fl fr)) (D¹ x)
+  | x < 0      = (1+x)*^intg
+                ^+^ evalCHaar_D¹ (CHaar_D¹ (negateV δilr) yl ym fl) (D¹ $ x*2+1)
+  | otherwise  = (1-x)*^intg
+                ^+^ evalCHaar_D¹ (CHaar_D¹ (        δilr) ym yr fl) (D¹ $ x*2-1)
