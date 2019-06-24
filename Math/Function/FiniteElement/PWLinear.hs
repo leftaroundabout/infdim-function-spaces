@@ -277,23 +277,54 @@ data Contihaar0BiasTree (dn :: Dualness) (y :: *)
          -- ^ Fluctuations in right half, i.e. \([0\ldots 1]\).
      }
 
+data CHaar_D¹ dn y = CHaar_D¹
+  { _chaar_D¹_fullIntegral :: !y
+  , _chaar_D¹_boundaryConditionL, _chaar_D¹_boundaryConditionR :: !y
+  , _chaar_D¹_functionCourse :: Contihaar0BiasTree dn y }
+
+
+
 instance VAffineSpace y => Semimanifold (Contihaar0BiasTree dn y) where
   type Needle (Contihaar0BiasTree dn y) = Contihaar0BiasTree dn y
   type Interior (Contihaar0BiasTree dn y) = Contihaar0BiasTree dn y
   toInterior = Just
   fromInterior = id
   translateP = Tagged (.+^)
+instance VAffineSpace y => Semimanifold (CHaar_D¹ dn y) where
+  type Needle (CHaar_D¹ dn y) = CHaar_D¹ dn y
+  type Interior (CHaar_D¹ dn y) = CHaar_D¹ dn y
+  toInterior = Just
+  fromInterior = id
+  translateP = Tagged (.+^)
+
 instance VAffineSpace y => PseudoAffine (Contihaar0BiasTree dn y) where
   (.-~!) = (.-.)
+instance VAffineSpace y => PseudoAffine (CHaar_D¹ dn y) where
+  (.-~!) = (.-.)
+
 instance VAffineSpace y => AffineSpace (Contihaar0BiasTree dn y) where
   type Diff (Contihaar0BiasTree dn y) = Contihaar0BiasTree dn y
-  CHaarZero .+^ f = f
-  f .+^ CHaarZero = f
-  CHaarUnbiased δlr₀ yMid₀ δsl₀ δsr₀ .+^ CHaarUnbiased δlr₁ yMid₁ δsl₁ δsr₁
-            = CHaarUnbiased (δlr₀^+^δlr₁) (yMid₀^+^yMid₁) (δsl₀.+^δsl₁) (δsr₀.+^δsr₁)
-  CHaarZero .-. CHaarZero = CHaarZero
-  CHaarUnbiased δlr₁ yMid₁ δsl₁ δsr₁ .-. CHaarUnbiased δlr₀ yMid₀ δsl₀ δsr₀
-            = CHaarUnbiased (δlr₁^-^δlr₀) (yMid₁.-.yMid₀) (δsl₁.-.δsl₀) (δsr₁.-.δsr₀)
+  f .+^ g = case CHaar_D¹ zeroV zeroV zeroV f .+^ CHaar_D¹ zeroV zeroV zeroV g of
+      CHaar_D¹ _ _ _ r -> r
+  f .-. g = case CHaar_D¹ zeroV zeroV zeroV f .-. CHaar_D¹ zeroV zeroV zeroV g of
+      CHaar_D¹ _ _ _ r -> r
+instance VAffineSpace y => AffineSpace (CHaar_D¹ dn y) where
+  type Diff (CHaar_D¹ dn y) = CHaar_D¹ dn y
+  CHaar_D¹ i₀ l₀ r₀ CHaarZero .+^ CHaar_D¹ i₁ l₁ r₁ CHaarZero
+      = CHaar_D¹ (i₀.+^i₁) (l₀.+^l₁) (r₀.+^r₁) CHaarZero
+  CHaar_D¹ i₀ l₀ r₀ (CHaarUnbiased δlr₀ yMid₀ δsl₀ δsr₀)
+      .+^ CHaar_D¹ i₁ l₁ r₁ (CHaarUnbiased δlr₁ yMid₁ δsl₁ δsr₁)
+    = case ( CHaar_D¹ (negateV δlr₀) l₀ yMid₀ δsl₀
+              .+^ CHaar_D¹ (negateV δlr₁) l₁ yMid₁ δsl₁
+           , CHaar_D¹ δlr₀ yMid₀ r₀ δsr₀
+              .+^ CHaar_D¹ δlr₁ yMid₁ r₁ δsr₁ ) of
+       (CHaar_D¹ _ _ _ δsl, CHaar_D¹ _ _ _ δsr)
+        -> CHaar_D¹ (i₀.+^i₁) (l₀.+^l₁) (r₀.+^r₁)
+            $ CHaarUnbiased (δlr₀.+^δlr₁) (yMid₀.+^yMid₁) δsl δsr
+  CHaar_D¹ intg yl yr CHaarZero .+^ fr
+    = CHaar_D¹ intg yl yr (CHaarUnbiased (yr^-^yl) zeroV zeroV zeroV)
+  f .+^ g = g .+^ f
+  f .-. g = f .+^ negateV g
 
 instance VAffineSpace y => AdditiveGroup (Contihaar0BiasTree dn y) where
   (^+^) = (.+^)
@@ -302,6 +333,12 @@ instance VAffineSpace y => AdditiveGroup (Contihaar0BiasTree dn y) where
   negateV CHaarZero = CHaarZero
   negateV (CHaarUnbiased δlr yMid δsl δsr)
       = CHaarUnbiased (negateV δlr) (negateV yMid) (negateV δsl) (negateV δsr)
+instance VAffineSpace y => AdditiveGroup (CHaar_D¹ dn y) where
+  (^+^) = (.+^)
+  (^-^) = (.-.)
+  zeroV = CHaar_D¹ zeroV zeroV zeroV zeroV
+  negateV (CHaar_D¹ intg lBound rBound fluct)
+      = CHaar_D¹ (negateV intg) (negateV lBound) (negateV rBound) (negateV fluct)
 
 instance (VectorSpace y, VAffineSpace y)
              => VectorSpace (Contihaar0BiasTree dn y) where
@@ -384,11 +421,6 @@ instance CC.Monoidal (Contihaar0BiasTree dn) (LinearFunction ℝ) (LinearFunctio
                  = CHaarUnbiased (f CC.$ (δx,δy)) (f CC.$ (xm,ym)) (go (lx,ly)) (go (rx,ry))
             in LinearFunction go
 
-
-data CHaar_D¹ dn y = CHaar_D¹
-  { _chaar_D¹_fullIntegral :: !y
-  , _chaar_D¹_boundaryConditionL, _chaar_D¹_boundaryConditionR :: !y
-  , _chaar_D¹_functionCourse :: Contihaar0BiasTree dn y }
 
 evalCHaar_D¹ :: (VAffineSpace y, Scalar y ~ ℝ)
      => CHaar_D¹ FunctionSpace y -> D¹ -> y
