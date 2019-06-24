@@ -276,11 +276,13 @@ data Contihaar0BiasTree (dn :: Dualness) (y :: *)
      , haarUnbiasedRHFFluct :: (Contihaar0BiasTree dn y)
          -- ^ Fluctuations in right half, i.e. \([0\ldots 1]\).
      }
+ deriving (Show)
 
 data CHaar_D¹ dn y = CHaar_D¹
   { _chaar_D¹_fullIntegral :: !y
   , _chaar_D¹_boundaryConditionL, _chaar_D¹_boundaryConditionR :: !y
   , _chaar_D¹_functionCourse :: Contihaar0BiasTree dn y }
+ deriving (Show)
 
 
 
@@ -427,21 +429,28 @@ evalCHaar_D¹ :: (VAffineSpace y, Scalar y ~ ℝ)
 evalCHaar_D¹ (CHaar_D¹ intg yl yr CHaarZero) (D¹ x)
   | x < 0      = (1+x)*^iym ^-^ x*^yl
   | otherwise  = x*^yr ^+^ (1-x)*^iym
- where iym = intg ^-^ yl ^-^ yr
+ where iym = intg ^-^ (yl ^+^ yr)^/2
 evalCHaar_D¹ (CHaar_D¹ intg yl yr (CHaarUnbiased δilr ym fl fr)) (D¹ x)
   | x < 0      = (1+x)*^intg
                 ^+^ evalCHaar_D¹ (CHaar_D¹ (negateV δilr) yl ym fl) (D¹ $ x*2+1)
   | otherwise  = (1-x)*^intg
-                ^+^ evalCHaar_D¹ (CHaar_D¹ (        δilr) ym yr fl) (D¹ $ x*2-1)
+                ^+^ evalCHaar_D¹ (CHaar_D¹ (        δilr) ym yr fr) (D¹ $ x*2-1)
 
 homsampleCHaar_D¹ :: (VAffineSpace y, Scalar y ~ ℝ)
      => PowerOfTwo -> (D¹ -> y) -> CHaar_D¹ FunctionSpace y
 homsampleCHaar_D¹ (TwoToThe 0) f
-   = CHaar_D¹ ((fl^+^fm^*2^+^fr)^/4) fl fr CHaarZero
+   = CHaar_D¹ ((fl^+^fm^*2^+^fr)^/2) fl fr CHaarZero
  where [fl,fm,fr] = f . D¹ <$> [-1, 0, 1]
 homsampleCHaar_D¹ (TwoToThe n) f
-   = case homsampleCHaar_D¹ (TwoToThe $ n-1) <$> [ f . view (re leftHalf)
-                                                 , f . view (re rightHalf) ] of
-      [CHaar_D¹ il ll rl fl, CHaar_D¹ ir lr rr fr]
-        -> CHaar_D¹ ((il^+^ir)^/2) ll rr
-            $ CHaarUnbiased ((ir^-^il)^/2) ((rl^+^lr)^/2) fl fr
+   = case homsampleCHaar_D¹ (TwoToThe $ n-1) <$> [ f₀ . view (re leftHalf)
+                                                 , f₀ . view (re rightHalf) ] of
+                [CHaar_D¹ il ll rl fl, CHaar_D¹ ir lr rr fr]
+                  -> CHaar_D¹ intg ll rr
+                       $ CHaarUnbiased ((ir^-^il)^/2) ((rl^+^lr)^/2) fl fr
+ where (intg, f₀) = case homsampleCHaar_D¹ (TwoToThe $ n-1)
+                                   <$> [ f . view (re leftHalf)
+                                       , f . view (re rightHalf) ] of
+             [CHaar_D¹ il _ _ _, CHaar_D¹ ir _ _ _]
+               -> let intg = (il^+^ir)^/2
+                  in ( intg, \p@(D¹ x) -> f p ^-^ intg^*if x<0 then 1+x
+                                                               else 1-x )
