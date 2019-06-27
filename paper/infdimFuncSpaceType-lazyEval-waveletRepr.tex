@@ -241,10 +241,15 @@ For instance,
 % Contrast with 𝓛² Hilbert space, why that is often preferred in practice, Riesz representation theorem, Nyquist reduction to finite sampling
 
 \section{The space of PCM-sampled functions}
-% Discuss standard approach – pre-select, fixed resolution finite-dim space – problem: risk of underestimating required reso or else wasting resources on unnecessary reso
-It is possible to have an indeed infinite-dimensional vector-space type approximating $\mathcal{L}^2(D^1)$, with a PCM\footnote{%
-The abbreviation “PCM” stands for \emph{pulse code modulation}, the term used in digital signal processing for a signal in time domain that is sampled with a digital value proportional to the analogue voltage it represents on equal time intervals. We use it as a shorthand for general equal-spaced sampling. In numerical differential equations, it might rather be called an FD (finite differences) representation, though that would strictly speaking refer to the approximations of differential operators rather than the function itself.
-} representation but the choice of a resolution deferred to runtime. The data structure itself is then simply an array (or list) of unspecified finite length $n$,
+An extremely common way of representing continuous or $\mathcal{L}^2$ functions in computer programs is what we will in the following call the PCM representation\footnote{%
+The abbreviation “PCM” stands for \emph{pulse code modulation}. The term is used in digital signal processing for a signal in time domain that is sampled on equal time intervals with a digital value proportional to the analogue voltage it represents. We use “DSP” as a shorthand for general equal-spaced sampling. In applications of numerical differential equations, this might rather be referred to as a \emph{finite differences} (FD) representation.
+}. The idea is to divide the domain into equal-sized segments, and store in each of these segments only one function value. That can be done with a simple array, or list.
+\begin{figure}
+ \centering
+ \includegraphics[width=\linewidth]{simple-PCM-example.pdf}
+ \caption{Example of how a function $f:D^1\to\mathbb{R}$ is represented in PCM.}
+ \label{haarDomDecompose}
+\end{figure}
 \begin{lstlisting}
 newtype PCM_D¹ y = PCM_D¹ {
           getPCMSampling :: [y] }
@@ -253,20 +258,27 @@ where the \lstinline`y` values correspond to equally-spaced samples of the repre
 \[
   \left[f(-1 + \tfrac2n\cdot i)\ \middle|\ i\leftarrow[\tfrac12\;..\;n-\tfrac12]\right].
 \]
-Note that, as the length of the list is not fixed,
-vector addition does \emph{not} simply reduce to component-wise addition anymore. If two vectors of different resolution are added, at least one of them needs to adapt its resolution through resampling/interpolation beforehands.
-% Demonstrate code&example for `instance AdditiveGroup PCM_D¹`, involving interpolation
+There is a body of theory, the \emph{Shannon-Nyquist formalism}, that makes PCM a quite solid method for representing a subspace of $\mathcal{L}^2$, the subspace of \emph{bandlimited} functions. We will not discuss this aspect here. 
 
-A more fundamental issue with such an approach is that every vector needs to know its resolution.
+The space of PCM-sampled functions is a vector space, and many applications make use of this fact all the time: array-languages like Matlab and NumPy implement addition, multiplication and more on arrays, and provided that all functions are sampled with the same resolution, this corresponds perfectly to the conceptually intended extensional addition of functions, i.e.
+\begin{lstlisting}
+h = PCM_D¹ $ zipWith (+)
+    (getPCMSampling f) (getPCMSampling g)
+\end{lstlisting}
+\[
+  \stackrel{\approx}{\Leftrightarrow} h(x) = f(x) + g(x).
+\]
+This does not hold up anymore if $f$ and $g$ are sampled at different resolution. Often, this is simply prevented altogether (made a runtime error or, somewhat better, type-error with indexed-length vector types).
+
 In some applications this is not a problem: for example
 \begin{itemize}
- \item In DSP, the input resolution is fixed by a physical ADC, and subsequent calculations (LTI filters etc.) simply leave it as-is or perhaps double the sampling.
+ \item In DSP, the input resolution is fixed by a physical ADC, and subsequent calculations (LTI filters etc.) simply leave it as-is or perhaps double the sampling. Nevertheless, it can be desirable to combine signals from different sources with different sampling rate, which then requires suitable resampling.
  \item Explicit integrators for hyperbolic PDEs iterate a re\-so\-lu\-tion-pre\-ser\-ving pro\-pa\-ga\-tor-trans\-for\-ma\-tion in\-vol\-ving the pointwise value of the old state and a numerical approximation (e.g. finite differences) of its spatial derivatives. This calculation will depend on the given resolution, but there is no need to precompute and store it in something like a matrix that would need to be valid for any of the possible resolutions: even if change of resolution should be required, the transformation can just be recomputed from scratch.
 \end{itemize}
 Many other applications, however, require coefficients to be stored before the required resolution is even known.
 This is both necessary for implicit methods / inverse problems -- i.e. where there is no explitly programmed way to deduce the result from an input, but rather an input needs to be “guessed” that will match the desired output\footnote{
 In practice, implicit methods use heuristics to choose a suitable resolution. A common approach is to just match the data count of the input to that of the intended output, which is reasonable enough since inversion is clearly dependent on some notion of isomorphism -- however, even an isomorphism does not necessarily preserve the highest, locally required resolution, but can “concentrate” data in given spots. This can again be taken into account with more heuristics to adaptively refine the mesh, or the extra detail can just be smoothed out (which can be useful to keep computation effort limited in nonlinear PDE solvers, however it is mathematically not really a correct solution then).
-}, but also for calculations which simply require a stored-coefficient form for efficiency.
+}, but also for calculations which simply require a stored-coefficient form for efficiency. Doing that in a general manner which would work regardless of what resolution turns out to be necessary in the end would amount to choosing an infinite resolution.
 
 Experience with Haskell suggests that the problem of computing infinitely many coefficients should be possible with lazy evaluation, provided only finitely many of them actually need to be evaluated in the end.
 However, a data structure like \lstinline`PCM_D¹` is not suitable for this, since adding new coefficients to the end of the list would change the meaning of the already calculated ones (they would be squeezed to the left of the domain).

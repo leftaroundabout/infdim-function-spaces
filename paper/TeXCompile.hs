@@ -27,6 +27,18 @@ main = do
   let embedD¹ (l,r) f x
        | x>l && x<r  = f . D¹ $ 2*(x-l)/(r-l) - 1
        | otherwise   = 0/0
+  mkPlotFigure "simple-PCM-example.pdf" (Dia.dims $ 560 ^& 480)
+     ( let f (D¹ x) = sin (3*x) - cos (7*x)/3 - 0.2
+           res = 12
+           h = 2/fromIntegral res
+           fPCM = [(x, f $ D¹ x) | x <- [h/2-1, 3*h/2-1 .. 1-h/2]]
+       in [ continFnPlot (embedD¹ (-1,1) f) & legendName "𝑓"
+          , shapePlot (mconcat
+             [ Dia.circle (h/9) & Dia.moveTo (x^&y)
+             | (x,y) <- fPCM ]) & legendName ("PCM (𝑛="++show res++")")
+          , xAxisLabel "𝑥"
+          , yAxisLabel "𝑓(𝑥)" ] )
+     HorizontalCatLegend
   mkPlotFigure "Haar-domDecompose.pdf" (Dia.dims $ 560 ^& 480)
      ( let f (D¹ x) = sin (3*x) - cos (7*x)/3 - 0.2
            fHaar = homsampleHaarFunction (TwoToThe 10) f
