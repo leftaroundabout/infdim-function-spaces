@@ -392,7 +392,7 @@ Crucially for our purposes, the calculation can be split up across the domain ju
 Observe that $\tfrac{x-1}2$ only evaluates on the left-, $\tfrac{x+1}2$ only on the right half of the domain.
 
 This allows constructing the \lstinline`HaarUnbiased` tree in single pass with bottom-up propagation of the partial integrals, to obtain the offset estimates at each level without redundant computation.
-The choice of of numerical approximation only occurs at the smallest level;
+The choice of numerical approximation only occurs at the smallest level;
 the simplest possibility is to only evaluate it at a single point in the middle and give that full weight (rectangular method).
 Thus the Haar representation can be obtained in $\mathcal{O}(n\cdot\log n)$ from a function on the interval:
 \begin{lstlisting}
@@ -585,7 +585,7 @@ type instance Scalar y ~ ℝ
    => TensorProduct (CoHaar_D¹ ℝ) w = CoHaar_D¹ w
 \end{lstlisting}
 So specifically, \lstinline`LinearMap (Haar_D¹ ℝ) (Haar_D¹ ℝ)` is represented by a distribution of functions, i.e. by of the type \lstinline`CoHaar_D¹ (Haar_D¹ ℝ)`.
-This type is important because it would be the type of the identity linear mapping, which is required for \lstinline`Haar_D¹ ℝ` to be a member of of an actual category and prerequisite for generalising several linear algebra algorithm from the finite-Euclidean case to infinite-dimensional spaces like \lstinline`Haar_D¹ ℝ`.
+This type is important because it would be the type of the identity linear mapping, which is required for \lstinline`Haar_D¹ ℝ` to be a member of an actual category and prerequisite for generalising several linear algebra algorithm from the finite-Euclidean case to infinite-dimensional spaces like \lstinline`Haar_D¹ ℝ`.
 This is another reason why \lstinline`CoHaar_D¹` must be non-strict: the identity mapping must use an infinite tree, namely
 \begin{lstlisting}
 id :: LinearMap (Haar_D¹ ℝ) (Haar_D¹ ℝ)
