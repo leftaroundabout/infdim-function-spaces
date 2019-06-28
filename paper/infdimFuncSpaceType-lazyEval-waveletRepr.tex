@@ -417,82 +417,61 @@ It is also the main principle behind image compression formats which use quantiz
 The reason is that images or solutions to nonliner differential equations are often quite smooth in most of the domain, but include sharp edges / transients / shocks confined to a much smaller area.
 \end{remark}
 
-\section{Dual space: functionals}
-The dual space of a function space $X$ consists of functions as well, but its domain is $X$ itself:
-\begin{align*}
-  X \subset& (D^1 \to \mathbb{R})
- \\
-  X^\ast \subset& \bigl(X \to \mathbb{R}\bigr).
-\end{align*}
-In fact, $X^{\ast}$ consists of \emph{continuous, linear} functions, also called \emph{functionals}.
-Although the space of functionals may initially seem much “bigger” than the space of functions,
-in the case of $X$ being a Hilbert space, $X^\ast$ is in fact isomorphic to $X$ (Riesz representation theorem).
-Of course, a crucial argument for this is that $X^\ast$ includes only continuous, linear functions.
+\section{The $\mathcal{L}^2$ Hilbert space and beyond}
+The \verb`Haar_D¹` structure as given in section \ref{mulScaleResoIntro}, with its strict spine and thus finite depth for every tree, can not represent every $D^1$ function. \footnote{Perhaps most strikingly, all these functions are \emph{dis}continuous. Like with PCM, this could be “fixed” through interpolation post-processing, but that does in neither case enable to exactly fit any function.}
+It \emph{can} approximate arbitrarily well any $\mathcal{L}^2$ function (in the $\mathcal{L}^2$-norm sense). Namely, given a function \verb`f`, the sequence
+\begin{lstlisting}
+[homsampleHaar_D¹ (TwoToThe n) f | n<-[0..]]
+\end{lstlisting}
+converges to \verb`f`. This is much the same for a PCM representation: improving the resolution will allow it to match an $\mathcal{L}^2$ or continuous function ever better.
 
-% But actually, even simple-looking linear functionals do not typically correspond to functions in $X$. In particular, there are two conspicuous classes of linear functionals which cannot both be mapped to functions in a consistent way:
-% \begin{itemize}
-%  \item Evaluation at a single point (or a discrete collection of points). % Add example formula
-%  \item Integration over an interval.  % +example
-% \end{itemize}
-% The reason that this does not contradict the Riesz theorem is that the standard Hilbert spaces of functions actually contain \emph{equivalence classes} of functions, rather than individual functions. In the $\mathcal{L}^2$ space, functions which differ only in a single point are considered the same vector.
-Note that in the case of $X = \mathcal{L}^2$, evaluation at a single point is not an element of $X^{\ast}$, as it cannot be defined in a consistent manner.
+However, unlike with the PCM array representation, this progressive refinement of resolution does not change the top-level structure but only adds sub-branches at ever deeper levels in the trees. It is alluring to consider allowing the trees to have \emph{infinite} depth, which can readily be had in Haskell if only we drop the strictness annotations in the data structure. Would that then allow representing any $\mathcal{L}^2$ function \emph{exactly}?
 
-On the one hand, this can be physically motivated (limited precision, so it would never be possible to focus an experiment on a single point anyway).
-On the other hand, theoretical physics is actually thrive with calculations that do involve single-point evaluations.
-Mathematically, this just has to do with a judicious choice of function space.
+It does not quite work this way, at least not practically:
+\begin{itemize}
+ \item \verb`evalPreIntg_D1` would recurse infinitely. So even if the infinite tree would theoretically represent the desired function, it would not be possible to evaluate it as such in finite time.
+ \item \verb`homsampleHaar_D¹`, as it stands, would not be able to provide even the top-level node (i.e. the global integral), without first going into the local branches that are needed\footnote{
+This could be overcome if we assume there is some other way of obtaining the target function's integral over a whole interval. However, \emph{if} that is possible, e.g. because the function is given by an analytical expression, then one does not really need to resort to a numerical representation!} to compute it.
+\end{itemize}
+Mathematically speaking, an infinite tree would correspond to an infinite sum over ever smaller Haar-wavelets. Infinite sums are possible to compute, provided they converge. What this means for practical computer applications is generally that the sum is \emph{not} evaluated completely, but only the finite partial sum that suffices to achieve the required precision (this also applies to other convergent sequences, e.g. Taylor expansion of an analytic function).
+In other words, if the results need not be exact, then a finite cutoff of the converging-sum infinite tree is also sufficient, which is why we suggest keeping the \verb`Haar_D¹` structure strict/finite.
 
-Pointwise evaluation corresponds to a distribution widely called \emph{Dirac distribution}, sometimes introduced informally as
+On the other hand, the coefficients in an infinite tree a in principle not constrained in a way that would require convergence. Thus they can also represent things that are not $D^1\to \mathbb{R}$ functions at all.
+
+This is not as unreasonable as it may seem. In fact, particularly in physics, “limit functions” that are defined by a not-really-convergent sequence are quite commonly used, albeit often with lack of mathematical explanation. Best known, the “Dirac function”, informally defined as
 \begin{align*}
   \delta &\colon \mathbb{R} \to “\mathbb{R}\cup\{\infty\}”
  \\
   \delta(x) &= \begin{cases} “\infty” & \text{if }x=0
                           \\ 0        & \text{otherwise} \end{cases}.
 \end{align*}
-As a distribution, however, its definition is perfectly clear:
-\begin{align*}
-  \delta^\ast &\colon (\mathbb{R} \to \mathbb{R}) \to \mathbb{R}
- \\
-  \delta^\ast(f) &= f(0).
-\end{align*}
-\begin{remark}
-The previous equation is sometimes written informally as
+The idea is that, the integral should come out as 1, and particularly for any other function $g$,
 \[
-  \delta^\ast(f) = \int_\mathbb{R}\!\mathrm{d}x\: \delta(x)\cdot f(x),
+  \int_\mathbb{R}\!\mathrm{d}x\: \delta(x)\cdot g(x) = g(0)
 \]
-as if $\delta$ was a function.
-\end{remark}
+should hold, allowing to rewrite pointwise evaluations as integrals vice versa. The integral over the product is also known as the $\mathcal{L}^2$ scalar product.
 
-In the common fixed-finite resolution PCM discretisation, the Dirac distribution can be replaced by a function \emph{without} requiring an “infinite peak”.
-As the smallest feature that can ever be resolved has a size at least $h$,
-all features are \emph{only} characterised by the integral over an interval of that width,
-corresponding to the following approximation of $\delta$:
-\begin{align*}
-  \delta_h &\colon \mathbb{R} \to \mathbb{R}
- \\
-  \delta_h(x) &= \begin{cases} \frac1h & \text{if }|x|<\tfrac{h}2
-                          \\ 0         & \text{otherwise} \end{cases}
-\end{align*}
-% is in that case equivalent to the unrigorous-but-exact definition including an infinity.
-The problem with this is that it is still necessary to know the resolution a priori.
-Furthermore, too low estimates produce inaccurate results,
-while too high ones unnecessarily increase the computational burden.
+The above integral equation is quite tractable in a limit sense: consider a sequence of ever narrower and higher box-functions
+\[
+  \delta_{[n]}(x) = \begin{cases}
+                           n   & \text{if $-\tfrac1n<x<\tfrac1n$}
+                        \\ 0   & \text{else}
+                       \end{cases}.
+\]
+Then
+\[
+  \int_\mathbb{R}\!\mathrm{d}x\: \delta_{[n]}(x)\cdot g(x)
+    = n\cdot\int\limits_{-1/n}^{1/n}\mathrm{d}x\: g(x).
+\]
+If $g$ is continuous, then it will on the ever-smaller integration interval eventually behave like the constant $g_0$, and
+\[
+  n\cdot\int\limits_{-1/n}^{1/n}\mathrm{d}x\: g_0 = g_0 = g(0).
+\]
+This shows that the idea is sensible, but $\delta$ as a function is not: the sequence $(\delta_{[n]})_n$ does not converge, neither pointwise nor in the square-integral.
 
-We therefore argue that PCM or other fixed-resolution approaches are not suitable for problems involving Dirac point-distributions (e.g., point masses in a gravity simulation).
-It turns out that the \lstinline`Haar_D¹` tree structure has a representation of the dual space which includes Dirac distribution \emph{exactly},
-as well as distributions spread across an interval.
+What does work about it really is just the \emph{contraction} / scalar product with $g$. 
 
-The idea is to mirror the tree data structure (as Riesz suggests),
-but instead of using a Hilbert space inner product,
-we simply read off the stored coefficients as they are.
-One could argue that these coefficients are “unphysical” because via the Haar wavelets they represent differences rather than actual sample values\footnote{%
-This would anyways be hypocritical, since in a fixed-resolution discretisation of $\mathcal{L}^2$ the coefficients \emph{also} don't strictly speaking correspond to concrete sample values, but rather to an integral over such values or even, in the Shannon-Nyquist derivation, to a discrete IFT of the truncation of the infinite sequence of Fourier coefficients.
-} but in fact, both the function-space type and its dual are intended to be used as abstract vector spaces with no public way to directly access the coefficients of either.
-
-Notice that the trees now need \emph{not} have finite depth,
-because there is no reason to evaluate a distribution at a single point as with \lstinline`evalPreIntg_D¹`,
-but only as a functional with a whole function,
-which is already required to have only a finite feature-resolution.
-Thus the tree can now be non-strict,
+By analogy, we propose that it would be useful to also consider infinite-depth trees, but not as a representation for functions on $D^1$ but just for contracting against such functions:
 \begin{lstlisting}
 data CoHaarUnbiased y
      = CoHaarZero
@@ -501,9 +480,9 @@ data CoHaarUnbiased y
 data CoHaar_D¹ y
      = CoHaar_D¹ !y (CoHaarUnbiased y)
 \end{lstlisting}
-but because \lstinline`HaarUnbiased` is strict the functional evaluation is still guaranteed to terminate\footnote{%
+Even though this is now non-strict, the following is guaranteed to terminate\footnote{%
 This is in striking analogy with the Agda programming language, in which data types are strict by default but there is also \emph{co-data} (coinductive types) allowing for infinite streams.
-}:
+} because \verb`Haar_D¹` has only finite depth and will thus eventually terminate the recursion:
 \begin{lstlisting}
 (<.>^) :: CoHaar_D¹ ℝ -> Haar_D¹ ℝ -> ℝ
 CoHaar_D¹ q0 qFluct <.>^ Haar_D¹ f0 fFluct
@@ -514,16 +493,12 @@ CoHaar_D¹ q0 qFluct <.>^ Haar_D¹ f0 fFluct
             ~<.>^ HaarUnbiased δf fl fr
           = δq * δf + ql~<.>^fl + qr~<.>^fr
 \end{lstlisting}
-note that \emph{no} scaling/normalisation is performed
-(as would be the case if this were an integral-based inner product)
-as the recursive call zooms into the left and right subinterval.
+This looks similar enough to a scalar product: corresponding entries in both of the tree structures are multiplied, and the results summed together -- like one would also do with the arrays of a PCM-representation. In both cases there are some constant factors missing to make it the actual $\mathcal{L}^2$ scalar product; we will ignore that here since anyways \verb`CoHaar_D¹ ℝ` has no interpretation as a type of functions on $D^1$ anymore.
 
-We are now in a position to construct a functional for which \lstinline`<.>^` evaluates the integral over an arbitrary interval:
-we regard the function as decomposed on the subdomains,
-but instead of accepting a \lstinline`Haar_D¹` value,
-% we record in the dual vector with what weight its coefficients would be used in the result:
-we record the weights of the dual vector:
-\todo[inline, author=OV]{This makes no sense}
+Rather, it has an interpretation as a type of functions on \verb`Haar_D¹ ℝ`, i.e. (seeing \emph{those} as $D^1$-functions) higher order functions or \emph{functionals}, specifically linear functionals. (Linearity is important because these form themselves a vector space, the \emph{dual space}.)
+
+The Dirac distribution is a very particular example of linear functional, that can indeed be implemented as a value of \verb`CoHaar_D¹ ℝ`. What it does -- evaluation at a single point -- is a special case of evaluation over a whole interval and averaging: essentially also what the elements of the $\delta_{[n]}$ sequence do, but because there is no explicit integral there is no need to scale up the height to infinity as the width is reduced.
+
 \begin{lstlisting}
 boxDistribution :: (D¹, D¹)  -- ^ Target interval
                 -> ℝ         -- ^ Total weight
@@ -546,7 +521,7 @@ boxDistribution (D¹ l, D¹ r) y
                       (D¹ $ max 0 l*2 - 1, D¹ $ r*2 - 1)
                       (y * if l<0 then r/(r-l) else 1)
 \end{lstlisting}
-The tree generated this way will in general have infinite depth in order to select the desired interval with any delimiters.
+The tree generated this way will in general have infinite depth in order to select the desired interval with any delimiters, i.e. this really requires the non-strict data structure.
 However, the distribution will only narrow in on this selection provided that the function on which we evaluate has any structure at that level.
 When the function is eventually constant, only the top-level coefficient is evaluated (as that corresponds to the integral, which is what is sought here).
 
@@ -555,13 +530,13 @@ on those subdivisions that are fully in the interval, again only to top-level co
 Thus, the tree has only two long branches, and \lstinline`<.>^` has only a complexity of $\mathcal{O}(\log n)$ in the resolution of the function which the distribution is contracted against.
 (Compare this with a PCM implementation, where a box distribution would need to contain $\mathcal{O}(n)$ nonzero entries, all of which would need to be evaluated.)
 
-Remarkably, all of this works even if the target “interval” actually has zero width:
+Finally, all of this works even if the target “interval” actually has zero width:
 \begin{lstlisting}
 dirac :: D¹ -> CoHaar_D¹ ℝ
 dirac x0 = boxDistribution (x0,x0) 1
 \end{lstlisting}
 
-That implementation of the Dirac distribution does indeed evaluate functions of arbitrary resolution at one point.
+That implementation of the Dirac distribution does indeed evaluate functions of arbitrary resolution at one point. We have tested this with QuickCheck
 As tested with QuickCheck,
 \begin{lstlisting}
   testProperty "Dirac eval of Haar function"
@@ -569,6 +544,7 @@ As tested with QuickCheck,
 \end{lstlisting}
 where the QuickCheck \lstinline`Arbitrary` instance generates arbitrarily deep tree structures, and picks any point on $D^1$ for evaluation.
 \lstinline`~=` checks equality up to floating-point inaccuracy (in our test suite, the relative error  is set to $10^{-9}$).
+Note that the behaviour, both of \verb`evalHaarFunction` and \verb`dirac` is strictly speaking undefined at the discontinuities created by the Haar representation, but the implementations shown here are in agreement. At any rate this seems safe as long as the \verb`Haar_D¹` function is an approximation of a continuous function, because then the jumps have only very small height.
 
 \section{Tensor products and linear maps}
 
