@@ -484,18 +484,18 @@ In other words, if the results need not be exact, then a finite cutoff of the co
 
 On the other hand, the coefficients in an infinite tree a in principle not constrained in a way that would require convergence. Thus they can also represent things that are not $D^1\to \mathbb{R}$ functions at all.
 
-This is not as unreasonable as it may seem. In fact, particularly in physics, “limit functions” that are defined by a not-really-convergent sequence are quite commonly used, albeit often with lack of mathematical explanation. Best known, the “Dirac function”, informally defined as
+This is not as unreasonable as it may seem. In fact, par\-ti\-cu\-lar\-ly in physics, “limit functions” that are defined by a not-really-convergent sequence are quite commonly used, albeit often with lack of mathematical explanation. Best known, the “Dirac function”, informally defined as
 \begin{align*}
   \delta &\colon \mathbb{R} \to “\mathbb{R}\cup\{\infty\}”
  \\
   \delta(x) &= \begin{cases} “\infty” & \text{if }x=0
                           \\ 0        & \text{otherwise} \end{cases}.
 \end{align*}
-The idea is that, the integral should come out as 1, and particularly for any other function $g$,
+The idea is that the integral should come out as 1, and crucially for any other function $g$,
 \[
   \int_\mathbb{R}\!\mathrm{d}x\: \delta(x)\cdot g(x) = g(0)
 \]
-should hold, allowing to rewrite pointwise evaluations as integrals vice versa. The integral over the product is also known as the $\mathcal{L}^2$ scalar product.
+should hold. This allows rewriting pointwise evaluations as integrals vice versa. The integral over the product is also known as the $\mathcal{L}^2$ scalar product.
 
 The above integral equation is quite tractable in a limit sense: consider a sequence of ever narrower and higher box-functions
 \[
@@ -513,7 +513,7 @@ If $g$ is continuous, then it will on the ever-smaller integration interval even
 \[
   n\cdot\int\limits_{-1/n}^{1/n}\mathrm{d}x\: g_0 = g_0 = g(0).
 \]
-This shows that the idea is sensible, but $\delta$ as a function is not: the sequence $(\delta_{[n]})_n$ does not converge, neither pointwise nor in the square-integral.
+This shows that the idea is sensible. But $\delta$ as a function is not: the sequence $(\delta_{[n]})_n$ does not converge, neither pointwise nor in the square-integral.
 
 What does work about it really is just the \emph{contraction} / scalar product with $g$. 
 
@@ -539,7 +539,7 @@ CoHaar_D¹ q0 qFluct <.>^ Haar_D¹ f0 fFluct
             ~<.>^ HaarUnbiased δf fl fr
           = δq * δf + ql~<.>^fl + qr~<.>^fr
 \end{lstlisting}
-This looks similar enough to a scalar product: corresponding entries in both of the tree structures are multiplied, and the results summed together -- like one would also do with the arrays of a PCM-representation. In both cases there are some constant factors missing to make it the actual $\mathcal{L}^2$ scalar product; we will ignore that here since anyways \verb`CoHaar_D¹ ℝ` has no interpretation as a type of functions on $D^1$ anymore.
+This looks similar enough to a scalar product: corresponding entries in both of the tree structures are multiplied, and the results summed together -- like one would also do with the arrays of a PCM-representation. In both cases there are some constant factors missing to make it the actual $\mathcal{L}^2$ scalar product; we will ignore that here since anyways there is no interpretation of \verb`CoHaar_D¹ ℝ` as a type of functions on $D^1$ anymore.
 
 Rather, it has an interpretation as a type of functions on \verb`Haar_D¹ ℝ`, i.e. (seeing \emph{those} as $D^1$-functions) higher order functions or \emph{functionals}, specifically linear functionals. (Linearity is important because these form themselves a vector space, the \emph{dual space}.)
 
@@ -582,14 +582,14 @@ dirac :: D¹ -> CoHaar_D¹ ℝ
 dirac x0 = boxDistribution (x0,x0) 1
 \end{lstlisting}
 
-That implementation of the Dirac distribution does indeed evaluate functions of arbitrary resolution at one point. We have tested this with QuickCheck
-As tested with QuickCheck,
+That implementation of the Dirac distribution does indeed evaluate functions of arbitrary resolution at one point. We have tested this with QuickCheck:
 \begin{lstlisting}
   testProperty "Dirac eval of Haar function"
    $ \f p -> dirac p<.>^f ~= evalHaarFunction f p
 \end{lstlisting}
-where the QuickCheck \lstinline`Arbitrary` instance generates arbitrarily deep tree structures, and picks any point on $D^1$ for evaluation.
-\lstinline`~=` checks equality up to floating-point inaccuracy (in our test suite, the relative error  is set to $10^{-9}$).
+There, the QuickCheck \lstinline`Arbitrary` instance generates arbitrarily deep tree structures, and picks any point on $D^1$ for evaluation.
+The \lstinline`~=` operator checks equality up to floating-point inaccuracy (in our test suite, the relative error  is set to $10^{-9}$).
+
 Note that the behaviour, both of \verb`evalHaarFunction` and \verb`dirac` is strictly speaking undefined at the discontinuities created by the Haar representation, but the implementations shown here are in agreement. At any rate this seems safe as long as the \verb`Haar_D¹` function is an approximation of a continuous function, because then the jumps have only very small height.
 
 \section{Tensor Products and Linear Maps}
@@ -606,7 +606,7 @@ The \lstinline`TensorProduct` for a parameterised type like \lstinline`Haar_D¹`
 type instance Scalar y ~ ℝ
    => TensorProduct (CoHaar_D¹ ℝ) w = CoHaar_D¹ w
 \end{lstlisting}
-So specifically, \lstinline`LinearMap (Haar_D¹ ℝ) (Haar_D¹ ℝ)` is represented by a distribution of functions, i.e. by of the type \lstinline`CoHaar_D¹ (Haar_D¹ ℝ)`.
+So specifically, \lstinline`LinearMap (Haar_D¹ ℝ) (Haar_D¹ ℝ)` is represented by a distribution of functions, i.e. by values of the type \lstinline`CoHaar_D¹ (Haar_D¹ ℝ)`.
 This type is important because it would be the type of the identity linear mapping, which is required for \lstinline`Haar_D¹ ℝ` to be a member of an actual category and prerequisite for generalising several linear algebra algorithm from the finite-Euclidean case to infinite-dimensional spaces like \lstinline`Haar_D¹ ℝ`.
 This is another reason why \lstinline`CoHaar_D¹` must be non-strict: the identity mapping must use an infinite tree, namely
 \begin{lstlisting}
