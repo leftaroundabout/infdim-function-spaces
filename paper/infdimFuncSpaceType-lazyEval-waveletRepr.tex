@@ -59,6 +59,8 @@
 \usepackage{subcaption} %% For complex figures with subfigures/subcaptions
                         %% http://ctan.org/pkg/subcaption
 
+\usepackage{balance}
+
 \usepackage{listings}
 \lstset{
   % language=haskell%
@@ -455,7 +457,7 @@ homsampleHaar_D¹ (TwoToThe i) f
         -> Haar_D¹ ((y0l+y0r)/2)
              $ HaarUnbiased ((y0r-y0l)/2) sfl sfr
 \end{lstlisting}
-This algorithm is in DSP called a \emph{fast wavelet transform}, which starts out with a PCM-sampled array instead of a function-to-be-sampled.
+This algorithm is in DSP called a \emph{fast wavelet transform}, except it normally starts out with a PCM-sampled array instead of a function-to-be-sampled.
 One advantage of our approach is that it is not necessary to select one global maximum resolution (here the \lstinline`PowerOfTwo` parameter); instead, a heuristic can be added that refines the resolution \emph{locally} until the function is satisfactorily approximated.
 \begin{remark}
 Similar adaptive resolution strategies often dramatically improve performance in real-world applications, such as physics/engineering simulations (finite elements or finite volumes methods, where they correspond to adaptive mesh refinement).
@@ -608,7 +610,11 @@ type instance Scalar y ~ ℝ
 \end{lstlisting}
 So specifically, \lstinline`LinearMap (Haar_D¹ ℝ) (Haar_D¹ ℝ)` is represented by a distribution of functions, i.e. by values of the type \lstinline`CoHaar_D¹ (Haar_D¹ ℝ)`.
 This type is important because it would be the type of the identity linear mapping, which is required for \lstinline`Haar_D¹ ℝ` to be a member of an actual category and prerequisite for generalising several linear algebra algorithm from the finite-Euclidean case to infinite-dimensional spaces like \lstinline`Haar_D¹ ℝ`.
-This is another reason why \lstinline`CoHaar_D¹` must be non-strict: the identity mapping must use an infinite tree, namely
+And practically speaking, if \verb`id` is defined then it is easy to sample/convert \emph{any} linear function (defined as a Haskell function) into a tensor-based linear mapping.
+
+\verb`id` is another reason why \lstinline`CoHaar_D¹` must be non-strict: the identity mapping needs to use an infinite tree in order to properly handle functions with arbitrarily high resolution.
+
+Concretely,
 \begin{lstlisting}
 id :: LinearMap (Haar_D¹ ℝ) (Haar_D¹ ℝ)
 id = LinearMap $ CoHaar_D¹
@@ -623,14 +629,14 @@ id = LinearMap $ CoHaar_D¹
 \end{lstlisting}
 
 \section{Outlook}
-Although the Haar-wavelet-expansion type presented in this paper provides a useful starting point for numerical calculations on infinite-dimensional spaces, the fact that the represented functions are inherently discontinuous step-functions limits its usefulness for actual numerical applications. The step functions certainly are not differentiable\footnote{%
-They are differentiable \emph{almost} everywhere with derivative zero, but integrating that again would clearly not give back the original function but a constant!}.
+Although the Haar-wavelet-expansion type presented in this paper provides a useful starting point for numerical calculations on infinite-dimensional spaces, the fact that the represented functions are inherently discontinuous step-functions limits its usefulness for actual numerical applications. The step functions certainly are not differentiable.
 
 Even for pointwise evaluation alone, the piecewise constant structure means that it is relatively inefficient at approximating continuous functions, namely, the discretisation error $\varepsilon = f_\text{exact} - f_\text{Haar}$ reduces proportionally to the step size $\delta$, i.e. anti-proportionally to the required tree size.
 The adaptiveness of resolution can somewhat mitigate this (regions with small gradients have low $\varepsilon$ to begin with, so it is sufficient to focus on those with stronger gradient or even discontinuity), however this is limited unless the function really is constant on most of the domain.
 
 By contrast, piecewise linear functions can scale $\varepsilon \propto \delta^2$, cubic ones $\varepsilon \propto \delta^4$ and so on. Thus it would be desirable to combine such a higher-order local model with the tree-based multiscale structure.
 Comparison with wavelet theory suggests that this may not be as straightforward as it is to employ polynomial interpolation for a PCM sampling or for a finite elements model. Namely, the simplest piecewise-linear orthogonal wavelet is not a hat function by the rather complicated Strömberg wavelet.
+\balance
 
 However, our approach has the advantage that it does not actually rely on $\mathcal{L}^2$-orthogonality, but uses domain decomposition and direct value readoff for its sampling process. Therefore it is plausible that the “mother wavelet” can be kept much more basic.
 In particular, a very simple way to construct a continuous function from a Haar-based one is through integration. Because the complete integral can always be evaluated in $\mathcal{O}(1)$, this would also still allow efficient random-access pointwise evaluation of the continuous function, unlike the integral of a PCM-sampled function (which would be $\mathcal{O}(n)$ for single-point evaluation).
