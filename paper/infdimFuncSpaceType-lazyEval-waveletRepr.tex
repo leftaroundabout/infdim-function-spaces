@@ -103,6 +103,19 @@
 \usepackage[obeyFinal]{todonotes}
 
 
+%%% The following is specific to FHPNC '19 and the paper
+%%% 'Lazy Evaluation in Infinite-Dimensional Function Spaces with Wavelet Basis'
+%%% by Olivier Verdier and Justus Sagemüller.
+%%%
+\setcopyright{acmcopyright}
+\acmPrice{15.00}
+\acmDOI{10.1145/3331553.3342615}
+\acmYear{2019}
+\copyrightyear{2019}
+\acmISBN{978-1-4503-6814-8/19/08}
+\acmConference[FHPNC '19]{Proceedings of the 8th ACM SIGPLAN International Workshop on Functional High-Performance and Numerical Computing}{August 18, 2019}{Berlin, Germany}
+\acmBooktitle{Proceedings of the 8th ACM SIGPLAN International Workshop on Functional High-Performance and Numerical Computing (FHPNC '19), August 18, 2019, Berlin, Germany}
+
 \begin{document}
 
 %% Title information
@@ -110,31 +123,31 @@
       {Lazy Evaluation in Infinite-Dimensional Function Spaces with Wavelet Basis}
 
 
-%% Author information
-%% Contents and number of authors suppressed with 'anonymous'.
-%% Each author should be introduced by \author, followed by
-%% \authornote (optional), \orcid (optional), \affiliation, and
-%% \email.
-%% An author may have multiple affiliations and/or emails; repeat the
-%% appropriate command.
-%% Many elements are not rendered, but should be provided for metadata
-%% extraction tools.
+\author{Justus Sagemüller}
+\orcid{0000-0003-1882-1096}
+\affiliation{
+  \department{Faculty of Engineering and Science}
+  \institution{Western Norway University of Applied Science}
+  \streetaddress{Inndalsveien 28}
+  \city{Bergen}
+  \postcode{5020}
+  \country{Norway}
+}
+\email{jsag@hvl.no}
 
 %% Author with two affiliations and emails.
 \author{Olivier Verdier}
-\authornote{with author2 note}          %% \authornote is optional;
-                                        %% can be repeated if necessary
 \orcid{0000-0003-3699-6244}             %% \orcid is optional
 \affiliation{
   \department{Faculty of Engineering and Science}
-  \institution{Høgskulen på Vestlandet}
+  \institution{Western Norway University of Applied Science}
   \streetaddress{Inndalsveien 28}
   \city{Bergen}
   % \state{Hordaland}
   % \postcode{5020}
   \country{Norway}
 }
-\email{olivier.verdier@hvl.de}
+\email{olivier.verdier@hvl.no}
 \affiliation{
   \department{Department of Mathematics}
   \institution{KTH-Royal Institute of Technology}
@@ -144,19 +157,7 @@
   % \postcode{5020}
   \country{Sweden}
 }
-\email{olivierv@kth.de}
-
-\author{Justus Sagemüller}
-\affiliation{
-  \department{Faculty of Engineering and Science}
-  \institution{Høgskulen på Vestlandet}
-  \streetaddress{Inndalsveien 28}
-  \city{Bergen}
-  \state{Hordaland}
-  \postcode{5020}
-  \country{Norway}
-}
-\email{jsag@hvl.de}
+\email{olivierv@kth.se}
 
 
 %% Abstract
@@ -592,23 +593,6 @@ However, this would largely circumvent the locality properties of the Haar expan
 
 In summary: we have presented a data structure that can express function types in a way that better represents the mathematical (functional-analysis) notion of such an infinite-dimensional space than the mainstream numerical expansions do.
 It combines features of techniques from established numerical schemes (wavelets from multiscale analysis, tree backbones from Barnes-Hut style simulations, pa\-ra\-met\-ri\-ci\-ty/ten\-sor-pro\-duct from numerical linear algebra), and we expect that it can be extended to be of similar practical use while being more mathematically general and transparent.
-
-%% Acknowledgments
-\begin{acks}                            %% acks environment is optional
-                                        %% contents suppressed with 'anonymous'
-  %% Commands \grantsponsor{<sponsorID>}{<name>}{<url>} and
-  %% \grantnum[<url>]{<sponsorID>}{<number>} should be used to
-  %% acknowledge financial support and will be used by metadata
-  %% extraction tools.
-  This material is based upon work supported by the
-  \grantsponsor{GS100000001}{National Science
-    Foundation}{http://dx.doi.org/10.13039/100000001} under Grant
-  No.~\grantnum{GS100000001}{nnnnnnn} and Grant
-  No.~\grantnum{GS100000001}{mmmmmmm}.  Any opinions, findings, and
-  conclusions or recommendations expressed in this material are those
-  of the author and do not necessarily reflect the views of the
-  National Science Foundation.
-\end{acks}
 
 
 %% Bibliography
