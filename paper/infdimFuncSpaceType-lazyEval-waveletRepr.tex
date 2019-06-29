@@ -286,7 +286,7 @@ For instance,
 \end{remark}
 % Contrast with 𝓛² Hilbert space, why that is often preferred in practice, Riesz representation theorem, Nyquist reduction to finite sampling
 
-\section{The space of PCM-sampled functions}
+\section{The Space of PCM-Sampled Functions}
 An extremely common way of representing continuous or $\mathcal{L}^2$ functions in computer programs is what we will in the following call the PCM representation\footnote{%
 The abbreviation “PCM” stands for \emph{pulse code modulation}. The term is used in digital signal processing for a signal in time domain that is sampled on equal time intervals with a digital value proportional to the analogue voltage it represents. We use “DSP” as a shorthand for general equal-spaced sampling. In applications of numerical differential equations, this might rather be referred to as a \emph{finite differences} (FD) representation.
 }. The idea is to divide the domain into equal-sized segments, and store in each of these segments only one function value. That can be done with a simple array, or list.
@@ -330,7 +330,7 @@ Experience with Haskell suggests that the problem of computing infinitely many c
 However, a data structure like \lstinline`PCM_D¹` is not suitable for this, since adding new coefficients to the end of the list would change the meaning of the already calculated ones (they would be squeezed to the left of the domain).
 What is required is some form of \emph{progressive} resolution.
 
-\section{Multiscale resolution}\label{mulScaleResoIntro}
+\section{Multiscale Resolution}\label{mulScaleResoIntro}
 The main usefulness of spaces like $\mathcal{L}^2$ is that the infinite dimensionality can be managed easily if one only needs finite-width \emph{integrals} over the function, as these average out small-scale fluctuations.
 To benefit from this, we must find a way to compute the integral without evaluating all the small-scale structure.
 That is the idea behind multiscale or wavelet methods.
@@ -463,7 +463,7 @@ It is also the main principle behind image compression formats which use quantiz
 The reason is that images or solutions to nonliner differential equations are often quite smooth in most of the domain, but include sharp edges / transients / shocks confined to a much smaller area.
 \end{remark}
 
-\section{Square-integrable functions and beyond}
+\section{Square-Integrable Functions and Beyond}
 The \verb`Haar_D¹` structure as given in section \ref{mulScaleResoIntro}, with its strict spine and thus finite depth for every tree, can not represent every $D^1$ function. \footnote{Perhaps most strikingly, all these functions are \emph{dis}continuous. Like with PCM, this could be “fixed” through interpolation post-processing, but that does in neither case enable to exactly fit any function.}
 It \emph{can} approximate arbitrarily well any $\mathcal{L}^2$ function (in the $\mathcal{L}^2$-norm sense). Namely, given a function \verb`f`, the sequence
 \begin{lstlisting}
@@ -592,7 +592,7 @@ where the QuickCheck \lstinline`Arbitrary` instance generates arbitrarily deep t
 \lstinline`~=` checks equality up to floating-point inaccuracy (in our test suite, the relative error  is set to $10^{-9}$).
 Note that the behaviour, both of \verb`evalHaarFunction` and \verb`dirac` is strictly speaking undefined at the discontinuities created by the Haar representation, but the implementations shown here are in agreement. At any rate this seems safe as long as the \verb`Haar_D¹` function is an approximation of a continuous function, because then the jumps have only very small height.
 
-\section{Tensor products and linear maps}
+\section{Tensor Products and Linear Maps}
 
 One of the most salient aspects about the dual space implementation is that it allows for a \emph{storable} implementation of arbitrary linear mappings.
 \begin{lstlisting}
