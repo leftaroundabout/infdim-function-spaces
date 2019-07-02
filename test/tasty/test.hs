@@ -106,6 +106,11 @@ main = defaultMain $ testGroup "Tests"
   , testProperty "4th-order polynomial" . retrieveSampledFn @'CHaar
          $ \(D¹ x) -> x^4/9 + x^3/2 - x^2/3 - x - 0.3
   ]
+ , testGroup "CHaar to PWLinear conversion"
+  [ testProperty "Evaluation same in both representations"
+         $ \(f :: CHaar D¹ ℝ) p
+           -> evalCHaarFunction f p ≃ evalBinsubPWLinear (toBinsubPWLinear f) p
+  ]
  ]
 
 
