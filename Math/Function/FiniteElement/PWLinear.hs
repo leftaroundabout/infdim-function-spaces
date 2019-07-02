@@ -471,18 +471,15 @@ homsampleCHaar_D¹ (TwoToThe 0) f
    = CHaar_D¹ ((fl^+^fm^*2^+^fr)^/2) fl fr CHaarZero
  where [fl,fm,fr] = f . D¹ <$> [-1, 0, 1]
 homsampleCHaar_D¹ (TwoToThe n) f
-   = case homsampleCHaar_D¹ (TwoToThe $ n-1) <$> [ f₀ . view (re leftHalf)
-                                                 , f₀ . view (re rightHalf) ] of
-                [CHaar_D¹ il ll rl fl, CHaar_D¹ ir lr rr fr]
-                  -> CHaar_D¹ intg ll rr
-                       $ CHaarUnbiased ((ir^-^il)^/2) ((rl^+^lr)^/2) fl fr
- where (intg, f₀) = case homsampleCHaar_D¹ (TwoToThe $ n-1)
-                                   <$> [ f . view (re leftHalf)
-                                       , f . view (re rightHalf) ] of
-             [CHaar_D¹ il _ _ _, CHaar_D¹ ir _ _ _]
-               -> let intg = (il^+^ir)^/2
-                  in ( intg, \p@(D¹ x) -> f p ^-^ intg^*if x<0 then 1+x
-                                                               else 1-x )
+   = case homsampleCHaar_D¹ (TwoToThe $ n-1) <$> [ f . view (re leftHalf)
+                                                 , f . view (re rightHalf) ] of
+                [fl@(CHaar_D¹ il _ _ _), fr@(CHaar_D¹ ir _ _ _)]
+                  -> let intg = (il^+^ir)^/2
+                     in case ( fl^-^CHaar_D¹ (intg^/2) zeroV intg zeroV
+                             , fr^-^CHaar_D¹ (intg^/2) intg zeroV zeroV ) of
+                          (CHaar_D¹ _ ll lr flf, CHaar_D¹ _ rl rr frf)
+                           -> CHaar_D¹ intg ll rr
+                               $ CHaarUnbiased ((ir^-^il)^/2) ((rl^+^lr)^/2) flf frf
 
 instance QC.Arbitrary (CHaar_D¹ FunctionSpace ℝ) where
   arbitrary = do
