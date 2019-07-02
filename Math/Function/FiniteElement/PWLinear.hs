@@ -58,6 +58,8 @@ import Data.Type.Coercion
 import GHC.Generics
 import Control.Lens (Prism', prism', view, re, (^.))
 
+import qualified Text.Show.Pragmatic as TSP
+
 import qualified Test.QuickCheck as QC
 
 
@@ -475,8 +477,7 @@ homsampleCHaar_D¹ (TwoToThe n) f
                   in ( intg, \p@(D¹ x) -> f p ^-^ intg^*if x<0 then 1+x
                                                                else 1-x )
 
-instance (QC.Arbitrary y, VAffineSpace y, Fractional (Scalar y))
-               => QC.Arbitrary (CHaar_D¹ FunctionSpace y) where
+instance QC.Arbitrary (CHaar_D¹ FunctionSpace ℝ) where
   arbitrary = do
      n <- QC.getSize
           -- Magic numbers; see `instance Arbitrary (Haar_D¹ FunctionSpace y)`
@@ -489,11 +490,13 @@ instance (QC.Arbitrary y, VAffineSpace y, Fractional (Scalar y))
                               <*> genΔs pNext <*> genΔs pNext) ]
           where pNext = floor $ fromIntegral p'¹Terminate / 1.1
   shrink (CHaar_D¹ i l r (CHaarUnbiased δilr m fl fr))
-      = CHaar_D¹ i l r CHaarZero
-          : (CHaar_D¹ i l r
-              <$> (CHaarUnbiased zeroV zeroV <$> shrL <*> shrR))
+      = CHaar_D¹ (shry i) (shry l) (shry r) CHaarZero
+          : (CHaar_D¹ (shry i) (shry l) (shry r)
+              <$> (CHaarUnbiased (shry δilr) (shry m) <$> shrL <*> shrR))
    where shrL = map _chaar_D¹_functionCourse . QC.shrink $ CHaar_D¹ zeroV zeroV zeroV fl
          shrR = map _chaar_D¹_functionCourse . QC.shrink $ CHaar_D¹ zeroV zeroV zeroV fr
+         shry y = fromIntegral (round $ y*prcs) / prcs
+         prcs = 1e3
   shrink (CHaar_D¹ _ _ _ CHaarZero) = []
 
 
@@ -507,7 +510,14 @@ instance CHaarSamplingDomain D¹ where
 -- | A not necessarily continuous, piecewise-linear function.
 data BinsubPWLinear y = PWLinearSegment y y
                       | PWLinearDivision (BinsubPWLinear y) (BinsubPWLinear y)
- deriving (Show)
+instance (TSP.Show y, Ord y) => TSP.Show (BinsubPWLinear y) where
+  showsPrec p (PWLinearSegment l r)
+      = showParen (p>9) $ TSP.showsPrec 10 l . (opr:) . TSP.showsPrec 10 r
+   where opr | l<r        = '⟋'
+             | otherwise  = '⟍'
+  showsPrec p (PWLinearDivision l r) = showParen (p>9) $
+            TSP.showsPrec 10 l . ("│"++) . TSP.showsPrec 10 r
+instance (TSP.Show y, Ord y) => Show (BinsubPWLinear y) where showsPrec = TSP.showsPrec
   
 instance (VectorSpace y, Fractional (Scalar y)) => AdditiveGroup (BinsubPWLinear y) where
   zeroV = PWLinearSegment zeroV zeroV

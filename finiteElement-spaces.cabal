@@ -31,6 +31,7 @@ library
                        , linear >=1.15 && <1.30
                        , lens
                        , transformers, tagged
+                       , pragmatic-show >=0.1 && <0.2
                        , QuickCheck
   -- hs-source-dirs:      
   default-language:    Haskell2010
