@@ -582,3 +582,7 @@ evalBinsubPWLinear (PWLinearSegment l r) (D¹ x)
 evalBinsubPWLinear (PWLinearDivision l r) p = case p^.halves of
   Left  pl -> evalBinsubPWLinear l pl
   Right pr -> evalBinsubPWLinear r pr
+
+instance (VAffineSpace y, Scalar y ~ ℝ, InnerSpace y)
+    => InnerSpace (CHaar_D¹ FunctionSpace y) where
+  f <.> g = toBinsubPWLinear f <.> toBinsubPWLinear g

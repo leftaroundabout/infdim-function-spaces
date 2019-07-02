@@ -105,6 +105,12 @@ main = defaultMain $ testGroup "Tests"
          $ \(D¹ x) -> x^2
   , testProperty "4th-order polynomial" . retrieveSampledFn @'CHaar
          $ \(D¹ x) -> x^4/9 + x^3/2 - x^2/3 - x - 0.3
+  , testProperty "Additivity of sampled form"
+         $ \cfs₀ cfs₁ res
+            -> let f (a,b,c) (D¹ x) = a*x^2 + b*x + c
+                   [f₀,f₁] = f<$>[cfs₀,cfs₁]
+               in homsampleCHaarFunction res f₀ ^+^ homsampleCHaarFunction res f₁
+                    ≃ (homsampleCHaarFunction res (f₀^+^f₁) :: CHaar D¹ ℝ)
   ]
  , testGroup "CHaar to PWLinear conversion"
   [ testProperty "Evaluation same in both representations"
