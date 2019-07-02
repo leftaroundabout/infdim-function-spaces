@@ -121,6 +121,21 @@ main = defaultMain $ testGroup "Tests"
            -> toBinsubPWLinear f ^+^ toBinsubPWLinear g
                ≃ toBinsubPWLinear (f^+^g :: CHaar D¹ ℝ)
   ]
+ , testGroup "Vector space laws"
+  [ testProperty "Commutativity of addition"
+      $ \f g -> f ^+^ g ≃ (g ^+^ f :: CHaar D¹ ℝ)
+  , testProperty "Associativity of addition"
+      $ \f g h -> f ^+^ (g ^+^ h) ≃ ((f ^+^ g) ^+^ h :: CHaar D¹ ℝ)
+  , testProperty "Distributivity"
+      $ \f g μ -> μ*^(f ^+^ g :: CHaar D¹ ℝ) ≃ μ*^f ^+^ μ*^g
+  ]
+ , testGroup "Inner product laws"
+  [ testProperty "Commutativity"
+      $ \f g -> f<.>(g :: CHaar D¹ ℝ) ≃ g<.>f
+  , testProperty "Bilinearity"
+      $ \f g h μ -> (f^+^g)<.>(μ*^h :: CHaar D¹ ℝ)
+                   ≃ μ*(f<.>h + g<.>h)
+  ]
  ]
 
 
