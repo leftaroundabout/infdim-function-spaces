@@ -346,7 +346,7 @@ instance (VAffineSpace y, Fractional (Scalar y)) => AffineSpace (CHaar_D¹ dn y)
         -> CHaar_D¹ (i₀.+^i₁) (l₀.+^l₁) (r₀.+^r₁)
             $ CHaarUnbiased (δlr₀.+^δlr₁) (yMid₀.+^yMid₁) δsl δsr
   CHaar_D¹ intg yl yr CHaarZero .+^ fr
-    = CHaar_D¹ intg yl yr (CHaarUnbiased (yr^-^yl) zeroV zeroV zeroV)
+    = CHaar_D¹ intg yl yr (CHaarUnbiased ((yr^-^yl)^/2) ((yl^+^yr)^/(-2)) zeroV zeroV)
         .+^ fr
   f .+^ g = g .+^ f
   f .-. g = f .+^ negateV g
