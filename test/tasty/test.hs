@@ -110,6 +110,10 @@ main = defaultMain $ testGroup "Tests"
   [ testProperty "Evaluation same in both representations"
          $ \(f :: CHaar D¹ ℝ) p
            -> evalCHaarFunction f p ≃ evalBinsubPWLinear (toBinsubPWLinear f) p
+  , testProperty "Addition same in both representations"
+         $ \f g
+           -> toBinsubPWLinear f ^+^ toBinsubPWLinear g
+               ≃ toBinsubPWLinear (f^+^g :: CHaar D¹ ℝ)
   ]
  ]
 
