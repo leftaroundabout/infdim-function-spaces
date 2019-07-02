@@ -475,6 +475,21 @@ homsampleCHaar_D¹ (TwoToThe n) f
                   in ( intg, \p@(D¹ x) -> f p ^-^ intg^*if x<0 then 1+x
                                                                else 1-x )
 
+instance (QC.Arbitrary y, VAffineSpace y, Fractional (Scalar y))
+               => QC.Arbitrary (CHaar_D¹ FunctionSpace y) where
+  arbitrary = do
+     n <- QC.getSize
+          -- Magic numbers; see `instance Arbitrary (Haar_D¹ FunctionSpace y)`
+     CHaar_D¹ <$> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary
+              <*> genΔs (round . (*3) . (**0.22) $ fromIntegral n)
+   where genΔs p'¹Terminate = QC.frequency
+           [ (1, pure CHaarZero)
+           , (p'¹Terminate, fmap (^/2) $ CHaarUnbiased
+                              <$> QC.arbitrary <*> QC.arbitrary
+                              <*> genΔs pNext <*> genΔs pNext) ]
+          where pNext = floor $ fromIntegral p'¹Terminate / 1.1
+
+
 type instance CHaar D¹ y = CHaar_D¹ FunctionSpace y
 
 instance CHaarSamplingDomain D¹ where
