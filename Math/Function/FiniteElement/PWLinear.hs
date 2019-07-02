@@ -30,6 +30,7 @@ module Math.Function.FiniteElement.PWLinear
        ( -- * Functions
           HaarI, HaarISamplingDomain(..)
         , CHaar, CHaarSamplingDomain(..)
+        , BinsubPWLinear, toBinsubPWLinear, evalBinsubPWLinear
          -- * Utility
         , PowerOfTwo(..), getPowerOfTwo, VAffineSpace
         ) where
@@ -55,7 +56,7 @@ import Control.Applicative
 import Data.Tagged
 import Data.Type.Coercion
 import GHC.Generics
-import Control.Lens (Prism', prism', view, re)
+import Control.Lens (Prism', prism', view, re, (^.))
 
 import qualified Test.QuickCheck as QC
 
@@ -479,3 +480,65 @@ type instance CHaar D¹ y = CHaar_D¹ FunctionSpace y
 instance CHaarSamplingDomain D¹ where
   homsampleCHaarFunction = homsampleCHaar_D¹
   evalCHaarFunction = evalCHaar_D¹
+
+
+-- | A not necessarily continuous, piecewise-linear function.
+data BinsubPWLinear y = PWLinearSegment y y
+                      | PWLinearDivision (BinsubPWLinear y) (BinsubPWLinear y)
+  
+instance (VectorSpace y, Fractional (Scalar y)) => AdditiveGroup (BinsubPWLinear y) where
+  zeroV = PWLinearSegment zeroV zeroV
+  PWLinearSegment l₀ r₀ ^+^ PWLinearSegment l₁ r₁
+      = PWLinearSegment (l₀^+^l₁) (r₀^+^r₁)
+  PWLinearDivision l₀ r₀ ^+^ PWLinearDivision l₁ r₁
+      = PWLinearDivision (l₀^+^l₁) (r₀^+^r₁)
+  PWLinearSegment l₀ r₀ ^+^ f₁
+      = PWLinearDivision (PWLinearSegment l₀ m) (PWLinearSegment m r₀) ^+^ f₁
+   where m = (l₀^+^r₀)^/2
+  f₀ ^+^ f₁ = f₁ ^+^ f₀
+  negateV (PWLinearSegment l r) = PWLinearSegment (negateV l) (negateV r)
+  negateV (PWLinearDivision l r) = PWLinearDivision (negateV l) (negateV r)
+
+instance (VectorSpace y, Fractional (Scalar y)) => VectorSpace (BinsubPWLinear y) where
+  type Scalar (BinsubPWLinear y) = Scalar y
+  μ *^ PWLinearSegment l r = PWLinearSegment (μ*^l) (μ*^r)
+  μ *^ PWLinearDivision l r = PWLinearDivision (μ*^l) (μ*^r)
+  
+instance (InnerSpace y, Fractional (Scalar y)) => InnerSpace (BinsubPWLinear y) where
+  PWLinearSegment l₀ r₀ <.> PWLinearSegment l₁ r₁
+   = -- fᵢ x = aᵢ·x + bᵢ
+     -- a₀ = (r₀−l₀)/2 ;  b₀ = (l₀+r₀)/2
+     -- a₁ = (r₁−l₁)/2 ;  b₁ = (l₁+r₁)/2
+     -- f₀ x · f₁ x = (a₀·x + b₀)·(a₁·x + b₁)
+     --             = a₀·a₁·x² + (a₀·b₁ + a₁·b₀)·x + b₀·b₁
+     -- ₋₁∫¹ dx (f₀ x · f₁ x)
+     --    = 2/3·a₀·a₁ + 0 + 2·b₀·b₁
+     --    = (r₀−l₀)·(r₁−l₁)/6 + (l₀+r₀)·(l₁+r₁)/2
+     ((r₀^-^l₀)<.>(r₁^-^l₁))/6 + ((l₀^+^r₀)<.>(l₁^+^r₁))/2
+         
+  PWLinearDivision l₀ r₀ <.> PWLinearDivision l₁ r₁
+      = (l₀<.>l₁)/2 + (r₀<.>r₁)/2
+  PWLinearSegment l₀ r₀ <.> f₁
+      = PWLinearDivision (PWLinearSegment l₀ m) (PWLinearSegment m r₀) <.> f₁
+   where m = (l₀^+^r₀)^/2
+  f₀ <.> f₁ = f₁ <.> f₀
+
+toBinsubPWLinear :: (VectorSpace y, Fractional (Scalar y))
+                       => CHaar D¹ y -> BinsubPWLinear y
+toBinsubPWLinear (CHaar_D¹ intg yl yr CHaarZero)
+      = PWLinearDivision (PWLinearSegment yl iym) (PWLinearSegment iym yr)
+ where iym = intg ^-^ (yl ^+^ yr)^/2
+toBinsubPWLinear (CHaar_D¹ intg yl yr (CHaarUnbiased δilr ym fl fr))
+      = PWLinearDivision
+             (PWLinearSegment zeroV intg
+                ^+^ toBinsubPWLinear (CHaar_D¹ (negateV δilr) yl ym fl))
+             (PWLinearSegment intg zeroV
+                ^+^ toBinsubPWLinear (CHaar_D¹ (        δilr) ym yr fr))
+
+evalBinsubPWLinear :: (VectorSpace y, Scalar y ~ Double)
+                       => BinsubPWLinear y -> D¹ -> y
+evalBinsubPWLinear (PWLinearSegment l r) (D¹ x)
+      = (l^*(1-x) ^+^ r^*(x+1))^/2
+evalBinsubPWLinear (PWLinearDivision l r) p = case p^.halves of
+  Left  pl -> evalBinsubPWLinear l pl
+  Right pr -> evalBinsubPWLinear r pr
