@@ -303,31 +303,36 @@ data CHaar_D¹ dn y = CHaar_D¹
 
 
 
-instance VAffineSpace y => Semimanifold (Contihaar0BiasTree dn y) where
+instance (VAffineSpace y, Fractional (Scalar y))
+            => Semimanifold (Contihaar0BiasTree dn y) where
   type Needle (Contihaar0BiasTree dn y) = Contihaar0BiasTree dn y
   type Interior (Contihaar0BiasTree dn y) = Contihaar0BiasTree dn y
   toInterior = Just
   fromInterior = id
   translateP = Tagged (.+^)
-instance VAffineSpace y => Semimanifold (CHaar_D¹ dn y) where
+instance (VAffineSpace y, Fractional (Scalar y))
+              => Semimanifold (CHaar_D¹ dn y) where
   type Needle (CHaar_D¹ dn y) = CHaar_D¹ dn y
   type Interior (CHaar_D¹ dn y) = CHaar_D¹ dn y
   toInterior = Just
   fromInterior = id
   translateP = Tagged (.+^)
 
-instance VAffineSpace y => PseudoAffine (Contihaar0BiasTree dn y) where
+instance (VAffineSpace y, Fractional (Scalar y))
+               => PseudoAffine (Contihaar0BiasTree dn y) where
   (.-~!) = (.-.)
-instance VAffineSpace y => PseudoAffine (CHaar_D¹ dn y) where
+instance (VAffineSpace y, Fractional (Scalar y))
+               => PseudoAffine (CHaar_D¹ dn y) where
   (.-~!) = (.-.)
 
-instance VAffineSpace y => AffineSpace (Contihaar0BiasTree dn y) where
+instance (VAffineSpace y, Fractional (Scalar y))
+               => AffineSpace (Contihaar0BiasTree dn y) where
   type Diff (Contihaar0BiasTree dn y) = Contihaar0BiasTree dn y
   f .+^ g = case CHaar_D¹ zeroV zeroV zeroV f .+^ CHaar_D¹ zeroV zeroV zeroV g of
       CHaar_D¹ _ _ _ r -> r
   f .-. g = case CHaar_D¹ zeroV zeroV zeroV f .-. CHaar_D¹ zeroV zeroV zeroV g of
       CHaar_D¹ _ _ _ r -> r
-instance VAffineSpace y => AffineSpace (CHaar_D¹ dn y) where
+instance (VAffineSpace y, Fractional (Scalar y)) => AffineSpace (CHaar_D¹ dn y) where
   type Diff (CHaar_D¹ dn y) = CHaar_D¹ dn y
   CHaar_D¹ i₀ l₀ r₀ CHaarZero .+^ CHaar_D¹ i₁ l₁ r₁ CHaarZero
       = CHaar_D¹ (i₀.+^i₁) (l₀.+^l₁) (r₀.+^r₁) CHaarZero
@@ -346,26 +351,28 @@ instance VAffineSpace y => AffineSpace (CHaar_D¹ dn y) where
   f .+^ g = g .+^ f
   f .-. g = f .+^ negateV g
 
-instance VAffineSpace y => AdditiveGroup (Contihaar0BiasTree dn y) where
+instance (VAffineSpace y, Fractional (Scalar y))
+            => AdditiveGroup (Contihaar0BiasTree dn y) where
   (^+^) = (.+^)
   (^-^) = (.-.)
   zeroV = CHaarZero
   negateV CHaarZero = CHaarZero
   negateV (CHaarUnbiased δlr yMid δsl δsr)
       = CHaarUnbiased (negateV δlr) (negateV yMid) (negateV δsl) (negateV δsr)
-instance VAffineSpace y => AdditiveGroup (CHaar_D¹ dn y) where
+instance (VAffineSpace y, Fractional (Scalar y))
+               => AdditiveGroup (CHaar_D¹ dn y) where
   (^+^) = (.+^)
   (^-^) = (.-.)
   zeroV = CHaar_D¹ zeroV zeroV zeroV zeroV
   negateV (CHaar_D¹ intg lBound rBound fluct)
       = CHaar_D¹ (negateV intg) (negateV lBound) (negateV rBound) (negateV fluct)
 
-instance (VectorSpace y, VAffineSpace y)
+instance (VectorSpace y, VAffineSpace y, Fractional (Scalar y))
              => VectorSpace (Contihaar0BiasTree dn y) where
   type Scalar (Contihaar0BiasTree dn y) = Scalar y
   _ *^ CHaarZero = CHaarZero
   μ *^ CHaarUnbiased δlr yMid δsl δsr = CHaarUnbiased (μ*^δlr) (μ*^yMid) (μ*^δsl) (μ*^δsr)
-instance (VectorSpace y, VAffineSpace y)
+instance (VectorSpace y, VAffineSpace y, Fractional (Scalar y))
              => VectorSpace (CHaar_D¹ dn y) where
   type Scalar (CHaar_D¹ dn y) = Scalar y
   μ *^ CHaar_D¹ intg yl yr f = CHaar_D¹ (μ*^intg) (μ*^yl) (μ*^yr) (μ*^f)
