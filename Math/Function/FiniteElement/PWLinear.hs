@@ -488,6 +488,13 @@ instance (QC.Arbitrary y, VAffineSpace y, Fractional (Scalar y))
                               <$> QC.arbitrary <*> QC.arbitrary
                               <*> genΔs pNext <*> genΔs pNext) ]
           where pNext = floor $ fromIntegral p'¹Terminate / 1.1
+  shrink (CHaar_D¹ i l r (CHaarUnbiased δilr m fl fr))
+      = CHaar_D¹ i l r CHaarZero
+          : (CHaar_D¹ i l r
+              <$> (CHaarUnbiased zeroV zeroV <$> shrL <*> shrR))
+   where shrL = map _chaar_D¹_functionCourse . QC.shrink $ CHaar_D¹ zeroV zeroV zeroV fl
+         shrR = map _chaar_D¹_functionCourse . QC.shrink $ CHaar_D¹ zeroV zeroV zeroV fr
+  shrink (CHaar_D¹ _ _ _ CHaarZero) = []
 
 
 type instance CHaar D¹ y = CHaar_D¹ FunctionSpace y
@@ -500,6 +507,7 @@ instance CHaarSamplingDomain D¹ where
 -- | A not necessarily continuous, piecewise-linear function.
 data BinsubPWLinear y = PWLinearSegment y y
                       | PWLinearDivision (BinsubPWLinear y) (BinsubPWLinear y)
+ deriving (Show)
   
 instance (VectorSpace y, Fractional (Scalar y)) => AdditiveGroup (BinsubPWLinear y) where
   zeroV = PWLinearSegment zeroV zeroV
