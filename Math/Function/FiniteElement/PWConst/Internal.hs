@@ -350,6 +350,8 @@ instance ∀ y dn
   transposeTensor = LinearFunction $
        \(Tensor (Haar_D¹ yw₀ δs))
            -> (CC.fmap (LinearFunction $ (`Haar_D¹`zeroV)) CC.. transposeTensor CC.$ yw₀)
+             ^+^ (CC.fmap (LinearFunction $ Haar_D¹ zeroV)
+                   CC.. transposeTensor CC.$ Tensor δs)
   fmapTensor = bilinearFunction $ \a (Tensor f)
              -> Tensor $ CC.fmap (CC.fmap a) CC.$ f
   fzipTensorWith = bilinearFunction $ \a (Tensor f, Tensor g)
