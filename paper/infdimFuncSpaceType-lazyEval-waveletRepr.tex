@@ -298,7 +298,7 @@ The abbreviation “PCM” stands for \emph{pulse code modulation}. The term is 
  \caption{Example of how a function $f:D^1\to\mathbb{R}$ is represented in PCM.}
  \label{haarDomDecompose}
 \end{figure}
-\begin{lstlisting}
+\begin{lstlisting}[xleftmargin=1.5em]
 newtype PCM_D¹ y = PCM_D¹ {
           getPCMSampling :: [y] }
 \end{lstlisting}
@@ -339,7 +339,7 @@ That is the idea behind multiscale or wavelet methods.
 These are often derived as some orthonormal basis of $\mathcal{L}^2$, but we can also give a construction more from first principles.
 
 To directly enable the $\mathcal{O}(1)$ evaluation of large-scale integrals, one might consider the following representation of $D^1\to \mathrm{y}$ functions:
-\begin{lstlisting}
+\begin{lstlisting}[xleftmargin=1.5em]
 data PreIntg_D¹ y = PreIntg
    { offset :: y
    , lSubstructure :: PreIntg_D¹ y
@@ -547,7 +547,7 @@ Rather, it has an interpretation as a type of functions on \verb`Haar_D¹ ℝ`, 
 
 The Dirac distribution is a very particular example of linear functional, that can indeed be implemented as a value of \verb`CoHaar_D¹ ℝ`. What it does -- evaluation at a single point -- is a special case of evaluation over a whole interval and averaging: essentially also what the elements of the $\delta_{[n]}$ sequence do, but because there is no explicit integral there is no need to scale up the height to infinity as the width is reduced.
 
-\begin{lstlisting}
+\begin{lstlisting}[xleftmargin=1.5em]
 boxDistribution :: (D¹, D¹)  -- ^ Target interval
                 -> ℝ         -- ^ Total weight
                 -> Haar_D¹ DistributionSpace ℝ
@@ -615,7 +615,7 @@ And practically speaking, if \verb`id` is defined then it is easy to sample/conv
 \verb`id` is another reason why \lstinline`CoHaar_D¹` must be non-strict: the identity mapping needs to use an infinite tree in order to properly handle functions with arbitrarily high resolution.
 
 Concretely,
-\begin{lstlisting}
+\begin{lstlisting}[xleftmargin=1.5em]
 id :: LinearMap (Haar_D¹ ℝ) (Haar_D¹ ℝ)
 id = LinearMap $ CoHaar_D¹
            (Haar_D¹ 1 zeroV)
