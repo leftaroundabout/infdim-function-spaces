@@ -21,9 +21,12 @@ import Data.Manifold.Types
 import Data.Semigroup
 import Math.LinearMap.Category
 
+import GHC.Exts (Constraint)
+
+
 main :: IO ()
 main = defaultMain $ testGroup "Tests"
- [ testGroup "Haar sampling on real line"
+ [ testGroup "Haar sampling on real interval"
   [ testProperty "Identity function" . retrieveSampledFn @'Haar
          $ \(D¹ x) -> x
   , testProperty "Quadratic function" . retrieveSampledFn @'Haar
@@ -36,6 +39,14 @@ main = defaultMain $ testGroup "Tests"
                    [f₀,f₁] = f<$>[cfs₀,cfs₁]
                in homsampleHaarFunction res f₀ ^+^ homsampleHaarFunction res f₁
                     ≃ (homsampleHaarFunction res (f₀^+^f₁) :: Haar D¹ ℝ)
+  ]
+ , testGroup "Haar sampling on real line"
+  [ testProperty "Identity function" . retrieveSampledFn @'Haar
+         $ \x -> x
+  , testProperty "Sine function" . retrieveSampledFn @'Haar
+         $ \x -> sin x
+  , testProperty "tanh of 4th-order polynomial" . retrieveSampledFn @'Haar
+         $ \x -> tanh $ x^4/32 + x^3/8 - x^2/5 - x - 0.3
   ]
  , testGroup "Vector space laws"
   [ testProperty "Commutativity of addition"
@@ -144,24 +155,29 @@ data FunctionSamplingScheme
 
 class RetrievableFunctionSampling (f :: FunctionSamplingScheme) where
   type FunctionSampling f x y :: *
-  homsampleFunction :: PowerOfTwo -> (D¹ -> ℝ) -> FunctionSampling f D¹ ℝ
-  evalFunction :: FunctionSampling f D¹ ℝ -> D¹ -> ℝ
+  type PermittedDomain f x :: Constraint
+  homsampleFunction :: PermittedDomain f x
+             => PowerOfTwo -> (x -> ℝ) -> FunctionSampling f x ℝ
+  evalFunction :: PermittedDomain f x
+             => FunctionSampling f x ℝ -> x -> ℝ
   allowedRelDiscrepancy :: PowerOfTwo -> ℝ
 
 instance RetrievableFunctionSampling 'Haar where
   type FunctionSampling 'Haar x y = Haar x y
+  type PermittedDomain 'Haar x = HaarSamplingDomain x
   homsampleFunction = homsampleHaarFunction
   evalFunction = evalHaarFunction
   allowedRelDiscrepancy res = 3/fromIntegral (getPowerOfTwo res)
 
 instance RetrievableFunctionSampling 'CHaar where
   type FunctionSampling 'CHaar x y = CHaar x y
+  type PermittedDomain 'CHaar x = CHaarSamplingDomain x
   homsampleFunction = homsampleCHaarFunction
   evalFunction = evalCHaarFunction
   allowedRelDiscrepancy res = 2/fromIntegral (getPowerOfTwo res)^2
 
-retrieveSampledFn :: ∀ f . RetrievableFunctionSampling f
-               => (D¹ -> ℝ) -> PowerOfTwo -> D¹ -> QC.Property
+retrieveSampledFn :: ∀ f x . (RetrievableFunctionSampling f, PermittedDomain f x)
+               => (x -> ℝ) -> PowerOfTwo -> x -> QC.Property
 retrieveSampledFn f res p = counterexample
    ("Exact: "<>show exact<>", sampled: "<>show sampled<>", discrepancy: "<>show discrepancy)
     $ discrepancy <= allowedRelDiscrepancy @f res
