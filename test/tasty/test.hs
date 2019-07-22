@@ -167,7 +167,7 @@ instance RetrievableFunctionSampling 'Haar where
   type PermittedDomain 'Haar x = HaarSamplingDomain x
   homsampleFunction = homsampleHaarFunction
   evalFunction = evalHaarFunction
-  allowedRelDiscrepancy res = 3/fromIntegral (getPowerOfTwo res)
+  allowedRelDiscrepancy res = 5/fromIntegral (getPowerOfTwo res)
 
 instance RetrievableFunctionSampling 'CHaar where
   type FunctionSampling 'CHaar x y = CHaar x y
