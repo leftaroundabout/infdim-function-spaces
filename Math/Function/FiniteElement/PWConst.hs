@@ -8,9 +8,15 @@
 -- Portability : portable
 -- 
 
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE UnicodeSyntax         #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Math.Function.FiniteElement.PWConst
        ( -- * Functions
@@ -27,8 +33,20 @@ import Math.Function.FiniteElement.PWConst.Internal
 import Math.Function.FiniteElement.Internal.Util
 import Math.Function.Duals.Meta
 
+import Data.Tagged
+
+import Data.Manifold.PseudoAffine
 import Data.Manifold.Types
 import Data.VectorSpace
+import Data.AffineSpace
+import Math.LinearMap.Category
+
+import Data.Type.Coercion
+
+import qualified Control.Category.Constrained as CC
+import qualified Control.Functor.Constrained as CC
+import qualified Control.Applicative.Constrained as CC
+import qualified Control.Arrow.Constrained as CC
 
 
 data Haar_ℝ dn y = Haar_ℝ
@@ -55,3 +73,116 @@ instance HaarSamplingDomain ℝ where
         -> Haar_ℝ (l:ls)
                   (homsampleHaarFunction reso $ \(D¹ x) -> f x)
                   (r:rs)
+
+zipAddWith :: (AdditiveGroup v, AdditiveGroup w)
+                 => (v->w->x) -> [v] -> [w] -> [x]
+zipAddWith f [] rs = ( f zeroV) <$> rs
+zipAddWith f ls [] = (`f`zeroV) <$> ls
+zipAddWith f (l:ls) (r:rs) = (f l r) : zipAddWith f ls rs
+
+zipAdd :: AdditiveGroup v => [v] -> [v] -> [v]
+zipAdd [] rs = rs
+zipAdd ls [] = ls
+zipAdd (l:ls) (r:rs) = (l^+^r) : zipAdd ls rs
+
+instance (VAffineSpace y, Diff y ~ y, AdditiveGroup y)
+           => AdditiveGroup (Haar_ℝ dn y) where
+  zeroV = Haar_ℝ [] zeroV []
+  negateV (Haar_ℝ l c r) = Haar_ℝ (negateV<$>l) (negateV c) (negateV<$>r)
+  Haar_ℝ l₀ c₀ r₀ ^+^ Haar_ℝ l₁ c₁ r₁
+    = Haar_ℝ (zipAdd l₀ l₁) (c₀^+^c₁) (zipAdd r₀ r₁)
+
+instance (VAffineSpace y, Diff y ~ y, AdditiveGroup y)
+           => AffineSpace (Haar_ℝ dn y) where
+  type Diff (Haar_ℝ dn y) = Haar_ℝ dn y
+  (.+^) = (^+^)
+  (.-.) = (^-^)
+
+instance (VAffineSpace y, Diff y ~ y, AdditiveGroup y)
+           => VectorSpace (Haar_ℝ dn y) where
+  type Scalar (Haar_ℝ dn y) = Scalar y
+  μ *^ Haar_ℝ l c r = Haar_ℝ ((μ*^)<$>l) (μ*^c) ((μ*^)<$>r)
+
+instance ( VAffineSpace y
+         , Semimanifold y, Needle y ~ Diff y
+         , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
+             => Semimanifold (Haar_ℝ dn y) where
+  type Needle (Haar_ℝ dn y) = Haar_ℝ dn (Needle y)
+  type Interior (Haar_ℝ dn y) = Haar_ℝ dn y
+  translateP = Tagged (.+^)
+  toInterior = Just
+  fromInterior = id
+instance ( VAffineSpace y
+         , Semimanifold y, Needle y ~ Diff y
+         , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
+             => PseudoAffine (Haar_ℝ dn y) where
+  (.-~!) = (.-.)
+
+instance CC.Functor (Haar_ℝ dn) (LinearFunction ℝ) (LinearFunction ℝ) where
+  fmap = fmapLFH
+   where fmapLFH :: ∀ y z . (TensorSpace y, TensorSpace z, Scalar y ~ ℝ, Scalar z ~ ℝ)
+             => (y-+>z) -> (Haar_ℝ dn y-+>Haar_ℝ dn z)
+         fmapLFH f = case (linearManifoldWitness @z, linearManifoldWitness @y) of
+          (LinearManifoldWitness _, LinearManifoldWitness _) ->
+           LinearFunction $
+            \(Haar_ℝ l c r) -> Haar_ℝ
+               (map (CC.fmap f CC.$) l) (CC.fmap f CC.$ c) (map (CC.fmap f CC.$) r)
+instance CC.Monoidal (Haar_ℝ dn) (LinearFunction ℝ) (LinearFunction ℝ) where
+  pureUnit = LinearFunction $ \Origin -> zeroV
+  fzipWith = fzwLFH
+   where fzwLFH :: ∀ x y z dn .
+                      ( TensorSpace x, TensorSpace y, TensorSpace z
+                      , Scalar x ~ ℝ, Scalar y ~ ℝ, Scalar z ~ ℝ )
+                   => ((x,y)-+>z) -> ((Haar_ℝ dn x, Haar_ℝ dn y) -+> Haar_ℝ dn z)
+         fzwLFH = case ( linearManifoldWitness @x
+                       , linearManifoldWitness @y
+                       , linearManifoldWitness @z ) of
+          (LinearManifoldWitness _, LinearManifoldWitness _, LinearManifoldWitness _)
+             -> \f -> LinearFunction
+                   $ \(Haar_ℝ lx cx rx, Haar_ℝ ly cy ry)
+                        -> Haar_ℝ [ CC.fzipWith f CC.$ (x,y)
+                                  | (x,y)<-zipAddWith (,) lx ly ]
+                                  (CC.fzipWith f CC.$ (cx,cy))
+                                  [ CC.fzipWith f CC.$ (x,y)
+                                  | (x,y)<-zipAddWith (,) rx ry ]
+
+instance ∀ y dn . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Scalar y ~ ℝ)
+              => TensorSpace (Haar_ℝ dn y) where
+  type TensorProduct (Haar_ℝ dn y) w = Haar_ℝ dn (y⊗w)
+  wellDefinedVector = undefined
+  wellDefinedTensor = undefined
+  scalarSpaceWitness = case scalarSpaceWitness @(Haar_D¹ dn y) of
+        ScalarSpaceWitness -> ScalarSpaceWitness
+  coerceFmapTensorProduct = cftlp
+   where cftlp :: ∀ a b p . p (Haar_ℝ dn y) -> Coercion a b
+                   -> Coercion (Haar_ℝ dn (Tensor ℝ (Diff y) a))
+                               (Haar_ℝ dn (Tensor ℝ (Diff y) b))
+         cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
+            Coercion -> Coercion
+  linearManifoldWitness = case linearManifoldWitness :: LinearManifoldWitness y of
+     LinearManifoldWitness BoundarylessWitness -> LinearManifoldWitness BoundarylessWitness
+  zeroTensor = Tensor $ Haar_ℝ [] zeroV []
+  toFlatTensor = LinearFunction Tensor CC.. CC.fmap toFlatTensor
+  fromFlatTensor = CC.fmap fromFlatTensor CC.. LinearFunction getTensorProduct
+  addTensors (Tensor l) (Tensor r) = Tensor $ l^+^r
+  scaleTensor = bilinearFunction (*^)
+  negateTensor = LinearFunction $ Tensor . negateV . getTensorProduct
+  tensorProduct = bilinearFunction
+      $ \f w -> Tensor $ CC.fmap (LinearFunction $ \y -> y⊗w) CC.$ f
+  transposeTensor = LinearFunction
+       $ \(Tensor (Haar_ℝ l c r)) -> 
+            sumV [ CC.fmap (LinearFunction`id`\lb'
+                                -> Haar_ℝ (replicate i zeroV++[lb']) zeroV [])
+                        CC.. transposeTensor CC.$ Tensor lb
+                 | (i,lb) <- zip [0..] l ]
+        ^+^ (CC.fmap (LinearFunction `id` \c' -> Haar_ℝ [] c' [])
+                  CC.. transposeTensor CC.$ Tensor c)
+        ^+^ sumV [ CC.fmap (LinearFunction`id`\rb'
+                                -> Haar_ℝ [] zeroV (replicate i zeroV++[rb']))
+                        CC.. transposeTensor CC.$ Tensor rb
+                 | (i,rb) <- zip [0..] r ]
+  fmapTensor = bilinearFunction
+         $ \a (Tensor f) -> Tensor $ CC.fmap (CC.fmap a) CC.$ f
+  fzipTensorWith = bilinearFunction $ \a (Tensor f, Tensor g)
+        -> Tensor $ CC.fzipWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
+
