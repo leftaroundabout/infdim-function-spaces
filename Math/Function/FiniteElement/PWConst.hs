@@ -76,7 +76,7 @@ instance HaarSamplingDomain ℝ where
 
 zipAddWith :: (AdditiveGroup v, AdditiveGroup w)
                  => (v->w->x) -> [v] -> [w] -> [x]
-zipAddWith f [] rs = ( f zeroV) <$> rs
+zipAddWith f [] rs = (zeroV`f`) <$> rs
 zipAddWith f ls [] = (`f`zeroV) <$> ls
 zipAddWith f (l:ls) (r:rs) = (f l r) : zipAddWith f ls rs
 
