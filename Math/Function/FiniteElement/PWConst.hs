@@ -20,9 +20,9 @@
 
 module Math.Function.FiniteElement.PWConst
        ( -- * Functions
-           Haar, HaarSamplingDomain(..)
+           Haar, HaarSamplingDomain(evalHaarFunction, homsampleHaarFunction)
          -- * Distributions
-        , dirac, boxDistribution
+        , dirac, boxDistributionD¹
          -- * Calculus
         , integrateHaarFunction
          -- * Utility

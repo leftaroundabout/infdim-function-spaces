@@ -77,7 +77,7 @@ main = defaultMain $ testGroup "Tests"
   ]
  , testGroup "Distributions"
   [ testProperty "Dirac evaluation of given Haar function"
-      $ \f p -> dirac p<.>^f ≃ evalHaarFunction f p
+      $ \f (p::D¹) -> dirac p<.>^f ≃ evalHaarFunction f p
   , testProperty "Dirac evaluation of sampled polynomial"
       $ \a b c d res p
           -> let f (D¹ x) = a*x^3/3 + b*x^2/2 + c*x + d

@@ -64,6 +64,7 @@ class HaarSamplingDomain x where
             => Haar x y -> x -> y
   homsampleHaarFunction :: (VAffineSpace y, Diff y ~ y, Fractional (Scalar y))
             => PowerOfTwo -> (x -> y) -> Haar x y
+  dirac :: x -> DualVector (Haar x ℝ)
 
 -- | Piecewise-constant functions on the unit interval whose integral is zero.
 data Haar0BiasTree (dn :: Dualness) (y :: *)
@@ -155,23 +156,23 @@ homsampleHaar_D¹ (TwoToThe i) f
        [Haar_D¹ y₀l sfl, Haar_D¹ y₀r sfr]
         -> Haar_D¹ ((y₀l^+^y₀r)^/2) $ HaarUnbiased ((y₀r^-^y₀l)^/2) sfl sfr
 
-boxDistribution :: (VectorSpace y, Scalar y ~ ℝ)
+boxDistributionD¹ :: (VectorSpace y, Scalar y ~ ℝ)
                      => (D¹, D¹) -> y -> Haar_D¹ DistributionSpace y
-boxDistribution (D¹ l, D¹ r) y
-  | l > r      = boxDistribution (D¹ r, D¹ l) y
-boxDistribution (D¹ (-1), D¹ 1) y
+boxDistributionD¹ (D¹ l, D¹ r) y
+  | l > r      = boxDistributionD¹ (D¹ r, D¹ l) y
+boxDistributionD¹ (D¹ (-1), D¹ 1) y
                = Haar_D¹ y zeroV
-boxDistribution (D¹ l, D¹ r) y
+boxDistributionD¹ (D¹ l, D¹ r) y
   | l<0, r>0   = Haar_D¹ y $ HaarUnbiased (wr^-^wl)    lstru rstru
   | l<0        = Haar_D¹ y $ HaarUnbiased (negateV wl) lstru zeroV
   | otherwise  = Haar_D¹ y $ HaarUnbiased wr           zeroV rstru
- where Haar_D¹ wl lstru = boxDistribution (D¹ $ l*2 + 1, D¹ $ min 0 r*2 + 1)
+ where Haar_D¹ wl lstru = boxDistributionD¹ (D¹ $ l*2 + 1, D¹ $ min 0 r*2 + 1)
                             $ y^*if r>0 then l/(l-r) else 1
-       Haar_D¹ wr rstru = boxDistribution (D¹ $ max 0 l*2 - 1, D¹ $ r*2 - 1)
+       Haar_D¹ wr rstru = boxDistributionD¹ (D¹ $ max 0 l*2 - 1, D¹ $ r*2 - 1)
                             $ y^*if l<0 then r/(r-l) else 1
 
-dirac :: D¹ -> DualVector (Haar D¹ ℝ)
-dirac x₀ = boxDistribution (x₀,x₀) 1
+diracD¹ :: D¹ -> DualVector (Haar D¹ ℝ)
+diracD¹ x₀ = boxDistributionD¹ (x₀,x₀) 1
 
 
 -- | Given a function \(f\) and an interval \((\ell,r)\), yield the integral
@@ -191,6 +192,7 @@ integrateHaarFunction f = \(l,r) -> antideriv f r ^+^ c l
 instance HaarSamplingDomain D¹ where
   evalHaarFunction = evalHaar_D¹
   homsampleHaarFunction = homsampleHaar_D¹
+  dirac = diracD¹
 
 
 instance QC.Arbitrary PowerOfTwo where
