@@ -76,9 +76,9 @@ main = defaultMain $ testGroup "Tests"
       $ \f -> ((id :: Haar D¹ ℝ+>Haar D¹ ℝ) $ f) ≃ f
   ]
  , testGroup "Distributions"
-  [ testProperty "Dirac evaluation of given Haar function"
+  [ testProperty "Dirac evaluation of given Haar function, D¹"
       $ \f (p::D¹) -> dirac p<.>^f ≃ evalHaarFunction f p
-  , testProperty "Dirac evaluation of sampled polynomial"
+  , testProperty "Dirac evaluation of sampled polynomial (on D¹)"
       $ \a b c d res p
           -> let f (D¹ x) = a*x^3/3 + b*x^2/2 + c*x + d
                  exact = f p
@@ -86,6 +86,16 @@ main = defaultMain $ testGroup "Tests"
              in counterexample ("Exact: "<>show exact<>", Dirac: "<>show diracSampled)
                  $ magnitude (diracSampled - exact)
                     <= 5*maximum (abs<$>[a,b,c,d])/fromIntegral (getPowerOfTwo res)
+  , testProperty "Dirac evaluation of trig function (on ℝ)"
+      $ \a b c res p'
+          -> let p = asinh p' -- avoid huge values
+                 f :: ℝ -> ℝ
+                 f x = a*cos x + b*sin x + c
+                 exact = f p
+                 diracSampled = dirac p<.>^homsampleHaarFunction res f
+             in counterexample ("Exact: "<>show exact<>", Dirac: "<>show diracSampled)
+                 $ magnitude (diracSampled - exact)
+                    <= 5*maximum (abs<$>[a,b,c])/fromIntegral (getPowerOfTwo res)
   ]
  , testGroup "Calculus"
   [ testProperty "Integration of polynomial"

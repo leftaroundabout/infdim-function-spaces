@@ -73,6 +73,24 @@ instance HaarSamplingDomain ℝ where
         -> Haar_ℝ (l:ls)
                   (homsampleHaarFunction reso $ \(D¹ x) -> f x)
                   (r:rs)
+  
+  dirac p = boxDistributionℝ (p,p) 1
+
+boxDistributionℝ :: (VAffineSpace y, Scalar y ~ ℝ)
+                     => (ℝ, ℝ) -> y -> Haar_ℝ DistributionSpace y
+boxDistributionℝ (l, r) y
+  | l > r            = boxDistributionℝ (r, l) y
+  | l >= -1, r <= 1  = Haar_ℝ [] (boxDistributionD¹ (D¹ l, D¹ r) y) []
+  | l >= 1           = case boxDistributionℝ ((l-3)/2, (r-3)/2) y of
+                        Haar_ℝ _ dc dr -> Haar_ℝ [] zeroV (dc : dr)
+  | r <= -1          = case boxDistributionℝ ((l+3)/2, (r+3)/2) y of
+                        Haar_ℝ dl dc _ -> Haar_ℝ (dc : dl) zeroV []
+  | l >= -1          = let bl = (1-l)/(r-l)
+                       in boxDistributionℝ (l,1) (y^*bl)
+                            ^+^ boxDistributionℝ (1,r) (y^*(1-bl))
+  | otherwise        = let bl = (-1-l)/(r-l)
+                       in boxDistributionℝ (l,-1) (y^*bl)
+                            ^+^ boxDistributionℝ (-1,r) (y^*(1-bl))
 
 zipAddWith :: (AdditiveGroup v, AdditiveGroup w)
                  => (v->w->x) -> [v] -> [w] -> [x]
@@ -261,3 +279,4 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
            = sumV [ (getLinearFunction applyTensorLinMap $ LinearMap a)
                               CC.$ (Tensor f :: Haar_D¹ dn y⊗u)
                   | (a,f) <- (ac,fc) : zip al fl ++ zip ar fr ]
+
