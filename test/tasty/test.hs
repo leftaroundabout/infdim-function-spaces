@@ -17,6 +17,7 @@ import qualified Test.QuickCheck as QC
 import Math.Function.FiniteElement.PWConst
 import Math.Function.FiniteElement.PWLinear
 import Data.VectorSpace
+import Data.VectorSpace.Free
 import Data.Manifold.Types
 import Data.Semigroup
 import Math.LinearMap.Category
@@ -39,6 +40,12 @@ main = defaultMain $ testGroup "Tests"
                    [f₀,f₁] = f<$>[cfs₀,cfs₁]
                in homsampleHaarFunction res f₀ ^+^ homsampleHaarFunction res f₁
                     ≃ (homsampleHaarFunction res (f₀^+^f₁) :: Haar D¹ ℝ)
+  , testProperty "Multiplicativity of sampled form"
+         $ \cfs₀ cfs₁ res
+            -> let f (a,b,c) (D¹ x) = a*x^2 + b*x + c
+                   [f₀,f₁] = f<$>[cfs₀,cfs₁]
+               in homsampleHaarFunction res f₀ ^*^ homsampleHaarFunction res f₁
+                    ≃ (homsampleHaarFunction res (\p->f₀ p*f₁ p) :: Haar D¹ ℝ)
   ]
  , testGroup "Haar sampling on real line"
   [ testProperty "Identity function" . retrieveSampledFn @'Haar
