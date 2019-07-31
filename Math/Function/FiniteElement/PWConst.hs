@@ -331,6 +331,10 @@ data SinkhornOTConfig = SinkhornOTConfig
   { _entropyLim_λ :: ℝ
   , _max_Sinkhorniters :: Int }
 
+-- | Calculation of an approximately optimal (i.e. minimum earth-mover distance)
+--   transport (i.e. joint distribution that has the two given marginals).
+--   Uses the Sinkhorn algorithm as presented in
+--   <http://papers.nips.cc/paper/4927-sinkhorn-distances-lightspeed-computation-of-optimal-transport Cuturi 2013>.
 entropyLimOptimalTransport :: SinkhornOTConfig
                      -> Haar D¹ ℝ -> Haar D¹ ℝ -> Haar D¹ ℝ ⊗ Haar D¹ ℝ
 entropyLimOptimalTransport (SinkhornOTConfig λ maxIters) r c = sinkh 0 smearedDiag
