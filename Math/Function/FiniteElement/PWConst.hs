@@ -53,12 +53,19 @@ import qualified Control.Arrow.Constrained as CC
 instance ( FreeVectorSpace y, VAffineSpace y
          , TensorSpace y, Needle y ~ y, Scalar y ~ ℝ )
                 => FreeVectorSpace (Haar_D¹ 'FunctionSpace y) where
+  
   Haar_D¹ c₀ HaarZero ^*^ Haar_D¹ c₁ HaarZero = Haar_D¹ (c₀^*^c₁) HaarZero
   Haar_D¹ c HaarZero ^*^ f = CC.fmap (LinearFunction (c^*^)) CC.$ f
   f ^*^ Haar_D¹ c HaarZero = CC.fmap (LinearFunction (^*^c)) CC.$ f
   Haar_D¹ c₀ (HaarUnbiased δ₀ f₀l f₀r) ^*^ Haar_D¹ c₁ (HaarUnbiased δ₁ f₁l f₁r)
       = case ( Haar_D¹ (c₀^-^δ₀) f₀l ^*^ Haar_D¹ (c₁^-^δ₁) f₁l
              , Haar_D¹ (c₀^+^δ₀) f₀r ^*^ Haar_D¹ (c₁^+^δ₁) f₁r ) of
+         (Haar_D¹ cl fl, Haar_D¹ cr fr)
+           -> Haar_D¹ ((cl^+^cr)^/2) $ HaarUnbiased ((cr^-^cl)^/2) fl fr
+  
+  vmap f (Haar_D¹ c HaarZero) = Haar_D¹ (vmap f c) HaarZero
+  vmap f (Haar_D¹ c (HaarUnbiased δ fl fr))
+     = case ( vmap f (Haar_D¹ (c^-^δ) fl), vmap f (Haar_D¹ (c^+^δ) fr) ) of
          (Haar_D¹ cl fl, Haar_D¹ cr fr)
            -> Haar_D¹ ((cl^+^cr)^/2) $ HaarUnbiased ((cr^-^cl)^/2) fl fr
          

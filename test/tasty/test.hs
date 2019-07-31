@@ -46,6 +46,12 @@ main = defaultMain $ testGroup "Tests"
                    [f₀,f₁] = f<$>[cfs₀,cfs₁]
                in homsampleHaarFunction res f₀ ^*^ homsampleHaarFunction res f₁
                     ≃ (homsampleHaarFunction res (\p->f₀ p*f₁ p) :: Haar D¹ ℝ)
+  , testProperty "Point-wise function application"
+         $ \(a,b,c) res
+            -> let f (D¹ x) = a*x^2 + b*x + c
+                   g = asinh
+               in vmap g (homsampleHaarFunction res f)
+                    ≃ homsampleHaarFunction res (g . f)
   ]
  , testGroup "Haar sampling on real line"
   [ testProperty "Identity function" . retrieveSampledFn @'Haar
