@@ -534,8 +534,23 @@ instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
            [ (1, pure HaarZero)
            , (p'¹Terminate, HaarUnbiased <$> QC.arbitrary <*> genΔs pNext <*> genΔs pNext) ]
           where pNext = floor $ fromIntegral p'¹Terminate / 1.1
-           
 
+instance (InnerSpace v, Scalar v ~ ℝ, TensorSpace v)
+              => InnerSpace (Tensor ℝ ℝ v) where
+  Tensor t <.> Tensor u = t <.> u
+instance (Show v) => Show (Tensor ℝ ℝ v) where
+  showsPrec p (Tensor t) = showParen (p>9) $ ("Tensor "++) . showsPrec 10 t
+           
+instance ( TensorSpace x, Scalar x ~ ℝ, AffineSpace x, Diff x ~ x, Needle x ~ x
+         , TensorSpace y, Scalar y ~ ℝ, AffineSpace y, Diff y ~ y, Needle y ~ y
+         , InnerSpace (Tensor ℝ x y) )
+             => InnerSpace (Tensor ℝ (Haar_D¹ FunctionSpace x) y) where
+  Tensor t <.> Tensor u = t <.> u
+
+instance (Show y, Show (Diff y), Scalar y ~ ℝ)
+             => Show (Tensor ℝ (Haar_D¹ dn ℝ) y) where
+  showsPrec p (Tensor t) = showParen (p>9) $ ("Tensor "++) . showsPrec 10 t
+           
 multiscaleDecompose :: VAffineSpace y => Haar D¹ y -> (y, (Haar D¹ y, Haar D¹ y))
 multiscaleDecompose (Haar_D¹ y₀ HaarZero)
          = (y₀, zeroV)

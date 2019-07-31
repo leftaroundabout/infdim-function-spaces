@@ -84,6 +84,11 @@ main = defaultMain $ testGroup "Tests"
                     in f'<.>^(g ^+^ μ*^h :: Haar D¹ ℝ)
                       ≃ f'<.>^g + μ*^(f'<.>^h)
   ]
+ , testGroup "Tensors"
+  [ testProperty "Transpose tensor product"
+      $ \(f :: Haar D¹ ℝ) (g :: Haar D¹ ℝ)
+            -> (transposeTensor $ f⊗g) ≃ g⊗f
+  ]
  , testGroup "Linear maps"
   [ testProperty "Identity map"
       $ \f -> ((id :: Haar D¹ ℝ+>Haar D¹ ℝ) $ f) ≃ f
