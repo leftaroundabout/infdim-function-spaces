@@ -166,7 +166,7 @@ instance ∀ y dn
                                (HaarI_D¹ dn (Tensor ℝ (Diff y) b))
          cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
             Coercion -> Coercion
-  zeroTensor = zeroV
+  zeroTensor = Tensor zeroV
   toFlatTensor = LinearFunction Tensor CC.. CC.fmap toFlatTensor
   fromFlatTensor = CC.fmap fromFlatTensor CC.. LinearFunction getTensorProduct
   addTensors (Tensor f) (Tensor g) = Tensor $ f^+^g

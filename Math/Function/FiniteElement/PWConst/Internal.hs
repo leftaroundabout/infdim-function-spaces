@@ -303,7 +303,7 @@ instance ∀ y dn . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Sca
                                (Haar0BiasTree dn (Tensor ℝ (Diff y) b))
          cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
             Coercion -> Coercion
-  zeroTensor = zeroV
+  zeroTensor = Tensor zeroV
   toFlatTensor = LinearFunction Tensor CC.. CC.fmap toFlatTensor
   fromFlatTensor = CC.fmap fromFlatTensor CC.. LinearFunction getTensorProduct
   addTensors (Tensor f) (Tensor g) = Tensor $ f^+^g
@@ -312,7 +312,8 @@ instance ∀ y dn . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Sca
   tensorProduct = bilinearFunction
          $ \f w -> Tensor $ CC.fmap (LinearFunction $ \y -> y⊗w) CC.$ f
   transposeTensor = LinearFunction $
-       \(Tensor (HaarUnbiased δyw δsl δsr))
+    \case (Tensor HaarZero) -> zeroV
+          (Tensor (HaarUnbiased δyw δsl δsr))
            -> (CC.fmap (LinearFunction $ \δy -> HaarUnbiased δy zeroV zeroV)
                  CC.. transposeTensor CC.$ δyw)
              ^+^ (CC.fmap (LinearFunction $ \δysl -> HaarUnbiased zeroV δysl zeroV)
@@ -341,7 +342,7 @@ instance ∀ y dn
                                (Haar_D¹ dn (Tensor ℝ (Diff y) b))
          cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
             Coercion -> Coercion
-  zeroTensor = zeroV
+  zeroTensor = Tensor zeroV
   toFlatTensor = LinearFunction Tensor CC.. CC.fmap toFlatTensor
   fromFlatTensor = CC.fmap fromFlatTensor CC.. LinearFunction getTensorProduct
   addTensors (Tensor f) (Tensor g) = Tensor $ f^+^g
