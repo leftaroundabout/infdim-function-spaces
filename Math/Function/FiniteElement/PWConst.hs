@@ -326,3 +326,27 @@ riesz_resolimited res = LinearFunction $ \(Haar_D¹ c₀ f)
         | n > 0     = HaarUnbiased (μ*^δ)
                        (go (TwoToThe $ n-1) (μ*2) l) (go (TwoToThe $ n-1) (μ*2) r)
        go _ _ _ = HaarZero
+
+
+entropyLimOptimalTransport :: ℝ -> Haar D¹ ℝ -> Haar D¹ ℝ -> Haar D¹ ℝ ⊗ Haar D¹ ℝ
+entropyLimOptimalTransport λ r c = sinkh 0 smearedDiag
+ where sinkh i m
+         | i > maxIters  = m
+         | otherwise     = sinkh (i+1)
+                 $ transposeTensor
+                  CC.. CC.fmap (LinearFunction $ \w -> w^*^(r^*^vmap recip r'))
+                  CC.. transposeTensor
+                  CC.. CC.fmap (LinearFunction $ \w -> w^*^(c^*^vmap recip c'))
+                  CC.$ m
+        where r' = fromFlatTensor CC.. CC.fmap (LinearFunction $ \w -> const1<.>^w) CC.$ m
+              c' = fromFlatTensor CC.. CC.fmap (LinearFunction $ \w -> const1<.>^w)
+                                     CC.. transposeTensor CC.$ m
+       maxIters = 10
+       smearedDiag :: Haar D¹ ℝ ⊗ Haar D¹ ℝ
+       smearedDiag = Tensor . homsampleHaarFunction reso
+           $ \(D¹ x) -> Tensor . homsampleHaarFunction reso
+            $ \(D¹ x') -> exp $ -λ*abs (x-x')
+        where reso = (TwoToThe . round $ log λ + 2)
+       const1 :: DualVector (Haar D¹ ℝ)
+       const1 = Haar_D¹ 1 zeroV
+
