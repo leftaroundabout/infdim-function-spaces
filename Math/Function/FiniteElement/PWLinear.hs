@@ -523,6 +523,7 @@ evalCHaar_D¹ (CHaar_D¹ intg yl yr (CHaarUnbiased δilr ym fl fr)) (D¹ x)
 
 homsampleCHaar_D¹ :: (VAffineSpace y, Scalar y ~ ℝ)
      => PowerOfTwo -> (D¹ -> y) -> CHaar_D¹ FunctionSpace y
+homsampleCHaar_D¹ (TwoToThe n) _ | n<0  = error "Cannot sample function at resolution <0."
 homsampleCHaar_D¹ (TwoToThe 0) f
    = CHaar_D¹ ((fl^+^fm^*2^+^fr)^/2) fl fr CHaarZero
  where [fl,fm,fr] = f . D¹ <$> [-1, 0, 1]

@@ -149,6 +149,7 @@ evalHaar_D¹ (Haar_D¹ offs varis) x = offs .+^ evalVari varis x
 
 homsampleHaar_D¹ :: (VAffineSpace y, Diff y ~ y, Fractional (Scalar y))
             => PowerOfTwo -> (D¹ -> y) -> Haar D¹ y
+homsampleHaar_D¹ (TwoToThe i) _ | i<0  = error "Cannot sample function at resolution <0."
 homsampleHaar_D¹ (TwoToThe 0) f = Haar_D¹ (f $ D¹ 0) HaarZero
 homsampleHaar_D¹ (TwoToThe i) f
    = case homsampleHaar_D¹ (TwoToThe $ i-1) <$> [ f . view (re leftHalf)
