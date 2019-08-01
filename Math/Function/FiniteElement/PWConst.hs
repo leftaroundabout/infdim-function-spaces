@@ -344,14 +344,14 @@ entropyLimOptimalTransport (SinkhornOTConfig λ maxIters) r c = sinkh 0 smearedD
          | otherwise     = m
        transpose_setLMarginal :: Haar D¹ ℝ -> Haar D¹ ℝ ⊗ Haar D¹ ℝ -> Haar D¹ ℝ ⊗ Haar D¹ ℝ
        transpose_setLMarginal p m
-          = fmap (LinearFunction $ \w -> w^*^ρ) . transposeTensor $ m
+          = fmap (LinearFunction (^*^ρ)) . transposeTensor $ m
         where p' = lMarginal m
               ρ = p^*^vmap recip p'
        smearedDiag :: Haar D¹ ℝ ⊗ Haar D¹ ℝ
        smearedDiag = Tensor . homsampleHaarFunction reso
            $ \(D¹ x) -> Tensor . homsampleHaarFunction reso
             $ \(D¹ x') -> exp $ -λ*abs (x-x')
-        where reso = (TwoToThe . round $ log λ + 2)
+        where reso = (TwoToThe . max 0 . round $ log λ)
 
 lMarginal :: Haar D¹ Double ⊗ Haar D¹ Double -> Haar D¹ Double
 lMarginal m = fromFlatTensor . fmap integrate $ m
