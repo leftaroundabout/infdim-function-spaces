@@ -25,6 +25,7 @@
 {-# LANGUAGE TupleSections          #-}
 {-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE CPP                    #-}
 
 module Math.Function.FiniteElement.PWConst.Internal where
 
@@ -537,11 +538,13 @@ instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
            , (p'¹Terminate, HaarUnbiased <$> QC.arbitrary <*> genΔs pNext <*> genΔs pNext) ]
           where pNext = floor $ fromIntegral p'¹Terminate / 1.1
 
+#if !MIN_VERSION_linearmap_category(0,3,6)
 instance (InnerSpace v, Scalar v ~ ℝ, TensorSpace v)
               => InnerSpace (Tensor ℝ ℝ v) where
   Tensor t <.> Tensor u = t <.> u
 instance (Show v) => Show (Tensor ℝ ℝ v) where
   showsPrec p (Tensor t) = showParen (p>9) $ ("Tensor "++) . showsPrec 10 t
+#endif
            
 instance ( TensorSpace x, Scalar x ~ ℝ, AffineSpace x, Diff x ~ x, Needle x ~ x
          , TensorSpace y, Scalar y ~ ℝ, AffineSpace y, Diff y ~ y, Needle y ~ y
