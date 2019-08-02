@@ -328,20 +328,16 @@ riesz_resolimited res = LinearFunction $ \(Haar_D¹ c₀ f)
        go _ _ _ = HaarZero
 
 data SinkhornOTConfig = SinkhornOTConfig
-  { _entropyLim_λ :: ℝ
-  , _max_Sinkhorniters :: Int }
+  { _entropyLim_λ :: ℝ }
 
 -- | Calculation of an approximately optimal (i.e. minimum earth-mover distance)
 --   transport (i.e. joint distribution that has the two given marginals).
 --   Uses the Sinkhorn algorithm as presented in
 --   <http://papers.nips.cc/paper/4927-sinkhorn-distances-lightspeed-computation-of-optimal-transport Cuturi 2013>.
 entropyLimOptimalTransport :: SinkhornOTConfig
-                     -> Haar D¹ ℝ -> Haar D¹ ℝ -> Haar D¹ ℝ ⊗ Haar D¹ ℝ
-entropyLimOptimalTransport (SinkhornOTConfig λ maxIters) r c = sinkh 0 smearedDiag
- where sinkh i m
-         | i < maxIters  = sinkh (i+1)
-                 . transpose_setLMarginal c . transpose_setLMarginal r $ m
-         | otherwise     = m
+                     -> Haar D¹ ℝ -> Haar D¹ ℝ -> [Haar D¹ ℝ ⊗ Haar D¹ ℝ]
+entropyLimOptimalTransport (SinkhornOTConfig λ) r c = sinkh smearedDiag
+ where sinkh m = m : (sinkh . transpose_setLMarginal c . transpose_setLMarginal r $ m)
        transpose_setLMarginal :: Haar D¹ ℝ -> Haar D¹ ℝ ⊗ Haar D¹ ℝ -> Haar D¹ ℝ ⊗ Haar D¹ ℝ
        transpose_setLMarginal p m
           = fmap (LinearFunction (^*^ρ)) . transposeTensor $ m
