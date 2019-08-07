@@ -525,8 +525,7 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
               ^+^ ( (getLinearFunction applyTensorLinMap $ LinearMap δa)
                               CC.$ (Tensor δf :: Haar0BiasTree dn y⊗u) )
 
-instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
-               => QC.Arbitrary (Haar_D¹ FunctionSpace y) where
+instance (QC.Arbitrary y) => QC.Arbitrary (Haar_D¹ FunctionSpace y) where
   arbitrary = do
      n <- QC.getSize
           -- Magic numbers for the termination-probability: chosen empirically
@@ -538,12 +537,19 @@ instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
            , (p'¹Terminate, HaarUnbiased <$> QC.arbitrary <*> genΔs pNext <*> genΔs pNext) ]
           where pNext = floor $ fromIntegral p'¹Terminate / 1.1
 
+instance ( QC.Arbitrary (Tensor s x y), Scalar x ~ s )
+               => QC.Arbitrary (Tensor s (Haar_D¹ FunctionSpace x) y) where
+  arbitrary = Tensor <$> QC.arbitrary
+
 #if !MIN_VERSION_linearmap_category(0,3,6)
 instance (InnerSpace v, Scalar v ~ ℝ, TensorSpace v)
               => InnerSpace (Tensor ℝ ℝ v) where
   Tensor t <.> Tensor u = t <.> u
 instance (Show v) => Show (Tensor ℝ ℝ v) where
   showsPrec p (Tensor t) = showParen (p>9) $ ("Tensor "++) . showsPrec 10 t
+instance (QC.Arbitrary v, Scalar v ~ ℝ) => QC.Arbitrary (Tensor ℝ ℝ v) where
+  arbitrary = Tensor <$> QC.arbitrary
+  shrink (Tensor t) = Tensor <$> QC.shrink t
 #endif
            
 instance ( TensorSpace x, Scalar x ~ ℝ, AffineSpace x, Diff x ~ x, Needle x ~ x
