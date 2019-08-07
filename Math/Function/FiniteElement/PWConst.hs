@@ -27,6 +27,8 @@ module Math.Function.FiniteElement.PWConst
         , integrateHaarFunction
          -- * Utility
         , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose, VAffineSpace, detailScale
+         -- * Misc, unstable
+        , dualPointwiseMul
         ) where
 
 import Math.Function.FiniteElement.PWConst.Internal
@@ -46,6 +48,7 @@ import Data.Type.Coercion
 
 import qualified Prelude
 import Control.Category.Constrained.Prelude
+import Control.Arrow.Constrained
 
 
 instance ( FreeVectorSpace y, VAffineSpace y
@@ -67,6 +70,22 @@ instance ( FreeVectorSpace y, VAffineSpace y
          (Haar_D¹ cl fl, Haar_D¹ cr fr)
            -> Haar_D¹ ((cl^+^cr)^/2) $ HaarUnbiased ((cr^-^cl)^/2) fl fr
          
+dualPointwiseMul :: Haar_D¹ FunctionSpace ℝ
+          -> Haar_D¹ DistributionSpace ℝ -> Haar_D¹ DistributionSpace ℝ
+dualPointwiseMul (Haar_D¹ c₀ HaarZero) (Haar_D¹ c₁ HaarZero)
+       = Haar_D¹ (c₀*c₁) HaarZero
+dualPointwiseMul (Haar_D¹ c HaarZero) f
+           = fmap (LinearFunction (c*)) $ f
+dualPointwiseMul f (Haar_D¹ c HaarZero)
+           = dualPointwiseMul f $ Haar_D¹ c (HaarUnbiased zeroV zeroV zeroV)
+dualPointwiseMul (Haar_D¹ c₀ (HaarUnbiased δ₀ f₀l f₀r))
+                 (Haar_D¹ c₁ (HaarUnbiased δ₁ f₁l f₁r))
+      = case ( dualPointwiseMul (Haar_D¹ (c₀^-^δ₀) f₀l) (Haar_D¹ ((c₁^-^δ₁)^/2) f₁l)
+             , dualPointwiseMul (Haar_D¹ (c₀^+^δ₀) f₀r) (Haar_D¹ ((c₁^+^δ₁)^/2) f₁r) ) of
+         (Haar_D¹ cl fl, Haar_D¹ cr fr)
+           -> Haar_D¹ (cl^+^cr) $ HaarUnbiased (cr^-^cl) fl fr
+
+
 
 data Haar_ℝ dn y = Haar_ℝ
   { hℝ_leftExtensions :: [Haar_D¹ dn y]

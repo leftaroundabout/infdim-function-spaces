@@ -83,6 +83,14 @@ main = defaultMain $ testGroup "Tests"
       $ \f g μ h -> let f' = coRiesz$(f :: Haar D¹ ℝ)
                     in f'<.>^(g ^+^ μ*^h :: Haar D¹ ℝ)
                       ≃ f'<.>^g + μ*^(f'<.>^h)
+  , testProperty "Multiplicativity of dual vectors: identity and polynomials"
+         $ \cfs₀ cfs₁ res
+            -> let f (a, b, c) (D¹ x) = a*x^2 + b*x + c
+                   [f₀,f₁] = homsampleHaarFunction res . f<$>[cfs₀,cfs₁] :: [Haar D¹ ℝ]
+                   ι = boxDistributionD¹ (D¹ $ -1, D¹ 1) 1 :: DualVector (Haar D¹ ℝ)
+               in (dualPointwiseMul f₀ $ ι) <.>^ f₁ ≃ ι <.>^ (f₀^*^f₁)
+  , testProperty "Multiplicativity of dual vectors: arbitrary"
+         $ \u ψ φ -> (dualPointwiseMul ψ $ u) <.>^ φ ≃ u <.>^ (ψ^*^φ)
   ]
  , testGroup "Tensors"
   [ testProperty "Bilinearity of tensor product"
