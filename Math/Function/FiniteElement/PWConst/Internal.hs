@@ -525,6 +525,13 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
               ^+^ ( (getLinearFunction applyTensorLinMap $ LinearMap δa)
                               CC.$ (Tensor δf :: Haar0BiasTree dn y⊗u) )
 
+instance (QC.Arbitrary y) => QC.Arbitrary (Haar_D¹ 'DistributionSpace y) where
+  arbitrary = do
+     Haar_D¹ <$> QC.arbitrary <*> genΔs
+   where genΔs = QC.oneof
+           [ pure HaarZero
+           , HaarUnbiased <$> QC.arbitrary <*> genΔs <*> genΔs ]
+
 instance (QC.Arbitrary y) => QC.Arbitrary (Haar_D¹ FunctionSpace y) where
   arbitrary = do
      n <- QC.getSize
