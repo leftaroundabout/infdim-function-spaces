@@ -59,6 +59,11 @@ main = defaultMain $ testGroup "Tests"
       $ \f g μ h -> let f' = coRiesz$(f :: Haar D¹ ℝ)
                     in f'<.>^(g ^+^ μ*^h :: Haar D¹ ℝ)
                       ≃ f'<.>^g + μ*^(f'<.>^h)
+  , testProperty "Resolution-limited Riesz isomorphism"
+         $ \a b c res
+             -> let f :: Haar D¹ ℝ
+                    f = homsampleHaarFunction res $ \(D¹ x) -> a*x^2 + b*x + c
+                in (riesz_resolimited res . coRiesz $ f) ≃ f
   ]
  , testGroup "Linear maps"
   [ testProperty "Identity map"
