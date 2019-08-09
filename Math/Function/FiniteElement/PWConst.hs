@@ -335,21 +335,37 @@ data SinkhornOTConfig = SinkhornOTConfig
 --   Uses the Sinkhorn algorithm as presented in
 --   <http://papers.nips.cc/paper/4927-sinkhorn-distances-lightspeed-computation-of-optimal-transport Cuturi 2013>.
 entropyLimOptimalTransport :: SinkhornOTConfig
-                     -> Haar D¹ ℝ -> Haar D¹ ℝ -> [Haar D¹ ℝ ⊗ Haar D¹ ℝ]
-entropyLimOptimalTransport (SinkhornOTConfig λ) r c = sinkh smearedDiag
- where sinkh m = m : (sinkh . transpose_setLMarginal c . transpose_setLMarginal r $ m)
-       transpose_setLMarginal :: Haar D¹ ℝ -> Haar D¹ ℝ ⊗ Haar D¹ ℝ -> Haar D¹ ℝ ⊗ Haar D¹ ℝ
-       transpose_setLMarginal p m
-          = fmap (LinearFunction (^*^ρ)) . transposeTensor $ m
-        where p' = lMarginal m
-              ρ = p^*^vmap recip p'
-       smearedDiag :: Haar D¹ ℝ ⊗ Haar D¹ ℝ
-       smearedDiag = Tensor . homsampleHaarFunction reso
+     -> DualVector (Haar D¹ ℝ) -> DualVector (Haar D¹ ℝ)
+      -> [DualVector (Haar D¹ ℝ) ⊗ DualVector (Haar D¹ ℝ)]
+entropyLimOptimalTransport (SinkhornOTConfig λ) r c = sinkh False flatDistrib flatDistrib
+ where sinkh :: Bool -> DualVector (Haar D¹ ℝ) -> DualVector (Haar D¹ ℝ)
+               -> [DualVector (Haar D¹ ℝ) ⊗ DualVector (Haar D¹ ℝ)]
+       sinkh rside u v = connection
+            : sinkh (not rside)
+               (if   rside   then dualPointwiseMul (vmap recip $ kv) r else u)
+               (if not rside then dualPointwiseMul (vmap recip $ k'u) c else v)
+        where k'u = smearedDiag' $ u
+              kv = smearedDiag $ v
+              connection = case fmap (LinearFunction (`dualPointwiseMul`u)) $ smearedDiag of
+                   LinearMap q -> fmap (LinearFunction (`dualPointwiseMul`v))
+                                   . transposeTensor $ Tensor q
+
+       -- | Corresponds to the 𝐾 matrix in Cuturi 2013.
+       smearedDiag :: DualVector (Haar D¹ ℝ) +> Haar D¹ ℝ
+       smearedDiag = LinearMap . homsampleHaarFunction reso
            $ \(D¹ x) -> Tensor . homsampleHaarFunction reso
             $ \(D¹ x') -> exp $ -λ*abs (x-x')
-        where reso = (TwoToThe . max 0 . round $ log λ)
+        where reso = TwoToThe (max 0 . round $ log λ)
+       smearedDiag' :: DualVector (Haar D¹ ℝ) +> Haar D¹ ℝ
+       smearedDiag' = adjoint $ smearedDiag
+       
+       flatDistrib :: DualVector (Haar D¹ ℝ)
+       flatDistrib = Haar_D¹ 1 zeroV
 
-lMarginal :: Haar D¹ Double ⊗ Haar D¹ Double -> Haar D¹ Double
+lMarginal :: DualVector (Haar D¹ Double) ⊗ DualVector (Haar D¹ Double)
+                 -> DualVector (Haar D¹ Double)
 lMarginal m = fromFlatTensor . fmap integrate $ m
- where integrate :: Haar D¹ ℝ -+> ℝ
-       integrate = LinearFunction $ (Haar_D¹ 1 zeroV<.>^)
+ where integrate = LinearFunction (<.>^(Haar_D¹ 1 zeroV :: Haar D¹ ℝ))
+
+
+
