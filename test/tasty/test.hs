@@ -96,6 +96,11 @@ main = defaultMain $ testGroup "Tests"
                in (dualPointwiseMul f₀ $ ι) <.>^ f₁ ≃ ι <.>^ (f₀^*^f₁)
   , testProperty "Multiplicativity of dual vectors: arbitrary"
          $ \u ψ φ -> (dualPointwiseMul ψ $ u) <.>^ φ ≃ u <.>^ (ψ^*^φ)
+  , testProperty "Multiplicativity of dual vectors: reciprocal"
+         $ \(f :: Haar D¹ ℝ) (g :: Haar D¹ ℝ) p
+              -> let f² = vmap ((+0.1).(^2)) f
+                 in (dualPointwiseMul (vmap recip f²) . dualPointwiseMul f² $ p) <.>^ g
+                         ≃ p<.>^g
   ]
  , testGroup "Tensors"
   [ testProperty "Bilinearity of tensor product"
