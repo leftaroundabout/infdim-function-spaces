@@ -66,23 +66,50 @@ main = do
      ──
      "reference"#%("Western Norway University of Applied Science")
    
-   "Clichés: Understanding of “Functions”"
+-- "Clichés: Understanding of “Functions”"
+--  ======do
+--   items
+--    [ h6"Maths"<>": "<>(𝑓⸪𝐴-→𝐵)$<>" maps points in set "<>𝐴$<>" to points in set "<>𝐵$<>"."
+--    , h6"CS"<>": "<>(𝑓°(𝑎⸪𝐴)⸪𝐵)$<>" is an algorithm that computes a result "
+--        <>(𝑏⸪𝐵) $<>", dependent on "<>𝑎$<>"."
+--    , h6"Physics"│items
+--       [ h6"Theoretical"<>": "
+--        <>(𝑓°𝑎)$<>" is an algebraic expression containing the symbol "<>𝑎$<>"."
+--       , h6"Experimental"<>": "
+--        <>(𝑓⸪𝐴-→𝐵)$<>" maps measurements in space "<>𝐴
+--         $<>" to predictions in space "<>𝐵$<>"."
+--       ]
+--    , h6"Data science / numerics"<>": "<>(𝑓⸪𝐴-→𝐵)$<>" is a cloud of points "<>(𝑝◞𝑖∈𝐴×𝐵)
+--       $<>" such that for any "<>(𝑎∈𝐴)$<>", we can interpolate between nearby points a "
+--       <>"value "<>(𝑏∈𝐵)$<>" in some suitable way."
+--    ]
+
+   "Strong opinions – for stronger types"
     ======do
-     items
-      [ h6"Maths"<>": "<>(𝑓⸪𝐴-→𝐵)$<>" maps points in set "<>𝐴$<>" to points in set "<>𝐵$<>"."
-      , h6"CS"<>": "<>(𝑓°(𝑎⸪𝐴)⸪𝐵)$<>" is an algorithm that computes a result "
-          <>(𝑏⸪𝐵) $<>", dependent on "<>𝑎$<>"."
-      , h6"Physics"│items
-         [ h6"Theoretical"<>": "
-          <>(𝑓°𝑎)$<>" is an algebraic expression containing the symbol "<>𝑎$<>"."
-         , h6"Experimental"<>": "
-          <>(𝑓⸪𝐴-→𝐵)$<>" maps measurements in space "<>𝐴
-           $<>" to predictions in space "<>𝐵$<>"."
-         ]
-      , h6"Data science / numerics"<>": "<>(𝑓⸪𝐴-→𝐵)$<>" is a cloud of points "<>(𝑝◞𝑖∈𝐴×𝐵)
-         $<>" such that for any "<>(𝑎∈𝐴)$<>", we can interpolate between nearby points a "
-         <>"value "<>(𝑏∈𝐵)$<>" in some suitable way."
-      ]
+     ("A vector is "<>bf"not")
+      │items
+       [ "An array of numbers"
+       , "A monad (or, representable functor)"
+       ]
+      ━━""
+      ━━("A vector "<>bf"is")
+       │items
+       [ "An element of some vector space"
+       , "...that represents a set of interesting entities"
+          ──items
+           [ "Points/displacements in physical space"
+           , "Functions or distributions" ]
+       ]
+
+   "Why would vector=array make sense?"
+    ======do
+     items_p
+      [do"Finite-dimensional space:"
+          ──"every vector can be represented"
+           <> " as weighted superposition of "<>𝑛$<>" basis vectors."
+      ,do"Generalisation:"
+          ──"every vector in a "<>emph"Hilbert space"
+           <> "can be represented as a convergent sequence." ]
 
 style = [cassius|
    body
@@ -123,6 +150,8 @@ style = [cassius|
      font-weight: bold
    .emph
      font-style: italic
+   .bf
+     font-weight: bold
    .small
      font-size: 67%
    .verb
@@ -168,6 +197,9 @@ items_p its = sequence_
 
 emph :: Presentation -> Presentation
 emph = ("emph"#%)
+
+bf :: Presentation -> Presentation
+bf = ("bf"#%)
 
 h6 :: Presentation -> Presentation
 h6 = ("h6"#%)
