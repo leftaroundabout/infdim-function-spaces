@@ -60,7 +60,7 @@ main = do
  yeamer . styling style $ do
    ""──
      "global-title"#%
-       "The gap between CS and numerical maths, and ideas how to bridge it"
+       "Lazy Evaluation in Infinite-Dimensional Function Spaces with Wavelet Basis"
      ──
      "Justus Sagemüller"
      ──
