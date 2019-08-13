@@ -11,6 +11,7 @@
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE Rank2Types        #-}
 {-# LANGUAGE UnicodeSyntax     #-}
+{-# LANGUAGE LambdaCase        #-}
 
 import Presentation.Yeamer
 import Presentation.Yeamer.Maths
@@ -45,7 +46,7 @@ import qualified Diagrams.Backend.Cairo as Dia
 import Diagrams.Prelude (p2)
 
 import System.Environment
-import Control.Lens hiding (set)
+import Control.Lens hiding (set, (<.>))
 import Control.Concurrent
 import Data.IORef
 import Text.Printf (printf)
@@ -107,9 +108,38 @@ main = do
       [do"Finite-dimensional space:"
           ──"every vector can be represented"
            <> " as weighted superposition of "<>𝑛$<>" basis vectors."
+          & plotServ [ withDraggablePoints
+                        [(1,0), (0,1), (0.1,0.1)]
+                        (\[e₀@(x₀,y₀),e₁@(x₁,y₁),v] -> 
+                          let (e₀',e₁') = ((y₁,-x₁),(-y₀,x₀))
+                                          ^/ (x₀*y₁-x₁*y₀)
+                              [v₀,v₁] = (<.>v) <$> [e₀',e₁']
+                              strong = Dia.lwO 3
+                              weak = Dia.dashingO [5,5] 0
+                          in plotMultiple [ plot [
+                               shapePlot (
+                                  sty $ Dia.arrowBetween (Dia.p2 r) (Dia.p2 t) )
+                               | (t,r,sty) <- grp ]
+                                 & legendName lgn
+                              | (grp,lgn)
+                                  <- [ ( [ (e₀    , zeroV , strong  )
+                                         , (e₀^*v₀, zeroV , weak) ], "𝐞₀" )
+                                     , ( [ (e₁    , zeroV , strong  )
+                                         , (v     , e₀^*v₀, weak) ], "𝐞₁" )
+                                     , ( [ (v     , zeroV , strong  ) ]
+                                       , printf "%.1g·𝐞₀ + %.1g·𝐞₁" v₀ v₁ )
+                                     ]
+                              ]
+                        )
+                     , dynamicAxes
+                     ]
       ,do"Generalisation:"
           ──"every vector in a "<>emph"Hilbert space"
-           <> "can be represented as a convergent sequence." ]
+           <> " can be represented as a convergent sequence."
+          -- interactive Fourier expansion
+      ,do"In both cases, an orthonormal basis can reconstruct the coefficients."
+      ]
+
 
 style = [cassius|
    body
