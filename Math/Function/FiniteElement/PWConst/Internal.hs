@@ -545,3 +545,10 @@ detailScale :: Haar D¹ y -> Needle D¹
 detailScale (Haar_D¹ _ f) = go f
  where go HaarZero = 1
        go (HaarUnbiased _ l r) = min (go l) (go r)/2
+
+haarFunctionGraph :: VAffineSpace y => Haar D¹ y -> [(D¹,y)]
+haarFunctionGraph f = go id f []
+ where go bounds (Haar_D¹ y₀ HaarZero) = (((,y₀) . bounds <$> [D¹ $ -1, D¹ 1])++)
+       go bounds (Haar_D¹ y₀ (HaarUnbiased δlr fl fr))
+        = go (bounds . view (re leftHalf)) (Haar_D¹ (y₀^-^δlr) fl)
+           . go (bounds . view (re rightHalf)) (Haar_D¹ (y₀^+^δlr) fr)

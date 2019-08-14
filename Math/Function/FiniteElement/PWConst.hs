@@ -16,7 +16,8 @@ module Math.Function.FiniteElement.PWConst
          -- * Calculus
         , integrateHaarFunction
          -- * Utility
-        , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose, VAffineSpace, detailScale
+        , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose, haarFunctionGraph
+        , VAffineSpace, detailScale
         ) where
 
 import Math.Function.FiniteElement.PWConst.Internal
