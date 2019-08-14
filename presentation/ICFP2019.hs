@@ -165,6 +165,20 @@ main = do
         , id)
       ]
 
+   "Function spaces naïvely"
+    ======do
+     "“Superposition of point peaks”?"
+      ── items_p'
+      [ ("No convergence, most points in domain are never hit."
+        , let splPoints = [D¹ $ (sin x^3 + sin x)/2 | x <- [0..]]
+              pseudoPointReso = 16
+          in plotPartialSums fExample
+               [ getLinearFunction (riesz_resolimited $ TwoToThe pseudoPointReso)
+                   $ dirac p ^* (fExample x / 2^(pseudoPointReso-1))
+               | p@(D¹ x) <- splPoints ]
+        )
+      ]
+
 
 style = [cassius|
    body
