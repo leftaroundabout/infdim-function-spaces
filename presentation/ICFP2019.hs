@@ -106,6 +106,12 @@ main = do
            , "Functions or distributions" ]
        ]
 
+   let plotPartialSums tgt sqce
+           = plotServ [ continFnPlot tgt
+                      , startFrozen $ plotLatest
+                         [ plotDelay 0.2 $ haarPlot h | h <- psums ] ]
+        where psums = scanl (^+^) zeroV sqce
+
    "Why would vector=array make sense?"
     ======do
      items_p'
@@ -151,10 +157,7 @@ main = do
                      :: [Haar D¹ ℝ]
               fRand_H = homsampleHaarFunction (TwoToThe 8) $ \(D¹ x) -> fRand x
               fRand_H_coefs = (<.>fRand_H) <$> basis
-              fRand_H_psums = scanl (^+^) zeroV $ zipWith (*^) fRand_H_coefs basis
-          in plotServ [ continFnPlot fRand
-                      , startFrozen $ plotLatest
-                         [ plotDelay 0.2 $ haarPlot h | h <- fRand_H_psums ] ] )
+          in plotPartialSums fRand $ zipWith (*^) fRand_H_coefs basis )
       , ("In both cases, an orthonormal basis can reconstruct the coefficients."
         , id)
       ]
