@@ -114,6 +114,9 @@ main = do
                          , μ <- [0,velo..1-velo/2] ] ]
         where psums = scanl (^+^) zeroV sqce
 
+   let fExample x = (sin (2.7*x) + sin (7.9*x))^3 + tanh (cos $ 4*x)
+       fExample_H = homsampleHaarFunction (TwoToThe 8) $ \(D¹ x) -> fExample x
+
    "Why would vector=array make sense?"
     ======do
      items_p'
@@ -148,8 +151,7 @@ main = do
       , ("Generalisation:"
           ──"every vector in a "<>emph"Hilbert space"
            <> " (with Schauder basis) can be represented as a convergent sequence."
-        , let fRand x = (sin (2.7*x) + sin (7.9*x))^3 + tanh (cos $ 4*x)
-              basis  -- Fourier
+        , let basis  -- Fourier
                = homsampleHaarFunction (TwoToThe 0) (\(D¹ _) -> 1/sqrt 2)
                  : [ homsampleHaarFunction
                       (TwoToThe . max 8 . round . (+5) $ logBase 2 n)
@@ -157,9 +159,8 @@ main = do
                    | n <- [1..]
                    , tf <- [cos, sin] ]
                      :: [Haar D¹ ℝ]
-              fRand_H = homsampleHaarFunction (TwoToThe 8) $ \(D¹ x) -> fRand x
-              fRand_H_coefs = (<.>fRand_H) <$> basis
-          in plotPartialSums fRand $ zipWith (*^) fRand_H_coefs basis )
+              fExample_H_coefs = (<.>fExample_H) <$> basis
+          in plotPartialSums fExample $ zipWith (*^) fExample_H_coefs basis )
       , ("In both cases, an orthonormal basis can reconstruct the coefficients."
         , id)
       ]
