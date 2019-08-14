@@ -79,6 +79,7 @@ executable ICFP2019-FHPNC-LazyHaar
                      , diagrams-cairo
                      , TeX-my-math
                      , lens
+                     , pragmatic-show
   ghc-options:       -O2 -threaded "-with-rtsopts=-N3"
   hs-source-dirs: presentation
   main-is: ICFP2019.hs

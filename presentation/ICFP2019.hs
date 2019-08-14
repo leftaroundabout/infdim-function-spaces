@@ -52,6 +52,10 @@ import Data.IORef
 import Text.Printf (printf)
 import GHC.Exts (IsString(fromString))
 
+import qualified Text.Show.Pragmatic as SP
+
+import Math.Function.FiniteElement.PWConst
+
 
 main :: IO ()
 main = do
@@ -104,11 +108,11 @@ main = do
 
    "Why would vector=array make sense?"
     ======do
-     items_p
-      [do"Finite-dimensional space:"
+     items_p'
+      [ ("Finite-dimensional space:"
           ──"every vector can be represented"
            <> " as weighted superposition of "<>𝑛$<>" basis vectors."
-          & plotServ [ withDraggablePoints
+        , plotServ [ withDraggablePoints
                         [(1,0), (0,1), (0.1,0.1)]
                         (\[e₀@(x₀,y₀),e₁@(x₁,y₁),v] -> 
                           let (e₀',e₁') = ((y₁,-x₁),(-y₀,x₀))
@@ -132,12 +136,27 @@ main = do
                               ]
                         )
                      , dynamicAxes
-                     ]
-      ,do"Generalisation:"
+                     ] )
+      , ("Generalisation:"
           ──"every vector in a "<>emph"Hilbert space"
-           <> " can be represented as a convergent sequence."
-          -- interactive Fourier expansion
-      ,do"In both cases, an orthonormal basis can reconstruct the coefficients."
+           <> " (with Schauder basis) can be represented as a convergent sequence."
+        , let fRand x = (sin (2.7*x) + sin (7.9*x))^3 + tanh (cos $ 4*x)
+              basis  -- Fourier
+               = homsampleHaarFunction (TwoToThe 0) (\(D¹ _) -> 1/sqrt 2)
+                 : [ homsampleHaarFunction
+                      (TwoToThe . max 8 . round . (+5) $ logBase 2 n)
+                      $ \(D¹ x) -> tf (pi*n*x)
+                   | n <- [1..]
+                   , tf <- [cos, sin] ]
+                     :: [Haar D¹ ℝ]
+              fRand_H = homsampleHaarFunction (TwoToThe 8) $ \(D¹ x) -> fRand x
+              fRand_H_coefs = (<.>fRand_H) <$> basis
+              fRand_H_psums = scanl (^+^) zeroV $ zipWith (*^) fRand_H_coefs basis
+          in plotServ [ continFnPlot fRand
+                      , startFrozen $ plotLatest
+                         [ plotDelay 0.2 $ haarPlot h | h <- fRand_H_psums ] ] )
+      , ("In both cases, an orthonormal basis can reconstruct the coefficients."
+        , id)
       ]
 
 
@@ -225,6 +244,12 @@ items_p its = sequence_
   [ items $ v ++ map hide h
   | (v,h) <- tail $ zip (inits its) (tails its) ]
 
+items_p' :: [(Presentation, Presentation->Presentation)] -> Presentation
+items_p' its = sequence_
+  [ items $ map fst (init v) ++ [fvω vω] ++ map (hide . fst) h
+  | (v,h) <- tail $ zip (inits its) (tails its)
+  , let (vω,fvω) = last v ]
+
 emph :: Presentation -> Presentation
 emph = ("emph"#%)
 
@@ -251,8 +276,11 @@ hide' f x = do
 verb :: String -> Presentation
 verb s = "verb" #% fromString s
 
+later :: (Presentation -> Presentation) -> Presentation -> Presentation
+later f c = c >> f c
+
 striking :: Presentation -> Presentation
-striking c = c >> "strikedOut"#%c
+striking = later ("strikedOut"#%)
 
 plotServ :: (?plotLock :: IORef (Maybe ThreadId))
          => [DynamicPlottable] -> Presentation -> Presentation
@@ -279,6 +307,9 @@ plotStat viewCfg pl = imageFromFileSupplier "png" $ \file -> do
                     (Dia.mkSizeSpec $ Just (fromIntegral $ viewCfg^.xResV)
                                Dia.^& Just (fromIntegral $ viewCfg^.yResV))
                     prerendered
+
+haarPlot :: Haar D¹ ℝ -> DynamicPlottable
+haarPlot = lineSegPlot . map (first $ \(D¹ x) -> x) . haarFunctionGraph
 
 opac :: Double -> DynamicPlottable -> DynamicPlottable
 opac = tweakPrerendered . Dia.opacity
