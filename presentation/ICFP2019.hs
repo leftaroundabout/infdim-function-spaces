@@ -109,7 +109,9 @@ main = do
    let plotPartialSums tgt sqce
            = plotServ [ continFnPlot tgt
                       , startFrozen $ plotLatest
-                         [ plotDelay 0.2 $ haarPlot h | h <- psums ] ]
+                         [ plotDelay 0.05 $ haarPlot (h^+^μ*^u)<>haarPlot (μ*^u)
+                         | (h,u,velo) <- zip3 psums sqce (tanh<$>[0.05,0.07..])
+                         , μ <- [0,velo..1-velo/2] ] ]
         where psums = scanl (^+^) zeroV sqce
 
    "Why would vector=array make sense?"
