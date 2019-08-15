@@ -232,6 +232,7 @@ main = do
              | w > domr-doml  = plotMultiple
                 [ continFnPlot (embedD¹ (doml,domr) $ evalHaarFunction fvw)
                 , continFnPlot (embedD¹ (doml,domr) f₀)
+                , mempty
                 , continFnPlot (embedD¹ (doml,domm)
                                       $ evalHaarFunction fl)
                 , continFnPlot (embedD¹ (domm,domr)
@@ -244,40 +245,93 @@ main = do
        in plotServ
           [ plot (\(ViewXCenter xc) (ViewWidth w) -> goProg xc w (-1) 1 fHaar)
           , mempty  & legendName "𝑓"
-          , mempty  & legendName "𝑦◞0"
+          , mempty  & legendName "𝑦₀"
+          , mempty
           , mempty  & legendName "𝑓l"
           , mempty  & legendName "𝑓r"
           , xAxisLabel "𝑥"
           , yAxisLabel "𝑓(𝑥)" ]
     ━━do
      [plaintext|
-          data PreIntg_D¹ y = PreIntg
-             { offset :: y
-             , lSubstructure :: PreIntg_D¹ y
-             , rSubstructure :: PreIntg_D¹ y
-             }
+      data PreIntg_D¹ y = PreIntg
+         { offset :: y
+         , lSubstructure :: PreIntg_D¹ y
+         , rSubstructure :: PreIntg_D¹ y
+         }
       |]│[plaintext|
-          evalPreIntg_D¹ :: AdditiveGroup y
-               => PreIntg_D¹ y -> D¹ -> y
-          evalPreIntg_D¹ (PreIntg y0 l r) x
-             = y0 + if x < 0
-                     then evalPreIntg_D¹ l (2*x+1)
-                     else evalPreIntg_D¹ r (2*x-1)
+      evalPreIntg_D¹ :: AdditiveGroup y
+           => PreIntg_D¹ y -> D¹ -> y
+      evalPreIntg_D¹ (PreIntg y0 l r) x
+         = y0 + if x < 0
+                 then evalPreIntg_D¹ l (2*x+1)
+                 else evalPreIntg_D¹ r (2*x-1)
       |]
      [plaintext|
-          data PreIntg_D¹ y
-                = PreIntgZero
-                | PreIntg !y !(PreIntg_D¹ y)
-                             !(PreIntg_D¹ y)
+      data PreIntg_D¹ y
+            = PreIntgZero
+            | PreIntg !y !(PreIntg_D¹ y)
+                         !(PreIntg_D¹ y)
       |]│[plaintext|
-          evalPreIntg_D¹ :: AdditiveGroup y
-               => PreIntg_D¹ y -> D¹ -> y
-          evalPreIntg_D¹ PreIntgZero _ = 0
-          evalPreIntg_D¹ (PreIntg y0 l r) x
-             = y0 + if x < 0
-                     then evalPreIntg_D¹ l (2*x+1)
-                     else evalPreIntg_D¹ r (2*x-1)
+      evalPreIntg_D¹ :: AdditiveGroup y
+           => PreIntg_D¹ y -> D¹ -> y
+      evalPreIntg_D¹ PreIntgZero _ = 0
+      evalPreIntg_D¹ (PreIntg y0 l r) x
+         = y0 + if x < 0
+                 then evalPreIntg_D¹ l (2*x+1)
+                 else evalPreIntg_D¹ r (2*x-1)
       |]
+      
+   "De-biasing: Haar wavelets"
+    ======
+    do
+     let δ𝑦lr = δ⁀𝑦◞"lr"
+     maths
+      [[ 𝑓◞(δ𝑦lr، 𝑓◞"l"، 𝑓◞"r")°𝑥
+         ⩵ cases
+            [ (𝑓◞"l"°𝑥◞"l" - δ𝑦lr, "if "<>𝑥 LaTeX.$<>" on left")
+            , (𝑓◞"r"°𝑥◞"r" + δ𝑦lr, "if "<>𝑥 LaTeX.$<>" on right") ]
+       ]]""
+      & later`id`
+       let f (D¹ x) = fExample x + 3
+           fHaar = homsampleHaarFunction (TwoToThe 10) f
+           goProg xc w doml domr fvw
+             | w > domr-doml  = plotMultiple
+                [ continFnPlot (embedD¹ (doml,domr) $ evalHaarFunction fvw)
+                , continFnPlot (embedD¹ (doml,domr) f₀)
+                , continFnPlot (embedD¹ (doml,domr) $ \(D¹ x)
+                               -> if x<0 then -δlr else δlr)
+                , continFnPlot (embedD¹ (doml,domm) $ (+δlr)
+                                   . evalHaarFunction fl)
+                , continFnPlot (embedD¹ (domm,domr) $ subtract δlr
+                                   . evalHaarFunction fr) ]
+             | xc < domm      = goProg xc w doml domm $ fl ^+^ cδlr
+             | otherwise      = goProg xc w domm domr $ fr ^-^ cδlr
+            where (y₀, (fl, fr)) = multiscaleDecompose fvw
+                  f₀ _ = y₀
+                  δlr = (fst (multiscaleDecompose fr) - fst (multiscaleDecompose fl))/2
+                  domm = (doml+domr)/2
+                  cδlr = homsampleHaarFunction (TwoToThe 1) (const δlr :: D¹->ℝ)
+       in plotServ
+          [ plot (\(ViewXCenter xc) (ViewWidth w) -> goProg xc w (-1) 1 fHaar)
+          , mempty  & legendName "𝑓"
+          , mempty  & legendName "𝑦₀"
+          , mempty  & legendName "δ𝑦lr"
+          , mempty  & legendName "𝑓l"
+          , mempty  & legendName "𝑓r"
+          , xAxisLabel "𝑥"
+          , yAxisLabel "𝑓(𝑥)" ]
+    ━━do
+     [plaintext|
+     data HaarUnbiased y
+          = HaarZero
+          | HaarUnbiased !y !(HaarUnbiased y)
+                            !(HaarUnbiased y)
+      |]│[plaintext|
+     data Haar_D¹ y = Haar_D¹
+         { global_offset :: !y
+         , variation :: HaarUnbiased y }
+      |]
+     
 
 
 style = [cassius|
