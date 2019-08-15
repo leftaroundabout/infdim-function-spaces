@@ -256,12 +256,27 @@ main = do
              , lSubstructure :: PreIntg_D¹ y
              , rSubstructure :: PreIntg_D¹ y
              }
+      |]│[plaintext|
+          evalPreIntg_D¹ :: AdditiveGroup y
+               => PreIntg_D¹ y -> D¹ -> y
+          evalPreIntg_D¹ (PreIntg y0 l r) x
+             = y0 + if x < 0
+                     then evalPreIntg_D¹ l (2*x+1)
+                     else evalPreIntg_D¹ r (2*x-1)
       |]
      [plaintext|
           data PreIntg_D¹ y
                 = PreIntgZero
                 | PreIntg !y !(PreIntg_D¹ y)
                              !(PreIntg_D¹ y)
+      |]│[plaintext|
+          evalPreIntg_D¹ :: AdditiveGroup y
+               => PreIntg_D¹ y -> D¹ -> y
+          evalPreIntg_D¹ PreIntgZero _ = 0
+          evalPreIntg_D¹ (PreIntg y0 l r) x
+             = y0 + if x < 0
+                     then evalPreIntg_D¹ l (2*x+1)
+                     else evalPreIntg_D¹ r (2*x-1)
       |]
 
 
