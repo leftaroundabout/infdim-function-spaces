@@ -17,6 +17,7 @@ import Presentation.Yeamer
 import Presentation.Yeamer.Maths
 import qualified Math.LaTeX.Prelude as LaTeX
 import Math.LaTeX.StringLiterals
+import Text.LaTeX.Base.Math (operatorname)
 import qualified Text.Blaze.Html as Blaze
 import Text.Hamlet
 import Text.Cassius
@@ -337,7 +338,7 @@ main = do
     ======
     do
      "The offset-value requires an integral."
-      <>" This needs in practice to be calculated numerically."
+      ──" This must in practice be calculated numerically."
       <>maths [[
            (𝐷◝1)◞∫ d 𝑥 (𝑓°𝑥) ≈ 𝑖◞∑ (𝑤◞𝑖 * 𝑓°(𝑥◞𝑖)) ]]""
       ━━"For recursive subdivisions:"
@@ -361,13 +362,60 @@ homsampleHaar_D¹ (TwoToThe i) f
                             sfl sfr
            |]
 
+     
+   "Distributions" 
+    ======do
+     "Dual vector / functional: linear function that yields a scalar."
+      <>maths [[ 𝑉◝"*" ⩵ (𝑉-→ℝ)◞"linear" ]]""
+      ──"The dual space is again a vector space:"
+       <>maths [[ (μ*𝑢 + 𝑤)°φ ⩵ μ*(𝑢°φ) + 𝑤°φ ]]"."
+      ──"Direct addition of functions becomes quickly inefficient though."
+     
+   "Riesz representation theorem" 
+    ======do
+     "In Hilbert space: "<>(𝑉≃𝑉◝"*")$<>","
+       <>maths ((\φ -> [[ (φ ↦ (ψ ↦ (φ<.>ψ))) ]
+                       ,[ 𝑢 ↦ "..."*operatorname"argmax"◞(magnitudeSq φ⩵1)°(𝑢°φ) ]])φ)""
+      ──"Suggests: use function-space vectors to represent functionals/distributions."
+      ──"However: some functionals in "<>((𝐷◝1-→ℝ)◝"*")$<>" are not "
+            <>(𝐷◝1-→ℝ)$<>" functions!"
+       <>maths [[ δ ⸪ (𝐷◝1-→ℝ)-→ℝ ]
+               ,[ δ°φ ⸪= φ°0 ]]""
+     
+   "Lazy-tree dual vectors" 
+    ======do
+     [plaintext|
+data CoHaarUnbiased y
+     = CoHaarZero
+     | CoHaarUnbiased !y (HaarUnbiased y)
+                         (HaarUnbiased y)
+data CoHaar_D¹ y
+     = CoHaar_D¹ !y (CoHaarUnbiased y)
+      |]│[plaintext|
+(·) :: CoHaar_D¹ ℝ -> Haar_D¹ ℝ -> ℝ
+CoHaar_D¹ q₀ qFluct · Haar_D¹ f₀ fFluct
+    = q₀ * f₀ + qFluct ⸟ fFluct
+ where CoHaarZero ⸟ _ = 0
+       _ ⸟ HaarZero = 0
+       CoHaarUnbiased δq ql qr
+            ⸟ HaarUnbiased δf fl fr
+          = δq * δf + ql⸟fl + qr⸟fr
+      |]
+
+   "Dirac distribution" 
+    ======do
+     [plaintext|
+boxDistribution :: (D¹, D¹)  -- ^ Target interval
+                -> ℝ         -- ^ Total weight
+                -> CoHaar_D¹ ℝ
+      |]
 
 style = [cassius|
    body
      height: 96vh
      color: #ffe
      background: linear-gradient(#263, #516)
-     font-size: 4.4vmin
+     font-size: 4.3vmin
      font-family: "Linux libertine", "Times New Roman"
    .main-title
      font-size: 180%
@@ -424,7 +472,7 @@ style = [cassius|
      text-decoration: line-through
    pre
      text-align: left
-     font-size: 86%
+     font-size: 82%
      background-color: #204
      font-family: "Ubuntu Mono", "Droid Sans mono", "Courier New"
    .laweqn pre

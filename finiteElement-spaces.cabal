@@ -78,6 +78,7 @@ executable ICFP2019-FHPNC-LazyHaar
                      , numbered-semigroups
                      , diagrams-lib
                      , diagrams-cairo
+                     , HaTeX
                      , TeX-my-math
                      , lens
                      , pragmatic-show
