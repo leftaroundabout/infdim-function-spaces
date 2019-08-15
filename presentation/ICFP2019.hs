@@ -106,10 +106,10 @@ main = do
            , "Functions or distributions" ]
        ]
 
-   let plotPartialSums tgt sqce
+   let plotPartialSums fPl tgt sqce
            = plotServ [ continFnPlot tgt
                       , startFrozen $ plotLatest
-                         [ plotDelay 0.05 $ haarPlot (h^+^μ*^u)<>haarPlot (μ*^u)
+                         [ plotDelay 0.05 $ fPl (h^+^μ*^u)<>fPl (μ*^u)
                          | (h,u,velo) <- zip3 psums sqce (tanh<$>[0.05,0.07..])
                          , μ <- [0,velo..1-velo/2] ] ]
         where psums = scanl (^+^) zeroV sqce
@@ -160,7 +160,7 @@ main = do
                    , tf <- [cos, sin] ]
                      :: [Haar D¹ ℝ]
               fExample_H_coefs = (<.>fExample_H) <$> basis
-          in plotPartialSums fExample $ zipWith (*^) fExample_H_coefs basis )
+          in plotPartialSums haarPlot fExample $ zipWith (*^) fExample_H_coefs basis )
       , ("In both cases, an orthonormal basis can reconstruct the coefficients."
         , id)
       ]
@@ -172,7 +172,7 @@ main = do
       [ ("No convergence, most points in domain are never hit."
         , let splPoints = [D¹ $ (sin x^3 + sin x)/2 | x <- [0..]]
               pseudoPointReso = 16
-          in plotPartialSums fExample
+          in plotPartialSums haarPlot fExample
                [ getLinearFunction (riesz_resolimited $ TwoToThe pseudoPointReso)
                    $ dirac p ^* (fExample x / 2^(pseudoPointReso-1))
                | p@(D¹ x) <- splPoints ]
