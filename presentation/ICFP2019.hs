@@ -111,9 +111,18 @@ main = do
            = plotServ [ continFnPlot tgt
                       , startFrozen $ plotLatest
                          [ plotDelay 0.05 $ fPl (h^+^μ*^u)<>fPl (μ*^u)
-                         | (h,u,velo) <- zip3 psums sqce (tanh<$>[0.05,0.07..])
+                                 <> mconcat [ tweakPrerendered (Dia.opacity (exp $ -t/2))
+                                               $ fPl uO
+                                            | (t,uO) <- zip [1..] hist ]
+                         | ((h,u),(velo,hist))
+                             <- zip (zip psums sqce)
+                                    (zip (tanh<$>[0.05,0.07..]) hists)
                          , μ <- [0,velo..1-velo/2] ] ]
         where psums = scanl (^+^) zeroV sqce
+              hDepth = 3
+              hists = map reverse
+                       $ take hDepth (inits sqce)
+                        ++ map (take hDepth) (tails sqce)
 
    let fExample x = (sin (2.7*x) + sin (7.9*x))^3 + tanh (cos $ 4*x)
        fExample_H = homsampleHaarFunction (TwoToThe 8) $ \(D¹ x) -> fExample x
