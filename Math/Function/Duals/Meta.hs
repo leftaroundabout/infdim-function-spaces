@@ -12,9 +12,15 @@
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE GADTs                  #-}
 {-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE Rank2Types             #-}
+{-# LANGUAGE UnicodeSyntax          #-}
+{-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE KindSignatures         #-}
 
 module Math.Function.Duals.Meta
        ( Dualness(..), Dual, DualityWitness(..), ValidDualness(..)
+       , usingAnyDualness
         ) where
 
 
@@ -29,8 +35,25 @@ type family Dual (dn :: Dualness) where
 data DualityWitness (dn :: Dualness) where
   DualityWitness :: (ValidDualness (Dual dn), Dual (Dual dn) ~ dn)
            => DualityWitness dn
+
+data DualnessSingletons (dn :: Dualness) where
+  FunctionnessWitness :: DualnessSingletons FunctionSpace
+  DistributionnessWitness :: DualnessSingletons DistributionSpace
+
 class ValidDualness (dn :: Dualness) where
   dualityWitness :: DualityWitness dn
-instance ValidDualness FunctionSpace where dualityWitness = DualityWitness
-instance ValidDualness DistributionSpace where dualityWitness = DualityWitness
+  decideDualness :: DualnessSingletons dn
+instance ValidDualness FunctionSpace where
+  dualityWitness = DualityWitness
+  decideDualness = FunctionnessWitness
+instance ValidDualness DistributionSpace where
+  dualityWitness = DualityWitness
+  decideDualness = DistributionnessWitness
 
+usingAnyDualness :: ∀ rc dn . ValidDualness dn
+          => (rc 'FunctionSpace)
+          -> (rc 'DistributionSpace)
+          -> rc dn
+usingAnyDualness fnCase diCase = case decideDualness @dn of
+     FunctionnessWitness -> fnCase
+     DistributionnessWitness -> diCase

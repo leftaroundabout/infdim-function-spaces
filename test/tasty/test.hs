@@ -17,13 +17,17 @@ import qualified Test.QuickCheck as QC
 import Math.Function.FiniteElement.PWConst
 import Math.Function.FiniteElement.PWLinear
 import Data.VectorSpace
+import Data.VectorSpace.Free
 import Data.Manifold.Types
 import Data.Semigroup
 import Math.LinearMap.Category
 
+import GHC.Exts (Constraint)
+
+
 main :: IO ()
 main = defaultMain $ testGroup "Tests"
- [ testGroup "Haar sampling on real line"
+ [ testGroup "Haar sampling on real interval"
   [ testProperty "Identity function" . retrieveSampledFn @'Haar
          $ \(D¹ x) -> x
   , testProperty "Quadratic function" . retrieveSampledFn @'Haar
@@ -36,6 +40,26 @@ main = defaultMain $ testGroup "Tests"
                    [f₀,f₁] = f<$>[cfs₀,cfs₁]
                in homsampleHaarFunction res f₀ ^+^ homsampleHaarFunction res f₁
                     ≃ (homsampleHaarFunction res (f₀^+^f₁) :: Haar D¹ ℝ)
+  , testProperty "Multiplicativity of sampled form"
+         $ \cfs₀ cfs₁ res
+            -> let f (a,b,c) (D¹ x) = a*x^2 + b*x + c
+                   [f₀,f₁] = f<$>[cfs₀,cfs₁]
+               in homsampleHaarFunction res f₀ ^*^ homsampleHaarFunction res f₁
+                    ≃ (homsampleHaarFunction res (\p->f₀ p*f₁ p) :: Haar D¹ ℝ)
+  , testProperty "Point-wise function application"
+         $ \(a,b,c) res
+            -> let f (D¹ x) = a*x^2 + b*x + c
+                   g = asinh
+               in vmap g (homsampleHaarFunction res f)
+                    ≃ homsampleHaarFunction res (g . f)
+  ]
+ , testGroup "Haar sampling on real line"
+  [ testProperty "Identity function" . retrieveSampledFn @'Haar
+         $ \x -> x
+  , testProperty "Sine function" . retrieveSampledFn @'Haar
+         $ \x -> sin x
+  , testProperty "tanh of 4th-order polynomial" . retrieveSampledFn @'Haar
+         $ \x -> tanh $ x^4/32 + x^3/8 - x^2/5 - x - 0.3
   ]
  , testGroup "Vector space laws"
   [ testProperty "Commutativity of addition"
@@ -64,15 +88,34 @@ main = defaultMain $ testGroup "Tests"
              -> let f :: Haar D¹ ℝ
                     f = homsampleHaarFunction res $ \(D¹ x) -> a*x^2 + b*x + c
                 in (riesz_resolimited res . coRiesz $ f) ≃ f
+  , testProperty "Multiplicativity of dual vectors: identity and polynomials"
+         $ \cfs₀ cfs₁ res
+            -> let f (a, b, c) (D¹ x) = a*x^2 + b*x + c
+                   [f₀,f₁] = homsampleHaarFunction res . f<$>[cfs₀,cfs₁] :: [Haar D¹ ℝ]
+                   ι = boxDistributionD¹ (D¹ $ -1, D¹ 1) 1 :: DualVector (Haar D¹ ℝ)
+               in (dualPointwiseMul f₀ $ ι) <.>^ f₁ ≃ ι <.>^ (f₀^*^f₁)
+  , testProperty "Multiplicativity of dual vectors: arbitrary"
+         $ \u ψ φ -> (dualPointwiseMul ψ $ u) <.>^ φ ≃ u <.>^ (ψ^*^φ)
+  ]
+ , testGroup "Tensors"
+  [ testProperty "Bilinearity of tensor product"
+      $ \(f,g :: Haar D¹ ℝ) (h,i :: Haar D¹ ℝ)
+          -> (f^+^g)⊗(h^+^i) ≃ f⊗h ^+^ f⊗i ^+^ g⊗h ^+^ g⊗i
+  , testProperty "Transpose tensor product"
+      $ \(f :: Haar D¹ ℝ) (g :: Haar D¹ ℝ)
+            -> (transposeTensor $ f⊗g) ≃ g⊗f
+  , testProperty "Involution of transposition"
+      $ \(t :: Haar D¹ ℝ ⊗ Haar D¹ ℝ)
+            -> (transposeTensor $ transposeTensor $ t) ≃ t
   ]
  , testGroup "Linear maps"
   [ testProperty "Identity map"
       $ \f -> ((id :: Haar D¹ ℝ+>Haar D¹ ℝ) $ f) ≃ f
   ]
  , testGroup "Distributions"
-  [ testProperty "Dirac evaluation of given Haar function"
-      $ \f p -> dirac p<.>^f ≃ evalHaarFunction f p
-  , testProperty "Dirac evaluation of sampled polynomial"
+  [ testProperty "Dirac evaluation of given Haar function, D¹"
+      $ \f (p::D¹) -> dirac p<.>^f ≃ evalHaarFunction f p
+  , testProperty "Dirac evaluation of sampled polynomial (on D¹)"
       $ \a b c d res p
           -> let f (D¹ x) = a*x^3/3 + b*x^2/2 + c*x + d
                  exact = f p
@@ -80,6 +123,16 @@ main = defaultMain $ testGroup "Tests"
              in counterexample ("Exact: "<>show exact<>", Dirac: "<>show diracSampled)
                  $ magnitude (diracSampled - exact)
                     <= 5*maximum (abs<$>[a,b,c,d])/fromIntegral (getPowerOfTwo res)
+  , testProperty "Dirac evaluation of trig function (on ℝ)"
+      $ \a b c res p'
+          -> let p = asinh p' -- avoid huge values
+                 f :: ℝ -> ℝ
+                 f x = a*cos x + b*sin x + c
+                 exact = f p
+                 diracSampled = dirac p<.>^homsampleHaarFunction res f
+             in counterexample ("Exact: "<>show exact<>", Dirac: "<>show diracSampled)
+                 $ magnitude (diracSampled - exact)
+                    <= 5*maximum (abs<$>[a,b,c])/fromIntegral (getPowerOfTwo res)
   ]
  , testGroup "Calculus"
   [ testProperty "Integration of polynomial"
@@ -149,24 +202,29 @@ data FunctionSamplingScheme
 
 class RetrievableFunctionSampling (f :: FunctionSamplingScheme) where
   type FunctionSampling f x y :: *
-  homsampleFunction :: PowerOfTwo -> (D¹ -> ℝ) -> FunctionSampling f D¹ ℝ
-  evalFunction :: FunctionSampling f D¹ ℝ -> D¹ -> ℝ
+  type PermittedDomain f x :: Constraint
+  homsampleFunction :: PermittedDomain f x
+             => PowerOfTwo -> (x -> ℝ) -> FunctionSampling f x ℝ
+  evalFunction :: PermittedDomain f x
+             => FunctionSampling f x ℝ -> x -> ℝ
   allowedRelDiscrepancy :: PowerOfTwo -> ℝ
 
 instance RetrievableFunctionSampling 'Haar where
   type FunctionSampling 'Haar x y = Haar x y
+  type PermittedDomain 'Haar x = HaarSamplingDomain x
   homsampleFunction = homsampleHaarFunction
   evalFunction = evalHaarFunction
-  allowedRelDiscrepancy res = 3/fromIntegral (getPowerOfTwo res)
+  allowedRelDiscrepancy res = 5/fromIntegral (getPowerOfTwo res)
 
 instance RetrievableFunctionSampling 'CHaar where
   type FunctionSampling 'CHaar x y = CHaar x y
+  type PermittedDomain 'CHaar x = CHaarSamplingDomain x
   homsampleFunction = homsampleCHaarFunction
   evalFunction = evalCHaarFunction
   allowedRelDiscrepancy res = 2/fromIntegral (getPowerOfTwo res)^2
 
-retrieveSampledFn :: ∀ f . RetrievableFunctionSampling f
-               => (D¹ -> ℝ) -> PowerOfTwo -> D¹ -> QC.Property
+retrieveSampledFn :: ∀ f x . (RetrievableFunctionSampling f, PermittedDomain f x)
+               => (x -> ℝ) -> PowerOfTwo -> x -> QC.Property
 retrieveSampledFn f res p = counterexample
    ("Exact: "<>show exact<>", sampled: "<>show sampled<>", discrepancy: "<>show discrepancy)
     $ discrepancy <= allowedRelDiscrepancy @f res

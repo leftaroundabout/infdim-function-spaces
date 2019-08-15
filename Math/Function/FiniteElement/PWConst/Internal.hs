@@ -25,6 +25,7 @@
 {-# LANGUAGE TupleSections          #-}
 {-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE CPP                    #-}
 
 module Math.Function.FiniteElement.PWConst.Internal where
 
@@ -64,6 +65,7 @@ class HaarSamplingDomain x where
             => Haar x y -> x -> y
   homsampleHaarFunction :: (VAffineSpace y, Diff y ~ y, Fractional (Scalar y))
             => PowerOfTwo -> (x -> y) -> Haar x y
+  dirac :: x -> DualVector (Haar x ℝ)
 
 -- | Piecewise-constant functions on the unit interval whose integral is zero.
 data Haar0BiasTree (dn :: Dualness) (y :: *)
@@ -148,6 +150,7 @@ evalHaar_D¹ (Haar_D¹ offs varis) x = offs .+^ evalVari varis x
 
 homsampleHaar_D¹ :: (VAffineSpace y, Diff y ~ y, Fractional (Scalar y))
             => PowerOfTwo -> (D¹ -> y) -> Haar D¹ y
+homsampleHaar_D¹ (TwoToThe i) _ | i<0  = error "Cannot sample function at resolution <0."
 homsampleHaar_D¹ (TwoToThe 0) f = Haar_D¹ (f $ D¹ 0) HaarZero
 homsampleHaar_D¹ (TwoToThe i) f
    = case homsampleHaar_D¹ (TwoToThe $ i-1) <$> [ f . view (re leftHalf)
@@ -155,23 +158,23 @@ homsampleHaar_D¹ (TwoToThe i) f
        [Haar_D¹ y₀l sfl, Haar_D¹ y₀r sfr]
         -> Haar_D¹ ((y₀l^+^y₀r)^/2) $ HaarUnbiased ((y₀r^-^y₀l)^/2) sfl sfr
 
-boxDistribution :: (VectorSpace y, Scalar y ~ ℝ)
+boxDistributionD¹ :: (VectorSpace y, Scalar y ~ ℝ)
                      => (D¹, D¹) -> y -> Haar_D¹ DistributionSpace y
-boxDistribution (D¹ l, D¹ r) y
-  | l > r      = boxDistribution (D¹ r, D¹ l) y
-boxDistribution (D¹ (-1), D¹ 1) y
+boxDistributionD¹ (D¹ l, D¹ r) y
+  | l > r      = boxDistributionD¹ (D¹ r, D¹ l) y
+boxDistributionD¹ (D¹ (-1), D¹ 1) y
                = Haar_D¹ y zeroV
-boxDistribution (D¹ l, D¹ r) y
+boxDistributionD¹ (D¹ l, D¹ r) y
   | l<0, r>0   = Haar_D¹ y $ HaarUnbiased (wr^-^wl)    lstru rstru
   | l<0        = Haar_D¹ y $ HaarUnbiased (negateV wl) lstru zeroV
   | otherwise  = Haar_D¹ y $ HaarUnbiased wr           zeroV rstru
- where Haar_D¹ wl lstru = boxDistribution (D¹ $ l*2 + 1, D¹ $ min 0 r*2 + 1)
+ where Haar_D¹ wl lstru = boxDistributionD¹ (D¹ $ l*2 + 1, D¹ $ min 0 r*2 + 1)
                             $ y^*if r>0 then l/(l-r) else 1
-       Haar_D¹ wr rstru = boxDistribution (D¹ $ max 0 l*2 - 1, D¹ $ r*2 - 1)
+       Haar_D¹ wr rstru = boxDistributionD¹ (D¹ $ max 0 l*2 - 1, D¹ $ r*2 - 1)
                             $ y^*if l<0 then r/(r-l) else 1
 
-dirac :: D¹ -> DualVector (Haar D¹ ℝ)
-dirac x₀ = boxDistribution (x₀,x₀) 1
+diracD¹ :: D¹ -> DualVector (Haar D¹ ℝ)
+diracD¹ x₀ = boxDistributionD¹ (x₀,x₀) 1
 
 
 -- | Given a function \(f\) and an interval \((\ell,r)\), yield the integral
@@ -191,6 +194,7 @@ integrateHaarFunction f = \(l,r) -> antideriv f r ^+^ c l
 instance HaarSamplingDomain D¹ where
   evalHaarFunction = evalHaar_D¹
   homsampleHaarFunction = homsampleHaar_D¹
+  dirac = diracD¹
 
 
 instance QC.Arbitrary PowerOfTwo where
@@ -301,7 +305,7 @@ instance ∀ y dn . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Sca
                                (Haar0BiasTree dn (Tensor ℝ (Diff y) b))
          cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
             Coercion -> Coercion
-  zeroTensor = zeroV
+  zeroTensor = Tensor zeroV
   toFlatTensor = LinearFunction Tensor CC.. CC.fmap toFlatTensor
   fromFlatTensor = CC.fmap fromFlatTensor CC.. LinearFunction getTensorProduct
   addTensors (Tensor f) (Tensor g) = Tensor $ f^+^g
@@ -310,7 +314,8 @@ instance ∀ y dn . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, Sca
   tensorProduct = bilinearFunction
          $ \f w -> Tensor $ CC.fmap (LinearFunction $ \y -> y⊗w) CC.$ f
   transposeTensor = LinearFunction $
-       \(Tensor (HaarUnbiased δyw δsl δsr))
+    \case (Tensor HaarZero) -> zeroV
+          (Tensor (HaarUnbiased δyw δsl δsr))
            -> (CC.fmap (LinearFunction $ \δy -> HaarUnbiased δy zeroV zeroV)
                  CC.. transposeTensor CC.$ δyw)
              ^+^ (CC.fmap (LinearFunction $ \δysl -> HaarUnbiased zeroV δysl zeroV)
@@ -339,7 +344,7 @@ instance ∀ y dn
                                (Haar_D¹ dn (Tensor ℝ (Diff y) b))
          cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
             Coercion -> Coercion
-  zeroTensor = zeroV
+  zeroTensor = Tensor zeroV
   toFlatTensor = LinearFunction Tensor CC.. CC.fmap toFlatTensor
   fromFlatTensor = CC.fmap fromFlatTensor CC.. LinearFunction getTensorProduct
   addTensors (Tensor f) (Tensor g) = Tensor $ f^+^g
@@ -520,8 +525,14 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
               ^+^ ( (getLinearFunction applyTensorLinMap $ LinearMap δa)
                               CC.$ (Tensor δf :: Haar0BiasTree dn y⊗u) )
 
-instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
-               => QC.Arbitrary (Haar_D¹ FunctionSpace y) where
+instance (QC.Arbitrary y) => QC.Arbitrary (Haar_D¹ 'DistributionSpace y) where
+  arbitrary = do
+     Haar_D¹ <$> QC.arbitrary <*> genΔs
+   where genΔs = QC.oneof
+           [ pure HaarZero
+           , HaarUnbiased <$> QC.arbitrary <*> genΔs <*> genΔs ]
+
+instance (QC.Arbitrary y) => QC.Arbitrary (Haar_D¹ FunctionSpace y) where
   arbitrary = do
      n <- QC.getSize
           -- Magic numbers for the termination-probability: chosen empirically
@@ -532,8 +543,32 @@ instance (QC.Arbitrary y, QC.Arbitrary (Diff y))
            [ (1, pure HaarZero)
            , (p'¹Terminate, HaarUnbiased <$> QC.arbitrary <*> genΔs pNext <*> genΔs pNext) ]
           where pNext = floor $ fromIntegral p'¹Terminate / 1.1
-           
 
+instance ( QC.Arbitrary (Tensor s x y), Scalar x ~ s )
+               => QC.Arbitrary (Tensor s (Haar_D¹ FunctionSpace x) y) where
+  arbitrary = Tensor <$> QC.arbitrary
+
+#if !MIN_VERSION_linearmap_category(0,3,6)
+instance (InnerSpace v, Scalar v ~ ℝ, TensorSpace v)
+              => InnerSpace (Tensor ℝ ℝ v) where
+  Tensor t <.> Tensor u = t <.> u
+instance (Show v) => Show (Tensor ℝ ℝ v) where
+  showsPrec p (Tensor t) = showParen (p>9) $ ("Tensor "++) . showsPrec 10 t
+instance (QC.Arbitrary v, Scalar v ~ ℝ) => QC.Arbitrary (Tensor ℝ ℝ v) where
+  arbitrary = Tensor <$> QC.arbitrary
+  shrink (Tensor t) = Tensor <$> QC.shrink t
+#endif
+           
+instance ( TensorSpace x, Scalar x ~ ℝ, AffineSpace x, Diff x ~ x, Needle x ~ x
+         , TensorSpace y, Scalar y ~ ℝ, AffineSpace y, Diff y ~ y, Needle y ~ y
+         , InnerSpace (Tensor ℝ x y) )
+             => InnerSpace (Tensor ℝ (Haar_D¹ FunctionSpace x) y) where
+  Tensor t <.> Tensor u = t <.> u
+
+instance (Show y, Show (Diff y), Scalar y ~ ℝ)
+             => Show (Tensor ℝ (Haar_D¹ dn ℝ) y) where
+  showsPrec p (Tensor t) = showParen (p>9) $ ("Tensor "++) . showsPrec 10 t
+           
 multiscaleDecompose :: VAffineSpace y => Haar D¹ y -> (y, (Haar D¹ y, Haar D¹ y))
 multiscaleDecompose (Haar_D¹ y₀ HaarZero)
          = (y₀, zeroV)

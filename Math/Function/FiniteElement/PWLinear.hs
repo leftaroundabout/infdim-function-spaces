@@ -166,7 +166,7 @@ instance ∀ y dn
                                (HaarI_D¹ dn (Tensor ℝ (Diff y) b))
          cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
             Coercion -> Coercion
-  zeroTensor = zeroV
+  zeroTensor = Tensor zeroV
   toFlatTensor = LinearFunction Tensor CC.. CC.fmap toFlatTensor
   fromFlatTensor = CC.fmap fromFlatTensor CC.. LinearFunction getTensorProduct
   addTensors (Tensor f) (Tensor g) = Tensor $ f^+^g
@@ -280,7 +280,7 @@ class CHaarSamplingDomain x where
             => PowerOfTwo -> (x -> y) -> CHaar x y
 
 
-data Contihaar0BiasTree (dn :: Dualness) (y :: *)
+data Contihaar0BiasTree (y :: *)
   = CHaarZero
   | CHaarUnbiased
      { chaarUnbiasedIntgOffsAmpl :: !y
@@ -288,98 +288,154 @@ data Contihaar0BiasTree (dn :: Dualness) (y :: *)
      , chaarMidpointCctn :: !y
          -- ^ Function value at the middle of the domain, measured from the
          --   triangular integral model.
-     , haarUnbiasedLHFFluct :: (Contihaar0BiasTree dn y)
+     , haarUnbiasedLHFFluct :: (Contihaar0BiasTree y)
          -- ^ Fluctuations in left half of the function domain, \([-1\ldots 0[\)
-     , haarUnbiasedRHFFluct :: (Contihaar0BiasTree dn y)
+     , haarUnbiasedRHFFluct :: (Contihaar0BiasTree y)
          -- ^ Fluctuations in right half, i.e. \([0\ldots 1]\).
      }
  deriving (Show)
 
+type family CHaar_D¹_ResoRefinement (dn :: Dualness) (y :: *) where
+  CHaar_D¹_ResoRefinement FunctionSpace y = Contihaar0BiasTree y
+  CHaar_D¹_ResoRefinement DistributionSpace y
+                = Maybe (CHaar_D¹ DistributionSpace y, CHaar_D¹ DistributionSpace y)
+
 data CHaar_D¹ dn y = CHaar_D¹
   { _chaar_D¹_fullIntegral :: !y
   , _chaar_D¹_boundaryConditionL, _chaar_D¹_boundaryConditionR :: !y
-  , _chaar_D¹_functionCourse :: Contihaar0BiasTree dn y }
- deriving (Show)
+  , _chaar_D¹_functionCourse :: CHaar_D¹_ResoRefinement dn y }
+deriving instance (Show y, Show (CHaar_D¹_ResoRefinement dn y))
+              => Show (CHaar_D¹ dn y)
 
+newtype CHaar_D¹_ResoRefinement' (dn :: Dualness) (y :: *)
+  = CHaar_D¹_ResoRefinement {getCHaar_D¹_ResoRefinement :: CHaar_D¹_ResoRefinement dn y}
 
 
 instance (VAffineSpace y, Fractional (Scalar y))
-            => Semimanifold (Contihaar0BiasTree dn y) where
-  type Needle (Contihaar0BiasTree dn y) = Contihaar0BiasTree dn y
-  type Interior (Contihaar0BiasTree dn y) = Contihaar0BiasTree dn y
+            => Semimanifold (Contihaar0BiasTree y) where
+  type Needle (Contihaar0BiasTree y) = Contihaar0BiasTree y
+  type Interior (Contihaar0BiasTree y) = Contihaar0BiasTree y
   toInterior = Just
   fromInterior = id
   translateP = Tagged (.+^)
-instance (VAffineSpace y, Fractional (Scalar y))
+
+
+newtype DualibleBinOp (f :: Dualness -> * -> *) (y :: *) (dn :: Dualness)
+    = DualibleBinOp { getDualibleBinOp :: f dn y -> f dn y -> f dn y }
+
+dualible_binOp :: ∀ f dn y . ValidDualness dn
+  => (f FunctionSpace y -> f FunctionSpace y -> f FunctionSpace y)
+  -> (f DistributionSpace y -> f DistributionSpace y -> f DistributionSpace y)
+  -> (f dn y -> f dn y -> f dn y)
+dualible_binOp ff fd
+   = getDualibleBinOp $ usingAnyDualness (DualibleBinOp ff) (DualibleBinOp fd)
+
+newtype DualibleNulOp (f :: Dualness -> * -> *) (y :: *) (dn :: Dualness)
+    = DualibleNulOp { getDualibleNulOp :: f dn y }
+
+dualible_nulOp :: ∀ f dn y . ValidDualness dn
+       => f FunctionSpace y -> f DistributionSpace y -> f dn y
+dualible_nulOp ff fd
+   = getDualibleNulOp $ usingAnyDualness (DualibleNulOp ff) (DualibleNulOp fd)
+
+
+instance ∀ dn y
+   . ( VAffineSpace y, Fractional (Scalar y), ValidDualness dn
+     , AdditiveGroup (CHaar_D¹ dn y) )
               => Semimanifold (CHaar_D¹ dn y) where
   type Needle (CHaar_D¹ dn y) = CHaar_D¹ dn y
   type Interior (CHaar_D¹ dn y) = CHaar_D¹ dn y
   toInterior = Just
   fromInterior = id
-  translateP = Tagged (.+^)
+  translateP = Tagged $ dualible_binOp (^+^) (^+^)
 
 instance (VAffineSpace y, Fractional (Scalar y))
-               => PseudoAffine (Contihaar0BiasTree dn y) where
+               => PseudoAffine (Contihaar0BiasTree y) where
   (.-~!) = (.-.)
-instance (VAffineSpace y, Fractional (Scalar y))
+instance ( VAffineSpace y, Fractional (Scalar y), ValidDualness dn
+         , AdditiveGroup (CHaar_D¹ dn y) )
                => PseudoAffine (CHaar_D¹ dn y) where
-  (.-~!) = (.-.)
+  (.-~!) = dualible_binOp (.-.) (.-.)
 
-instance (VAffineSpace y, Fractional (Scalar y))
-               => AffineSpace (Contihaar0BiasTree dn y) where
-  type Diff (Contihaar0BiasTree dn y) = Contihaar0BiasTree dn y
+instance ∀ y . (VAffineSpace y, Fractional (Scalar y))
+               => AffineSpace (Contihaar0BiasTree y) where
+  type Diff (Contihaar0BiasTree y) = Contihaar0BiasTree y
   f .+^ g = case CHaar_D¹ zeroV zeroV zeroV f .+^ CHaar_D¹ zeroV zeroV zeroV g of
+      (CHaar_D¹ _ _ _ r :: CHaar_D¹ FunctionSpace y) -> r
+  f .-. g = case CHaar_D¹ zeroV zeroV zeroV f
+                    .-. (CHaar_D¹ zeroV zeroV zeroV g :: CHaar_D¹ FunctionSpace y) of
       CHaar_D¹ _ _ _ r -> r
-  f .-. g = case CHaar_D¹ zeroV zeroV zeroV f .-. CHaar_D¹ zeroV zeroV zeroV g of
-      CHaar_D¹ _ _ _ r -> r
-instance (VAffineSpace y, Fractional (Scalar y)) => AffineSpace (CHaar_D¹ dn y) where
-  type Diff (CHaar_D¹ dn y) = CHaar_D¹ dn y
-  CHaar_D¹ i₀ l₀ r₀ CHaarZero .+^ CHaar_D¹ i₁ l₁ r₁ CHaarZero
-      = CHaar_D¹ (i₀.+^i₁) (l₀.+^l₁) (r₀.+^r₁) CHaarZero
+
+
+instance ∀ y
+    . (VAffineSpace y, Fractional (Scalar y))
+          => AdditiveGroup (CHaar_D¹ FunctionSpace y) where
+  CHaar_D¹ i₀ l₀ r₀ CHaarZero ^+^ CHaar_D¹ i₁ l₁ r₁ CHaarZero
+      = CHaar_D¹ (i₀^+^i₁) (l₀^+^l₁) (r₀^+^r₁) CHaarZero
   CHaar_D¹ i₀ l₀ r₀ (CHaarUnbiased δlr₀ yMid₀ δsl₀ δsr₀)
-      .+^ CHaar_D¹ i₁ l₁ r₁ (CHaarUnbiased δlr₁ yMid₁ δsl₁ δsr₁)
-    = case ( CHaar_D¹ (negateV δlr₀) l₀ yMid₀ δsl₀
-              .+^ CHaar_D¹ (negateV δlr₁) l₁ yMid₁ δsl₁
+      ^+^ CHaar_D¹ i₁ l₁ r₁ (CHaarUnbiased δlr₁ yMid₁ δsl₁ δsr₁)
+    = case [ CHaar_D¹ (negateV δlr₀) l₀ yMid₀ δsl₀
+              ^+^ CHaar_D¹ (negateV δlr₁) l₁ yMid₁ δsl₁
            , CHaar_D¹ δlr₀ yMid₀ r₀ δsr₀
-              .+^ CHaar_D¹ δlr₁ yMid₁ r₁ δsr₁ ) of
-       (CHaar_D¹ _ _ _ δsl, CHaar_D¹ _ _ _ δsr)
-        -> CHaar_D¹ (i₀.+^i₁) (l₀.+^l₁) (r₀.+^r₁)
-            $ CHaarUnbiased (δlr₀.+^δlr₁) (yMid₀.+^yMid₁) δsl δsr
-  CHaar_D¹ intg yl yr CHaarZero .+^ fr
+              ^+^ CHaar_D¹ δlr₁ yMid₁ r₁ δsr₁ ] of
+       [CHaar_D¹ _ _ _ δsl, CHaar_D¹ _ _ _ δsr :: CHaar_D¹ FunctionSpace y]
+        -> CHaar_D¹ (i₀^+^i₁) (l₀^+^l₁) (r₀^+^r₁)
+            $ CHaarUnbiased (δlr₀^+^δlr₁) (yMid₀.+^yMid₁) δsl δsr
+  CHaar_D¹ intg yl yr CHaarZero ^+^ fr
     = CHaar_D¹ intg yl yr (CHaarUnbiased ((yr^-^yl)^/2) ((yl^+^yr)^/(-2)) zeroV zeroV)
-        .+^ fr
-  f .+^ g = g .+^ f
-  f .-. g = f .+^ negateV g
+        ^+^ fr
+  f ^+^ g = g ^+^ f
+  f ^-^ g = f ^+^ negateV g
+  zeroV = CHaar_D¹ zeroV zeroV zeroV zeroV
+  negateV (CHaar_D¹ intg lBound rBound fluct)
+      = CHaar_D¹ (negateV intg) (negateV lBound) (negateV rBound) (negateV fluct)
+
+instance ∀ y
+    . (VAffineSpace y, Fractional (Scalar y))
+          => AdditiveGroup (CHaar_D¹ DistributionSpace y) where
+  CHaar_D¹ i₀ l₀ r₀ f₀ ^+^ CHaar_D¹ i₁ l₁ r₁ f₁
+      = CHaar_D¹ (i₀^+^i₁) (l₀^+^l₁) (r₀^+^r₁)
+           $ case (f₀, f₁) of
+              (Nothing, Nothing) -> Nothing
+              (Just f,  Nothing) -> Just f
+              (Nothing, Just f ) -> Just f
+              (Just f0, Just f1) -> Just $ f0^+^f1
+  f ^-^ g = f ^+^ negateV g
+  zeroV = CHaar_D¹ zeroV zeroV zeroV Nothing
+  negateV (CHaar_D¹ intg lBound rBound fluct)
+      = CHaar_D¹ (negateV intg) (negateV lBound) (negateV rBound) (negateV fluct)
 
 instance (VAffineSpace y, Fractional (Scalar y))
-            => AdditiveGroup (Contihaar0BiasTree dn y) where
+            => AdditiveGroup (Contihaar0BiasTree y) where
   (^+^) = (.+^)
   (^-^) = (.-.)
   zeroV = CHaarZero
   negateV CHaarZero = CHaarZero
   negateV (CHaarUnbiased δlr yMid δsl δsr)
       = CHaarUnbiased (negateV δlr) (negateV yMid) (negateV δsl) (negateV δsr)
-instance (VAffineSpace y, Fractional (Scalar y))
-               => AdditiveGroup (CHaar_D¹ dn y) where
-  (^+^) = (.+^)
-  (^-^) = (.-.)
-  zeroV = CHaar_D¹ zeroV zeroV zeroV zeroV
-  negateV (CHaar_D¹ intg lBound rBound fluct)
-      = CHaar_D¹ (negateV intg) (negateV lBound) (negateV rBound) (negateV fluct)
+instance ( VAffineSpace y, Fractional (Scalar y), ValidDualness dn
+         , AdditiveGroup (CHaar_D¹ dn y) )
+               => AffineSpace (CHaar_D¹ dn y) where
+  type Diff (CHaar_D¹ dn y) = CHaar_D¹ dn y
+  (.+^) = dualible_binOp (^+^) (^+^)
+  (.-.) = dualible_binOp (^-^) (^-^)
 
 instance (VectorSpace y, VAffineSpace y, Fractional (Scalar y))
-             => VectorSpace (Contihaar0BiasTree dn y) where
-  type Scalar (Contihaar0BiasTree dn y) = Scalar y
+             => VectorSpace (Contihaar0BiasTree y) where
+  type Scalar (Contihaar0BiasTree y) = Scalar y
   _ *^ CHaarZero = CHaarZero
   μ *^ CHaarUnbiased δlr yMid δsl δsr = CHaarUnbiased (μ*^δlr) (μ*^yMid) (μ*^δsl) (μ*^δsr)
-instance (VectorSpace y, VAffineSpace y, Fractional (Scalar y))
+instance ( VectorSpace y, VAffineSpace y, Fractional (Scalar y)
+         , AdditiveGroup (CHaar_D¹ dn y)
+         , VectorSpace (CHaar_D¹_ResoRefinement dn y)
+         , Scalar (CHaar_D¹_ResoRefinement dn y) ~ Scalar y )
              => VectorSpace (CHaar_D¹ dn y) where
   type Scalar (CHaar_D¹ dn y) = Scalar y
   μ *^ CHaar_D¹ intg yl yr f = CHaar_D¹ (μ*^intg) (μ*^yl) (μ*^yr) (μ*^f)
 
 instance (TensorSpace y, VAffineSpace y, Scalar y ~ ℝ)
-             => TensorSpace (Contihaar0BiasTree dn y) where
-  type TensorProduct (Contihaar0BiasTree dn y) w = Contihaar0BiasTree dn (y⊗w)
+             => TensorSpace (Contihaar0BiasTree y) where
+  type TensorProduct (Contihaar0BiasTree y) w = Contihaar0BiasTree (y⊗w)
   wellDefinedVector CHaarZero = Just CHaarZero
   wellDefinedVector (CHaarUnbiased δ m l r) = CHaarUnbiased <$> wellDefinedVector δ
                                           <*> wellDefinedVector m
@@ -396,9 +452,9 @@ instance (TensorSpace y, VAffineSpace y, Scalar y ~ ℝ)
   linearManifoldWitness = case linearManifoldWitness :: LinearManifoldWitness y of
      LinearManifoldWitness BoundarylessWitness -> LinearManifoldWitness BoundarylessWitness
   coerceFmapTensorProduct = cftlp
-   where cftlp :: ∀ a b p . p (Contihaar0BiasTree dn y) -> Coercion a b
-                   -> Coercion (Contihaar0BiasTree dn (Tensor ℝ (Diff y) a))
-                               (Contihaar0BiasTree dn (Tensor ℝ (Diff y) b))
+   where cftlp :: ∀ a b p . p (Contihaar0BiasTree y) -> Coercion a b
+                   -> Coercion (Contihaar0BiasTree (Tensor ℝ (Diff y) a))
+                               (Contihaar0BiasTree (Tensor ℝ (Diff y) b))
          cftlp _ c = case CC.fmap c :: Coercion (Tensor ℝ y a) (Tensor ℝ y b) of
             Coercion -> Coercion
   zeroTensor = zeroV
@@ -425,20 +481,20 @@ instance (TensorSpace y, VAffineSpace y, Scalar y ~ ℝ)
              -> Tensor $ CC.fzipWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
 
 
-instance CC.Functor (Contihaar0BiasTree dn) (LinearFunction ℝ) (LinearFunction ℝ) where
+instance CC.Functor Contihaar0BiasTree (LinearFunction ℝ) (LinearFunction ℝ) where
   fmap f = LinearFunction go
    where go CHaarZero = CHaarZero
          go (CHaarUnbiased δ m l r) = CHaarUnbiased (f CC.$ δ) (f CC.$ m) (go l) (go r)
 
-instance CC.Monoidal (Contihaar0BiasTree dn) (LinearFunction ℝ) (LinearFunction ℝ) where
+instance CC.Monoidal Contihaar0BiasTree (LinearFunction ℝ) (LinearFunction ℝ) where
   pureUnit = LinearFunction $ \Origin -> CHaarZero
   fzipWith = fzwLFH
    where fzwLFH :: ∀ a b c .
                    ( TensorSpace a, TensorSpace b, TensorSpace c
                    , Scalar a ~ ℝ, Scalar b ~ ℝ, Scalar c ~ ℝ )
               => ((a,b)-+>c)
-               -> ((Contihaar0BiasTree dn a, Contihaar0BiasTree dn b)
-                      -+> Contihaar0BiasTree dn c)
+               -> ((Contihaar0BiasTree a, Contihaar0BiasTree b)
+                      -+> Contihaar0BiasTree c)
          fzwLFH = case ( linearManifoldWitness @a
                        , linearManifoldWitness @b
                        , linearManifoldWitness @c ) of
@@ -467,6 +523,7 @@ evalCHaar_D¹ (CHaar_D¹ intg yl yr (CHaarUnbiased δilr ym fl fr)) (D¹ x)
 
 homsampleCHaar_D¹ :: (VAffineSpace y, Scalar y ~ ℝ)
      => PowerOfTwo -> (D¹ -> y) -> CHaar_D¹ FunctionSpace y
+homsampleCHaar_D¹ (TwoToThe n) _ | n<0  = error "Cannot sample function at resolution <0."
 homsampleCHaar_D¹ (TwoToThe 0) f
    = CHaar_D¹ ((fl^+^fm^*2^+^fr)^/2) fl fr CHaarZero
  where [fl,fm,fr] = f . D¹ <$> [-1, 0, 1]
@@ -497,8 +554,10 @@ instance QC.Arbitrary (CHaar_D¹ FunctionSpace ℝ) where
       = CHaar_D¹ (shry i) (shry l) (shry r) CHaarZero
           : (CHaar_D¹ (shry i) (shry l) (shry r)
               <$> (CHaarUnbiased (shry δilr) (shry m) <$> shrL <*> shrR))
-   where shrL = map _chaar_D¹_functionCourse . QC.shrink $ CHaar_D¹ zeroV zeroV zeroV fl
-         shrR = map _chaar_D¹_functionCourse . QC.shrink $ CHaar_D¹ zeroV zeroV zeroV fr
+   where shrL = map _chaar_D¹_functionCourse . QC.shrink
+                 $ (CHaar_D¹ zeroV zeroV zeroV fl :: CHaar_D¹ FunctionSpace ℝ)
+         shrR = map _chaar_D¹_functionCourse . QC.shrink
+                 $ (CHaar_D¹ zeroV zeroV zeroV fr :: CHaar_D¹ FunctionSpace ℝ)
          shry y = fromIntegral (round $ y*prcs) / prcs
          prcs = 1e3
   shrink (CHaar_D¹ _ _ _ CHaarZero) = []
