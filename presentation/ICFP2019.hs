@@ -71,7 +71,7 @@ main = do
      ──
      "Justus Sagemüller, Olivier Verdier"
      ──
-     "reference"#%("Western Norway University of Applied Science")
+     "reference"#%("Western Norway University of Applied Sciences")
    
 -- "Clichés: Understanding of “Functions”"
 --  ======do
@@ -271,7 +271,8 @@ main = do
             = PreIntgZero
             | PreIntg !y !(PreIntg_D¹ y)
                          !(PreIntg_D¹ y)
-      |]│[plaintext|
+      |]──"Note the strict fields."
+      ┃[plaintext|
       evalPreIntg_D¹ :: AdditiveGroup y
            => PreIntg_D¹ y -> D¹ -> y
       evalPreIntg_D¹ PreIntgZero _ = 0
