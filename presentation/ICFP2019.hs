@@ -224,15 +224,28 @@ main = do
             [ (𝑓◞"l"°𝑥◞"l", "if "<>𝑥 LaTeX.$<>" on left")
             , (𝑓◞"r"°𝑥◞"r", "if "<>𝑥 LaTeX.$<>" on right") ]
        ]]""
-      &let f (D¹ x) = fExample x + 3
+      & later`id`
+       let f (D¹ x) = fExample x + 3
            fHaar = homsampleHaarFunction (TwoToThe 10) f
-           (y₀, (fl, fr)) = multiscaleDecompose fHaar
-           f₀ _ = y₀
+           goProg xc w doml domr fvw
+             | w > domr-doml  = plotMultiple
+                [ continFnPlot (embedD¹ (doml,domr) $ evalHaarFunction fvw)
+                , continFnPlot (embedD¹ (doml,domr) f₀)
+                , continFnPlot (embedD¹ (doml,domm)
+                                      $ evalHaarFunction fl)
+                , continFnPlot (embedD¹ (domm,domr)
+                                      $ evalHaarFunction fr) ]
+             | xc < domm      = goProg xc w doml domm fl
+             | otherwise      = goProg xc w domm domr fr
+            where (y₀, (fl, fr)) = multiscaleDecompose fvw
+                  f₀ _ = y₀
+                  domm = (doml+domr)/2
        in plotServ
-          [ continFnPlot (embedD¹ (-1,1) f) & legendName "𝑓"
-          , continFnPlot (embedD¹ (-1,1) f₀) & legendName "𝑦◞0"
-          , continFnPlot (embedD¹ (-1,0) $ evalHaarFunction fl) & legendName "𝑓l"
-          , continFnPlot (embedD¹ ( 0,1) $ evalHaarFunction fr) & legendName "𝑓r"
+          [ plot (\(ViewXCenter xc) (ViewWidth w) -> goProg xc w (-1) 1 fHaar)
+          , mempty  & legendName "𝑓"
+          , mempty  & legendName "𝑦◞0"
+          , mempty  & legendName "𝑓l"
+          , mempty  & legendName "𝑓r"
           , xAxisLabel "𝑥"
           , yAxisLabel "𝑓(𝑥)" ]
 
