@@ -332,6 +332,33 @@ main = do
          , variation :: HaarUnbiased y }
       |]
      
+   "Integration / sampling" 
+    ======
+    do
+     "The offset-value requires an integral."
+      <>" This needs in practice to be calculated numerically."
+      <>maths [[
+           (𝐷◝1)◞∫ d 𝑥 (𝑓°𝑥) ≈ 𝑖◞∑ (𝑤◞𝑖 * 𝑓°(𝑥◞𝑖)) ]]""
+      ━━"For recursive subdivisions:"
+       <>maths [
+            [ (𝐷◝1)◞∫ d 𝑥 (𝑓°𝑥) ⩵  1/2*(𝐷◝1)◞∫ d 𝑥 (𝑓°((𝑥-1)/2)) ]
+          , [                 "" + 1/2*(𝐷◝1)◞∫ d 𝑥 (𝑓°((𝑥+1)/2)) ]
+             ]""
+    │[plaintext|
+homsampleHaar_D¹ ::
+  ( VectorSpace y, Fractional (Scalar y) )
+    => PowerOfTwo -> (D¹ -> y) -> Haar_D¹ y
+homsampleHaar_D¹ (TwoToThe 0) f
+   = Haar_D¹ (f 0) HaarZero
+homsampleHaar_D¹ (TwoToThe i) f
+   = case homsampleHaar_D¹ (TwoToThe $ i-1)
+            <$> [ f . \x -> (x-1)/2
+                , f . \x -> (x+1)/2 ] of
+       [Haar_D¹ y0l sfl, Haar_D¹ y0r sfr]
+        -> Haar_D¹ ((y0l+y0r)/2)
+             $ HaarUnbiased ((y0r-y0l)/2)
+                            sfl sfr
+           |]
 
 
 style = [cassius|
