@@ -210,6 +210,8 @@ instance AdditiveGroup y => AffineSpace (Haar0BiasTree dn y) where
   HaarUnbiased δlr₀ δsl₀ δsr₀ .+^ HaarUnbiased δlr₁ δsl₁ δsr₁
             = HaarUnbiased (δlr₀^+^δlr₁) (δsl₀.+^δsl₁) (δsr₀.+^δsr₁)
   HaarZero .-. HaarZero = HaarZero
+  f .-. HaarZero = f
+  HaarZero .-. f = negateV f
   HaarUnbiased δlr₀ δsl₀ δsr₀ .-. HaarUnbiased δlr₁ δsl₁ δsr₁
             = HaarUnbiased (δlr₀^-^δlr₁) (δsl₀.-.δsl₁) (δsr₀.-.δsr₁)
 
