@@ -15,6 +15,7 @@
 
 import Presentation.Yeamer
 import Presentation.Yeamer.Maths
+import qualified Math.LaTeX.Prelude as LaTeX
 import Math.LaTeX.StringLiterals
 import qualified Text.Blaze.Html as Blaze
 import Text.Hamlet
@@ -200,6 +201,41 @@ main = do
         )
       ]
 
+   "Why does “limited resolution” make sense?"
+    ======
+     do"Continuity picture"
+        ======do
+         "A sufficiently smooth function will deviate little within"
+            <>" the resolution limit."
+          ┃ maths [[𝑓°(𝑥±δ) ∈ 𝑓°𝑥 ± ε]] ""
+     ──
+     do let t𝑥 = tilde%$>𝑥
+        "Integration picture"
+         ======do
+         "Pointwise evaluation is less important (or even physically meaningful)"
+            <>" than integration over whole small intervals."
+          ┃ maths [[𝑓°𝑥 ≈ 1/(2*δ)*(𝑥-δ,𝑥+δ)∫ d t𝑥 (𝑓°t𝑥) ]] ""
+      
+   "Progressively decomposing a function"
+    ======
+     maths
+      [[ 𝑓◞(𝑦◞0، 𝑓◞"l"، 𝑓◞"r")°𝑥
+         ⩵ 𝑦◞0 + cases
+            [ (𝑓◞"l"°𝑥◞"l", "if "<>𝑥 LaTeX.$<>" on left")
+            , (𝑓◞"r"°𝑥◞"r", "if "<>𝑥 LaTeX.$<>" on right") ]
+       ]]""
+      &let f (D¹ x) = fExample x + 3
+           fHaar = homsampleHaarFunction (TwoToThe 10) f
+           (y₀, (fl, fr)) = multiscaleDecompose fHaar
+           f₀ _ = y₀
+       in plotServ
+          [ continFnPlot (embedD¹ (-1,1) f) & legendName "𝑓"
+          , continFnPlot (embedD¹ (-1,1) f₀) & legendName "𝑦◞0"
+          , continFnPlot (embedD¹ (-1,0) $ evalHaarFunction fl) & legendName "𝑓l"
+          , continFnPlot (embedD¹ ( 0,1) $ evalHaarFunction fr) & legendName "𝑓r"
+          , xAxisLabel "𝑥"
+          , yAxisLabel "𝑓(𝑥)" ]
+
 
 style = [cassius|
    body
@@ -348,6 +384,11 @@ plotStat viewCfg pl = imageFromFileSupplier "png" $ \file -> do
                     (Dia.mkSizeSpec $ Just (fromIntegral $ viewCfg^.xResV)
                                Dia.^& Just (fromIntegral $ viewCfg^.yResV))
                     prerendered
+
+embedD¹ :: (ℝ,ℝ) -> (D¹->ℝ) -> ℝ->ℝ
+embedD¹ (l,r) f x
+  | x>l && x<r  = f . D¹ $ 2*(x-l)/(r-l) - 1
+  | otherwise   = 0/0
 
 haarPlot :: Haar D¹ ℝ -> DynamicPlottable
 haarPlot = lineSegPlot . map (first $ \(D¹ x) -> x) . haarFunctionGraph
