@@ -55,6 +55,7 @@ import GHC.Exts (IsString(fromString))
 import qualified Text.Show.Pragmatic as SP
 
 import Math.Function.FiniteElement.PWConst
+import Math.Function.FiniteElement.PWLinear
 
 
 main :: IO ()
@@ -176,6 +177,17 @@ main = do
                [ getLinearFunction (riesz_resolimited $ TwoToThe pseudoPointReso)
                    $ dirac p ^* (fExample x / 2^(pseudoPointReso-1))
                | p@(D¹ x) <- splPoints ]
+        )
+      , ("Finite-width kernel: convergence, but limited resolution."
+        , let n = 8
+              r = 1/(2*n)
+              splPoints = [D¹ x | x <- [r-1,2*r-1..1-r]]
+          in plotPartialSums (\f -> continFnPlot $ evalCHaarFunction f . D¹) fExample
+               [ homsampleCHaarFunction (TwoToThe 10)
+                  $ \(D¹ x) -> let d = abs $ x-x₀
+                               in if d < r then (1-(d/r))*fExample x₀
+                                           else 0
+               | p@(D¹ x₀) <- splPoints ]
         )
       ]
 
