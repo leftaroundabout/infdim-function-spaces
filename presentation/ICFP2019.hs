@@ -218,6 +218,7 @@ main = do
       
    "Progressively decomposing a function"
     ======
+    do
      maths
       [[ 𝑓◞(𝑦◞0، 𝑓◞"l"، 𝑓◞"r")°𝑥
          ⩵ 𝑦◞0 + cases
@@ -248,6 +249,20 @@ main = do
           , mempty  & legendName "𝑓r"
           , xAxisLabel "𝑥"
           , yAxisLabel "𝑓(𝑥)" ]
+    ━━do
+     [plaintext|
+          data PreIntg_D¹ y = PreIntg
+             { offset :: y
+             , lSubstructure :: PreIntg_D¹ y
+             , rSubstructure :: PreIntg_D¹ y
+             }
+      |]
+     [plaintext|
+          data PreIntg_D¹ y
+                = PreIntgZero
+                | PreIntg !y !(PreIntg_D¹ y)
+                             !(PreIntg_D¹ y)
+      |]
 
 
 style = [cassius|
