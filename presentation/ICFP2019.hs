@@ -69,7 +69,7 @@ main = do
      "global-title"#%
        "Lazy Evaluation in Infinite-Dimensional Function Spaces with Wavelet Basis"
      ──
-     "Justus Sagemüller"
+     "Justus Sagemüller, Olivier Verdier"
      ──
      "reference"#%("Western Norway University of Applied Science")
    
