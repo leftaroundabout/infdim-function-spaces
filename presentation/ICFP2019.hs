@@ -418,6 +418,13 @@ dirac x₀ = boxDistribution (x₀,x₀) 1
         <>" be arbitrarily narrow or even zero-thick."
          ──"Dirac evaluates functions of arbitrary resolution point-wise.")
 
+   "Tensor products" 
+    ======do
+     "The vector space "<>(𝑉⊗𝑊)$<>" is spanned by elements of"
+      <>maths[[ set(𝑣⊗𝑤 ⸪ 𝑣∈𝑉، 𝑤∈𝑊) ]]","<>"subject to"
+      <>maths[[ (μ◞0*𝑣◞0 + μ◞1*𝑣◞1)⊗𝑤 ⩵ μ◞0*(𝑣◞0⊗𝑤) + μ◞1*(𝑣◞1⊗𝑤) ]
+             ,[ 𝑣⊗(λ◞0*𝑤◞0 + λ◞1*𝑤◞1) ⩵ λ◞0*(𝑣⊗𝑤◞0) + λ◞1*(𝑣⊗𝑤◞1) ]]"."
+
 style = [cassius|
    body
      height: 96vh
