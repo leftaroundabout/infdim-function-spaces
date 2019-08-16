@@ -405,12 +405,13 @@ CoHaar_D¹ q₀ qFluct · Haar_D¹ f₀ fFluct
    "Dirac distribution" 
     ======do
      [plaintext|
-boxDistribution :: (D¹, D¹)  -- ^ Target interval
-                -> ℝ         -- ^ Total weight
-                -> CoHaar_D¹ ℝ
+boxDistribution
+        :: (D¹, D¹)  -- ^ Target interval
+        -> ℝ         -- ^ Total weight
+        -> CoHaar_D¹ ℝ
       |]──[plaintext|
 dirac :: D¹ -> CoHaar_D¹ ℝ
-dirac x0 = boxDistribution (x0,x0) 1
+dirac x₀ = boxDistribution (x₀,x₀) 1
       |]
       ┃"narrow"#%("Because the CoHaar type implements integration as simple multiplication"
         <>" (without regard for the domain size), a box-distribution can"
@@ -478,7 +479,7 @@ style = [cassius|
      opacity: 0.4
      text-decoration: line-through
    .narrow
-     max-width: 0.4vh
+     max-width: 40vw
    pre
      text-align: left
      font-size: 82%
