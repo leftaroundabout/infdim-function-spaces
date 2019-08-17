@@ -457,6 +457,36 @@ dirac x₀ = boxDistribution (x₀,x₀) 1
            type instance CoHaar_D¹ v ⊗ w
                        = CoHaar_D¹ (v⊗w)
             |]
+         <>do
+           "still-hidden"#%[plaintext|
+            type v +> w = DualVector v ⊗ w
+            type Haar_D¹ ℝ +> w = CoHaar_D¹ w
+             |]
+           [plaintext|
+            type v +> w = DualVector v ⊗ w
+            type Haar_D¹ ℝ +> w = CoHaar_D¹ w
+             |]
+           [plaintext|
+            type v +> w = DualVector v ⊗ w
+            type Haar_D¹ ℝ +> Haar_D¹ ℝ
+               = CoHaar_D¹ (Haar_D¹ ℝ)
+             |]
+
+   "Identity linear map" 
+    ======do
+     [plaintext|
+id :: Haar_D¹ ℝ +> Haar_D¹ ℝ
+-- :: CoHaar_D¹ (Haar_D¹ ℝ)
+id = CoHaar_D¹
+           (Haar_D¹ 1 zeroV)
+           (fmap (\δ -> Haar_D¹ 0 δ) idUnbiased)
+ where idUnbiased :: CoHaarUnbiased ℝ ⊗ HaarUnbiased ℝ
+               -- :: CoHaarUnbiased (HaarUnbiased ℝ)
+       idUnbiased = CoHaarUnbiased
+        (CoHaar_D¹ 1 zeroV zeroV)
+        (fmap (\l -> HaarUnbiased 0 l zeroV) idUnbiased)
+        (fmap (\r -> HaarUnbiased 0 zeroV r) idUnbiased)
+      |]
 
 style = [cassius|
    body
