@@ -489,6 +489,42 @@ id = CoHaar_D¹
         (fmap (\r -> HaarUnbiased 0 zeroV r) idUnbiased)
       |]
 
+   "Outlook / TODO" 
+    ======do
+     items_p'
+      [("Other domains", id)
+      ,("Higher-order reconstruction",
+       let f (D¹ x) = fExample x + 3
+           fHaar = homsampleCHaarFunction (TwoToThe 10) f
+           goProg xc w doml domr fvw
+             | w > domr-doml  = plotMultiple
+                [ continFnPlot (embedD¹ (doml,domr) $ evalCHaarFunction fvw)
+                , continFnPlot (embedD¹ (doml,domr) f₀)
+                , mempty
+                , continFnPlot (embedD¹ (doml,domm)
+                                      $ evalCHaarFunction fl)
+                , continFnPlot (embedD¹ (domm,domr)
+                                      $ evalCHaarFunction fr) ]
+             | xc < domm      = goProg xc w doml domm fl
+             | otherwise      = goProg xc w domm domr fr
+            where ((yl,ym,yr), (fl, fr)) = multiscaleCDecompose fvw
+                  f₀ (D¹ x) | x>0        = ym + (yr-ym)*x
+                            | otherwise  = ym - (yl-ym)*x
+                  domm = (doml+domr)/2
+       in plotServ
+          [ plot (\(ViewXCenter xc) (ViewWidth w) -> goProg xc w (-1) 1 fHaar)
+          , mempty  & legendName "𝑓"
+          , mempty  & legendName "Λ𝑦:∫"
+          , mempty
+          , mempty  & legendName "𝑓l"
+          , mempty  & legendName "𝑓r"
+          , xAxisLabel "𝑥"
+          , yAxisLabel "𝑓(𝑥)" ])
+      ,("Pruning heuristics", id)
+      ,("Reconsider data structure of tensors", id)
+      ,("Applications", id)
+      ]
+
 
 useLightColourscheme :: Bool
 useLightColourscheme = False
