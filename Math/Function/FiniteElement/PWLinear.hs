@@ -32,7 +32,7 @@ module Math.Function.FiniteElement.PWLinear
         , CHaar, CHaarSamplingDomain(..)
         , BinsubPWLinear, toBinsubPWLinear, evalBinsubPWLinear
          -- * Utility
-        , PowerOfTwo(..), getPowerOfTwo, VAffineSpace
+        , PowerOfTwo(..), getPowerOfTwo, VAffineSpace, multiscaleCDecompose
         ) where
 
 import Math.Function.Duals.Meta
@@ -642,3 +642,11 @@ evalBinsubPWLinear (PWLinearDivision l r) p = case p^.halves of
 instance (VAffineSpace y, Scalar y ~ ℝ, InnerSpace y)
     => InnerSpace (CHaar_D¹ FunctionSpace y) where
   f <.> g = toBinsubPWLinear f <.> toBinsubPWLinear g
+
+
+multiscaleCDecompose :: (VAffineSpace y, Fractional (Scalar y))
+         => CHaar D¹ y -> ((y,y,y), (CHaar D¹ y, CHaar D¹ y))
+multiscaleCDecompose (CHaar_D¹ y₀ yl yr CHaarZero) = ((yl,y₀,yr), zeroV)
+multiscaleCDecompose (CHaar_D¹ y₀ yl yr (CHaarUnbiased δilr ym fl fr))
+            = ((zeroV,y₀,zeroV), ( CHaar_D¹ (negateV δilr) yl ym fl
+                                 , CHaar_D¹ (        δilr) ym yr fr ))
