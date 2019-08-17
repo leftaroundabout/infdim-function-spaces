@@ -441,18 +441,21 @@ dirac x₀ = boxDistribution (x₀,x₀) 1
         |]
       ┃do
         "Tensor over a "<>"Vect"◞𝑘$<>"-functor vector-space:"
+         <>[plaintext|
+           type family v ⊗ w :: *
+            |]
          <>do
           [plaintext|
-           type family v ⊗ w :: *
-           
            type instance Haar_D¹ ℝ ⊗ w
                        = Haar_D¹ w
             |]
           [plaintext|
-           type family v ⊗ w :: *
-           
            type instance Haar_D¹ v ⊗ w
                        = Haar_D¹ (v⊗w)
+            |]
+         <>hide`id`[plaintext|
+           type instance CoHaar_D¹ v ⊗ w
+                       = CoHaar_D¹ (v⊗w)
             |]
 
 style = [cassius|
