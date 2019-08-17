@@ -81,6 +81,7 @@ executable ICFP2019-FHPNC-LazyHaar
                      , HaTeX
                      , TeX-my-math
                      , lens
+                     , data-default-class
                      , pragmatic-show
   ghc-options:       -O2 -threaded "-with-rtsopts=-N3"
   hs-source-dirs: presentation

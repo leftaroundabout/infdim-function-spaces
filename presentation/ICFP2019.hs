@@ -53,6 +53,7 @@ import Control.Concurrent
 import Data.IORef
 import Text.Printf (printf)
 import GHC.Exts (IsString(fromString))
+import Data.Default.Class (def)
 
 import qualified Text.Show.Pragmatic as SP
 
@@ -488,11 +489,15 @@ id = CoHaar_D¹
         (fmap (\r -> HaarUnbiased 0 zeroV r) idUnbiased)
       |]
 
+
+useLightColourscheme :: Bool
+useLightColourscheme = False
+
 style = [cassius|
    body
      height: 96vh
-     color: #ffe
-     background: linear-gradient(#263, #516)
+     color: #{textColour}
+     background: #{backgroundStyle}
      font-size: 4.3vmin
      font-family: "Linux libertine", "Times New Roman"
    .main-title
@@ -505,7 +510,7 @@ style = [cassius|
      text-align: center
      margin: auto
      border-radius: 6px
-     background: rgba(0,0,15,0.1);
+     background: #{divBoxesHint}
    .global-title
      width: 70%
      font-size: 180%
@@ -563,6 +568,18 @@ style = [cassius|
       text-decoration: underline
       color: #7090ff
   |] ()
+ where backgroundStyle :: String
+       backgroundStyle
+        | useLightColourscheme  = "linear-gradient(#7fb, #a8f)"
+        | otherwise             = "linear-gradient(#263, #516)"
+       textColour :: String
+       textColour
+        | useLightColourscheme  = "#110"
+        | otherwise             = "#ffe"
+       divBoxesHint :: String
+       divBoxesHint
+        | useLightColourscheme  = "rgba(100,100,215,0.1)"
+        | otherwise             = "rgba(0,0,15,0.1)"
 
 items :: [Presentation] -> Presentation
 
@@ -620,7 +637,11 @@ plotServ pl cont = serverSide`id`do
         Nothing -> do
          writeIORef ?plotLock . Just
           =<< forkFinally
-               (plotWindow pl)
+               (plotWindow' (
+                 if useLightColourscheme
+                  then def & setSolidBackground Dia.white
+                           & graphicsPostprocessing .~ Dia.fc Dia.black
+                  else def  ) pl)
                (\_ -> do
                  stillLocked <- readIORef ?plotLock
                  myId <- myThreadId
