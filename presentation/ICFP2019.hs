@@ -425,6 +425,36 @@ dirac x₀ = boxDistribution (x₀,x₀) 1
       <>maths[[ (μ◞0*𝑣◞0 + μ◞1*𝑣◞1)⊗𝑤 ⩵ μ◞0*(𝑣◞0⊗𝑤) + μ◞1*(𝑣◞1⊗𝑤) ]
              ,[ 𝑣⊗(λ◞0*𝑤◞0 + λ◞1*𝑤◞1) ⩵ λ◞0*(𝑣⊗𝑤◞0) + λ◞1*(𝑣⊗𝑤◞1) ]]"."
 
+   "Tensor product as functor composition" 
+    ======do
+     "Analogy: matrices as nested lists"
+      <>do
+       [plaintext|
+        m :: [[Double]]
+        m = [ [ cos x, sin x]
+            , [-sin x, cos x] ]
+        |]
+       [plaintext|
+        m :: [] ([] Double)
+        m = [ [ cos x, sin x]
+            , [-sin x, cos x] ]
+        |]
+      ┃do
+        "Tensor over a "<>"Vect"◞𝑘$<>"-functor vector-space:"
+         <>do
+          [plaintext|
+           type family v ⊗ w :: *
+           
+           type instance Haar_D¹ ℝ ⊗ w
+                       = Haar_D¹ w
+            |]
+          [plaintext|
+           type family v ⊗ w :: *
+           
+           type instance Haar_D¹ v ⊗ w
+                       = Haar_D¹ (v⊗w)
+            |]
+
 style = [cassius|
    body
      height: 96vh
