@@ -71,7 +71,7 @@ executable ICFP2019-FHPNC-LazyHaar
                      , free-vector-spaces
                      , spatial-rotations
                      , linear
-                     , dynamic-plot>=0.4 && <0.5
+                     , dynamic-plot>=0.4.1 && <0.5
                      , yeamer<0.2
                      , blaze-html
                      , shakespeare
