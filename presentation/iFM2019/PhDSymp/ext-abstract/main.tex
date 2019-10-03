@@ -1,0 +1,97 @@
+% easychair.tex,v 3.5 2017/03/15
+
+\documentclass[a4paper]{easychair}
+%\documentclass[EPiC]{easychair}
+%\documentclass[EPiCempty]{easychair}
+%\documentclass[debug]{easychair}
+%\documentclass[verbose]{easychair}
+%\documentclass[notimes]{easychair}
+%\documentclass[withtimes]{easychair}
+%\documentclass[a4paper]{easychair}
+%\documentclass[letterpaper]{easychair}
+
+\usepackage{doc}
+\usepackage{xspace}
+
+\usepackage{fontspec}
+
+%\makeindex
+
+%% Front Matter
+%%
+% Regular title as in the article class.
+%
+\title{Towards well-typed optimal transport on lazy-infinite distribution spaces}
+
+% Authors are joined by \and. Their affiliations are given by \inst, which indexes
+% into the list defined using \institute
+%
+\author{
+   Justus Sagemüller\inst{1}
+\and
+    Olivier Verdier\inst{1}
+}
+
+% Institutes for affiliations are also joined by \and,
+\institute{
+  Western Norway University of Applied Sciences, 
+  Bergen, Norway\\
+  \email{\{jsag,over\}@hvl.no}
+ }
+
+%  \authorrunning{} has to be set for the shorter version of the authors' names;
+% otherwise a warning will be rendered in the running heads. When processed by
+% EasyChair, this command is mandatory: a document without \authorrunning
+% will be rejected by EasyChair
+
+\authorrunning{Sagemüller and Verdier}
+
+% \titlerunning{} has to be set to either the main title or its shorter
+% version for the running heads. When processed by
+% EasyChair, this command is mandatory: a document without \titlerunning
+% will be rejected by EasyChair
+\titlerunning{Towards well-typed optimal transport of distributions}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  \emph{Optimal transport} (OT) is a useful tool for assessing the difference/divergence (\emph{Wasserstein} or \emph{Earth mover distance}) between probability distributions, histograms etc., or for interpolating between them -- in particular on continuous spaces where point-wise methods such as Jensen-Shannon are problematic. This has applications in e.g. inverse modelling and machine learning.
+  
+  The \emph{Sinkhorn algorithm} is an efficient means of calculating OT for arbitrary metrics on the base space, however it is in practice carried out only on a \emph{discretised representation} of the distributions, which somewhat vitiates a main advantage of OT.
+  
+  We implement the Sinkhorn algorithm on a data structure which handles the infinite dimensionality of the continuous distribution space through lazy evaluation. We discuss problems and advantages. Apart from safer, easier handling of what resolution is necessary, this includes the ability to express with \emph{types} the mathematical meaning of a function or distribution, rather than succumbing to the common “everything is a matrix” fallback.
+\end{abstract}
+
+\label{sec:introduction}
+\noindent%
+Probability distributions are are the foundation of statistics and its applications. In the discrete case, such distributions are readily represented by a concrete probability value for each possible event. Many applications however require, at least conceptually, probability distribution on \emph{continuous} spaces (real intervals, Euclidean planes, manifolds etc.). Standard procedure is to discretise such spaces to a finite-dimensional approximation and then carry out any computer algorithms on the resulting discrete space of distributions.
+
+
+% The table of contents below is added for your convenience. Please do not use
+% the table of contents if you are preparing your paper for publication in the
+% EPiC Series or Kalpa Publications series
+
+%\setcounter{tocdepth}{2}
+%{\small
+%\tableofcontents}
+
+%\section{To mention}
+%
+%Processing in EasyChair - number of pages.
+%
+%Examples of how EasyChair processes papers. Caveats (replacement of EC
+%class, errors).
+
+%------------------------------------------------------------------------------
+%\bibliographystyle{plain}
+%\bibliographystyle{alpha}
+%\bibliographystyle{unsrt}
+\bibliographystyle{abbrv}
+
+\bibliography{ref}
+
+
+\end{document}
+

@@ -14,3 +14,7 @@ bin/
 .#*
 .ipynb_checkpoints
 client_session_key.aes
+*.aux
+*.pdf
+*.log
+*.out
