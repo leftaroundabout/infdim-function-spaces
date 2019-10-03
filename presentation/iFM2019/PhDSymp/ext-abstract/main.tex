@@ -24,7 +24,7 @@
 %%
 % Regular title as in the article class.
 %
-\title{Towards well-typed optimal transport on lazy-infinite distribution spaces}
+\title{Towards better data structures for numerics such as optimal transport}
 
 % Authors are joined by \and. Their affiliations are given by \inst, which indexes
 % into the list defined using \institute
@@ -33,13 +33,15 @@
    Justus Sagemüller\inst{1}
 \and
     Olivier Verdier\inst{1}
+\and
+    Volker Stolz\inst{1}
 }
 
 % Institutes for affiliations are also joined by \and,
 \institute{
   Western Norway University of Applied Sciences, 
   Bergen, Norway\\
-  \email{\{jsag,over\}@hvl.no}
+  \email{\{jsag,over,vsto\}@hvl.no}
  }
 
 %  \authorrunning{} has to be set for the shorter version of the authors' names;
@@ -47,7 +49,7 @@
 % EasyChair, this command is mandatory: a document without \authorrunning
 % will be rejected by EasyChair
 
-\authorrunning{Sagemüller and Verdier}
+\authorrunning{Sagemüller, Verdier and Stolz}
 
 % \titlerunning{} has to be set to either the main title or its shorter
 % version for the running heads. When processed by
@@ -60,11 +62,13 @@
 \maketitle
 
 \begin{abstract}
-  \emph{Optimal transport} (OT) is a useful tool for assessing the difference/divergence (\emph{Wasserstein} or \emph{Earth mover distance}) between probability distributions, histograms etc., or for interpolating between them -- in particular on continuous spaces where point-wise methods such as Jensen-Shannon are problematic. This has applications in e.g. inverse modelling and machine learning.
+  In machine learning, it is often necessary to compare data distributions. One way of doing that is \emph{Optimal transport}. OT is a useful tool for assessing the difference/divergence (\emph{Wasserstein} or \emph{Earth mover distance}) between probability distributions, histograms etc., or for interpolating between them, particularly in case of non-overlapping distributions.
   
-  The \emph{Sinkhorn algorithm} is an efficient means of calculating OT for arbitrary metrics on the base space, however it is in practice carried out only on a \emph{discretised representation} of the distributions, which somewhat vitiates a main advantage of OT.
+  The \emph{Sinkhorn algorithm} is an efficient means of calculating OT for arbitrary metrics on the base space. However it is in practice carried out only on a \emph{discretised representation} of the distributions.
   
-  We implement the Sinkhorn algorithm on a data structure which handles the infinite dimensionality of the continuous distribution space through lazy evaluation. We discuss problems and advantages. Apart from safer, easier handling of what resolution is necessary, this includes the ability to express with \emph{types} the mathematical meaning of a function or distribution, rather than succumbing to the common “everything is a matrix” fallback.
+  We implement the Sinkhorn algorithm on a data structure which handles the infinite dimensionality of the continuous distribution space through lazy evaluation. Apart from safer, easier handling of what resolution is necessary, this includes the ability to express with \emph{types} the mathematical meaning of a function or distribution.
+  
+  Our Sinkhorn implementation does work, but floating-point instability is observed in certain cases. Interestingly, it depends on whether the distributions are considered as functions or dual-functions, a distinction that does not appear in the conventional a-priori finite-dimensional reduction. We discuss this and whether it is possible to use types to prevent such issues, or to warn about them.
 \end{abstract}
 
 \label{sec:introduction}
