@@ -15,6 +15,9 @@
 
 \usepackage{fontspec}
 
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
 %\makeindex
 
 %% Front Matter
@@ -66,7 +69,17 @@
 
 \label{sec:introduction}
 \noindent%
-Probability distributions are are the foundation of statistics and its applications. In the discrete case, such distributions are readily represented by a concrete probability value for each possible event. Many applications however require, at least conceptually, probability distribution on \emph{continuous} spaces (real intervals, Euclidean planes, manifolds etc.). Standard procedure is to discretise such spaces to a finite-dimensional approximation and then carry out any computer algorithms on the resulting discrete space of distributions.
+Probability distributions are are the foundation of statistics and its applications. In the discrete case, such distributions are readily represented by a concrete probability value for each possible event -- i.e. as a function from the set of events $X$ to probabilities $[0,1]$.
+Many applications however require, at least conceptually, probability distribution on \emph{continuous} spaces $X$ (real intervals, Euclidean planes, manifolds etc.).
+Standard procedure is to discretise such spaces to a finite-dimensional approximation and then carry out any computer algorithms on the resulting discrete space of distributions. 
+
+The resulting view suggests that distributions can still be understood as functions on $X$, as \emph{probability density functions}. Indeed this view has some merit thanks to the Riesz-Fréchet representation theorem, but fundamentally, distributions are better understood as (normalised) function{al}s: as linear mappings from the space of functions $X\to\mathbb{R}$ to $\mathbb{R}$.
+That includes in particular also discrete, point-distributions on the continuous space (the prototype being the \emph{Dirac distribution}, which expresses that all the events happen at 0 on the real line). Such distributions do not correspond to any function $X\to\mathbb{R}$, but they do correspond to functionals $(X\to\mathbb{R})\to\mathbb{R}$, namely pointwise evaluation.
+
+\newcommand{\marg}[1]{\mathbb{P}_\mathrm{#1}}
+A natural question to ask is, given two distributions $\marg r$ and $\marg g$, how similar or dissimilar they are. This is of immediate importance in machine learning. In the function-view of distributions, a naïve attempt would be to sum/integrate the point-wise difference between them ($\mathcal{L}^1$ difference); in practice the Kullback-Leibler\cite{Kullback_1951} divergence family is more common, including the Jensen-Shannon divergence which can be used as a proper \emph{metric} on the distribution space.
+ All of those share the problem that they do not take the topology of the base space $X$ into account. In particular, point-distributions are almost always classified as infinitely far apart, even when the points lie arbitrarily close in $X$. This is for example a problem in generative adversarial networks, leading to mode collapse. Resolution-limit / smearing can avoid this, but at the obvious cost of loss of resolution and without addressing the underlying problem.
+What can address it\cite{pmlr-v70-arjovsky17a} is switching to a metric that does consider the topology of $X$. The \emph{Wasserstein metric} or \emph{earth mover distance} measures how far the “mass” in the distribution $\marg r$ needs to be moved across $X$ in order to obtain $\marg g$. This movement process, with the minimum movement-distance, is called \emph{optimal transport}.
 
 
 % The table of contents below is added for your convenience. Please do not use
