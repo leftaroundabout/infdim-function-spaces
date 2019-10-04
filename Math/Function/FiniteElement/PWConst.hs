@@ -27,7 +27,7 @@ module Math.Function.FiniteElement.PWConst
         , integrateHaarFunction
          -- * Utility
         , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose, haarFunctionGraph
-        , VAffineSpace, detailScale, riesz_resolimited
+        , VAffineSpace, detailScale, riesz_resolimited, coRiesz_origReso
          -- * Misc, unstable
         , dualPointwiseMul
         ) where
@@ -369,3 +369,10 @@ lMarginal m = fromFlatTensor . fmap integrate $ m
 
 
 
+
+
+coRiesz_origReso :: Haar D¹ Double -+> DualVector (Haar D¹ Double)
+coRiesz_origReso = LinearFunction $ \(Haar_D¹ c₀ f) -> Haar_D¹ (c₀^*2) $ go 2 f 
+ where go μ (HaarUnbiased δ l r)
+           = HaarUnbiased (μ*^δ) (go (μ/2) l) (go (μ/2) r)
+       go μ HaarZero = HaarZero

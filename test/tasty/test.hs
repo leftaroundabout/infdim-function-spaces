@@ -79,6 +79,8 @@ main = defaultMain $ testGroup "Tests"
  , testGroup "Dual space of 𝓛² Hilbert space"
   [ testProperty "Co-Riesz functionals"
       $ \f g -> (coRiesz$f)<.>^(g :: Haar D¹ ℝ) ≃ f<.>g
+  , testProperty "Co-Riesz functionals"
+      $ \f g -> (coRiesz_origReso$f)<.>^(g :: Haar D¹ ℝ) ≃ f<.>g
   , testProperty "Linearity"
       $ \f g μ h -> let f' = coRiesz$(f :: Haar D¹ ℝ)
                     in f'<.>^(g ^+^ μ*^h :: Haar D¹ ℝ)
