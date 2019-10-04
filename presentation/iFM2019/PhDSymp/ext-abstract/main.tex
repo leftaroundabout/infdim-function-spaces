@@ -121,7 +121,13 @@ Then, the fixpoint of the Sinkhorn iteration will be an \emph{entropy-limited ap
 The usual way Sinkhorn-Cuturi is used is on discrete $X$ or with discretised representations of the functions on it. In this case, $\mathcal{C}(X)$ and $\mathcal{C}(X)^\ast$ are both types of vectors/arrays of numbers (in practice usually floating-point). The multiplication operation is just element-wise multiplication in those arrays.
 However, natural as this may seem, it is known from numerical applications (in particular, differential equations) that such a choice of spatial-points sampling can be suboptimal. To name one issue, point-wise multiplication generally leads to frequency aliasing.
 
-In Sagemüller and Verdier 2019\cite{SagVerdier-LazyWavelet}, we proposed a tree data structure to represent functions and their duals \emph{without} any a-priori resolution choice.
+In Sagemüller and Verdier 2019\cite{SagVerdier-LazyWavelet}, we proposed a tree data structure to represent functions and their duals \emph{without} any a-priori resolution choice. It is a simple transformation closely related to the standard Haar wavelet transform.
+
+The subject of this work is the use of that structure as the representation for distributions in Sinkhorn optimal transport. The first attempt was to treat the distributions \emph{as functions} in this wavelet expansion, and use the multiplication directly pointwise on those functions, analogous to pointwise on array on the standard discretised implementations.
+That however leads to numerical instability when transporting non-overlapping distributions, which appear to arise from floating-point inaccuracies in connection with the point-wise cancellation that is required to represent confined distributions in wavelets (or other baseis that are not completely local by construction).
+
+Unlike with finite-dimensional vectors, the structure for duals/distributions in our Haar representation is not exactly the same as for functions: they have both different strictness, and different weighting of the coefficients.
+It turns out that switching to the dual-space view of Sinkhorn-Cuturi outlined in the previous section does both promise allowing to represent confined distributions better (even point/Dirac-distributions are possible), it is also less susceptible to the floating-point problems. We discuss reasons for this behaviour.
 
 % The table of contents below is added for your convenience. Please do not use
 % the table of contents if you are preparing your paper for publication in the
