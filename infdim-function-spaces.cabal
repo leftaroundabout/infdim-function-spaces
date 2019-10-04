@@ -19,9 +19,9 @@ cabal-version:       >=1.10
 library
   exposed-modules:     Math.Function.FiniteElement.PWConst
                        Math.Function.FiniteElement.PWLinear
+                       Math.Function.FiniteElement.PWConst.Internal
   other-modules:       Math.Function.Duals.Meta
                        Math.Function.FiniteElement.Internal.Util
-                       Math.Function.FiniteElement.PWConst.Internal
   other-extensions:    FlexibleInstances, FlexibleContexts, TypeFamilies, LambdaCase, ConstraintKinds
   build-depends:       base >=4.8 && <4.13
                        , manifolds >0.5.0.1 && <0.6
