@@ -74,7 +74,7 @@
 
 \label{sec:introduction}
 \noindent%
-Probability distributions are are the foundation of statistics and its applications. In the discrete case, such distributions are readily represented by a concrete probability value for each possible event -- i.e. as a function from the set of events $X$ to probabilities $[0,1]$.
+Probability distributions are the foundation of statistics and its applications. In the discrete case, such distributions are readily represented by a concrete probability value for each possible event -- i.e.\ as a function from the set of events $X$ to probabilities $[0,1]$.
 Many applications however require, at least conceptually, probability distribution on \emph{continuous} spaces $X$ (real intervals, Euclidean planes, manifolds etc.).
 Standard procedure is to discretise such spaces to a finite-dimensional approximation and then carry out any computer algorithms on the resulting discrete space of distributions. 
 
@@ -124,7 +124,7 @@ However, natural as this may seem, it is known from numerical applications (in p
 In Sagemüller and Verdier 2019\cite{SagVerdier-LazyWavelet}, we proposed a tree data structure to represent functions and their duals \emph{without} any a-priori resolution choice. It is a simple transformation closely related to the standard Haar wavelet transform.
 
 The subject of this work is the use of that structure as the representation for distributions in Sinkhorn optimal transport. The first attempt was to treat the distributions \emph{as functions} in this wavelet expansion, and use the multiplication directly pointwise on those functions, analogous to pointwise on array on the standard discretised implementations.
-That however leads to numerical instability when transporting non-overlapping distributions, which appear to arise from floating-point inaccuracies in connection with the point-wise cancellation that is required to represent confined distributions in wavelets (or other baseis that are not completely local by construction).
+That however leads to numerical instability when transporting non-overlapping distributions, which appear to arise from floating-point inaccuracies in connection with the point-wise cancellation that is required to represent confined distributions in wavelets (or other bases that are not completely local by construction).
 
 Unlike with finite-dimensional vectors, the structure for duals/distributions in our Haar representation is not exactly the same as for functions: they have both different strictness, and different weighting of the coefficients.
 It turns out that switching to the dual-space view of Sinkhorn-Cuturi outlined in the previous section does both promise allowing to represent confined distributions better (even point/Dirac-distributions are possible), it is also less susceptible to the floating-point problems. We discuss reasons for this behaviour.
