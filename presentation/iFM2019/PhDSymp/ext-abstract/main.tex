@@ -105,9 +105,23 @@ Now, given a positive “matrix”, in form of a linear mapping $K: A^\ast\to B$
 \]
 with $u\in A^\ast, v\in B^\ast$ such that $\gamma(\mathbf{1}_A)=\marg g$ and $\gamma^\ast(\mathbf{1}_B)=\marg r$. It does this by iteratively, alternatingly updating
 \[\begin{aligned}
-  u &\leftarrow \sfrac{\marg r}{K^\ast v}
+  u &\leftarrow \sfrac{\marg r}{K^\ast v};
    & v &\leftarrow \sfrac{\marg g}{K u}.
 \end{aligned}\]
+The linear operators for premultiplication, $(u\cdot)$ and $(v\cdot)$, are more commonly described as diagonal matrices.
+
+The \emph{Cuturi-Sinkhorn algorithm}\cite{CuturiSinkhornLightspeed} uses this to obtain an optimal transport. For $A=B=\mathcal{C}(X)$ (continuous functions), it encodes the metric $\|\ \|$ on $X$ into $K$ as
+\[\begin{aligned}
+  K&:(\mathcal{C}(X))^\ast \to \mathcal{C}(X), & K(w)(x) &:= w(\backslash y \mapsto e^{-\lambda\cdot\|x-y\|}).
+\end{aligned}\]
+Then, the fixpoint of the Sinkhorn iteration will be an \emph{entropy-limited approximation} to the optimal transport. In the limit $\lambda\to\infty$, this approximation becomes arbtrarily good.
+
+
+\paragraph{Data structures.}
+The usual way Sinkhorn-Cuturi is used is on discrete $X$ or with discretised representations of the functions on it. In this case, $\mathcal{C}(X)$ and $\mathcal{C}(X)^\ast$ are both types of vectors/arrays of numbers (in practice usually floating-point). The multiplication operation is just element-wise multiplication in those arrays.
+However, natural as this may seem, it is known from numerical applications (in particular, differential equations) that such a choice of spatial-points sampling can be suboptimal. To name one issue, point-wise multiplication generally leads to frequency aliasing.
+
+In Sagemüller and Verdier 2019\cite{SagVerdier-LazyWavelet}, we proposed a tree data structure to represent functions and their duals \emph{without} any a-priori resolution choice.
 
 % The table of contents below is added for your convenience. Please do not use
 % the table of contents if you are preparing your paper for publication in the
