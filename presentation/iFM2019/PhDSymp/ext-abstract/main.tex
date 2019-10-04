@@ -17,6 +17,7 @@
 
 \usepackage{amsmath}
 \usepackage{amsfonts}
+\usepackage{xfrac}
 
 %\makeindex
 
@@ -64,7 +65,7 @@
 \begin{abstract}
   In machine learning, it is often necessary to compare data distributions. One way of doing that is \emph{Optimal transport}. OT is a useful tool for assessing the difference/divergence (\emph{Wasserstein} or \emph{Earth mover distance}) between probability distributions, histograms etc., or for interpolating between them, particularly in case of non-overlapping distributions.
   
-  The \emph{Sinkhorn algorithm} is an efficient means of calculating OT for arbitrary metrics on the base space. However it is in practice carried out only on a \emph{discretised representation} of the distributions.
+  The \emph{Cuturi-Sinkhorn algorithm} is an efficient means of calculating OT for arbitrary metrics on the base space. However it is in practice carried out only on a \emph{discretised representation} of the distributions.
   
   We implement the Sinkhorn algorithm on a data structure which handles the infinite dimensionality of the continuous distribution space through lazy evaluation. Apart from safer, easier handling of what resolution is necessary, this includes the ability to express with \emph{types} the mathematical meaning of a function or distribution.
   
@@ -85,6 +86,28 @@ A natural question to ask is, given two distributions $\marg r$ and $\marg g$, h
  All of those share the problem that they do not take the topology of the base space $X$ into account. In particular, point-distributions are almost always classified as infinitely far apart, even when the points lie arbitrarily close in $X$. This is for example a problem in generative adversarial networks, leading to mode collapse. Resolution-limit / smearing can avoid this, but at the obvious cost of loss of resolution and without addressing the underlying problem.
 What can address it\cite{pmlr-v70-arjovsky17a} is switching to a metric that does consider the topology of $X$. The \emph{Wasserstein metric} or \emph{earth mover distance} measures how far the “mass” in the distribution $\marg r$ needs to be moved across $X$ in order to obtain $\marg g$. This movement process, with the minimum movement-distance, is called \emph{optimal transport}.
 
+\paragraph{Sinkhorn algorithm.} \emph{The} optimal transport between $\marg r$ and $\marg g$ can be seen as a joint distribution $\gamma$, i.e. a distribution on $X\times X$, such that the marginal on one side is $\marg r$ and on the other $\marg g$, and the integrated cost is minimal.
+The \emph{Sinkhorn OT algorithm}\cite{CuturiSinkhornLightspeed} obtains this iteratively. The following is a novel formulation of this algorithm, taylored towards distributions as duals of abstract function spaces.
+
+A function space is a \emph{commutative algebra}, with both addition and multiplication defined point-wise. Let $A$ and $B$ be such algebras; we consider $\marg r \in A^\ast$ and $\marg g \in B^\ast$, i.e. in the dual space. There is now a multiplication operation available
+\[\begin{aligned}
+            && (\cdot) &: A^\ast \times A \to A^\ast
+ \\\text{or}&& (\cdot) &: B^\ast \times B \to B^\ast
+ \\         && (u\cdot\psi)& \phi := u(\psi\cdot\phi)
+\end{aligned}\]
+Here, the result functional is defined by its result for a function $\phi$, and $\psi\cdot\phi$ denotes the pointwise multiplication, i.e. standard multiplication in the algebra $A$ or $B$, respectively.
+
+Furthermore there are division operations of the same types, that use the point-wise reciprocal of $\phi$. This, like the multiplication, is linear in its left argument.
+
+Now, given a positive “matrix”, in form of a linear mapping $K: A^\ast\to B$ and its adjoint $K^\ast: B^\ast\to A$, and two (normalised) distributions $\marg r\in A^\ast$, $\marg g\in B^\ast$, the \emph{Sinkhorn algorithm}\cite{SinkhornDiagEquivlc} provides a uniquely-defined $\gamma: A\to B^\ast$ of the form
+\[
+  \gamma = (v\cdot) \circ K \circ (u\cdot)^\ast
+\]
+with $u\in A^\ast, v\in B^\ast$ such that $\gamma(\mathbf{1}_A)=\marg g$ and $\gamma^\ast(\mathbf{1}_B)=\marg r$. It does this by iteratively, alternatingly updating
+\[\begin{aligned}
+  u &\leftarrow \sfrac{\marg r}{K^\ast v}
+   & v &\leftarrow \sfrac{\marg g}{K u}.
+\end{aligned}\]
 
 % The table of contents below is added for your convenience. Please do not use
 % the table of contents if you are preparing your paper for publication in the
