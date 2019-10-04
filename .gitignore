@@ -18,3 +18,5 @@ client_session_key.aes
 *.pdf
 *.log
 *.out
+*.bbl
+*.blg
