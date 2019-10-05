@@ -30,6 +30,7 @@ module Math.Function.FiniteElement.PWConst
         , VAffineSpace, detailScale, riesz_resolimited, coRiesz_origReso
          -- * Misc, unstable
         , dualPointwiseMul
+        , lMarginal, entropyLimOptimalTransport, SinkhornOTConfig(..)
         ) where
 
 import Math.Function.FiniteElement.PWConst.Internal
