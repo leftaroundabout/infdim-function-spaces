@@ -96,6 +96,7 @@ executable infdim-spaces-yeamer-playground
                      , vector-space
                      , free-vector-spaces
                      , spatial-rotations
+                     , constrained-categories
                      , linear
                      , dynamic-plot>=0.4.1 && <0.5
                      , yeamer<0.2

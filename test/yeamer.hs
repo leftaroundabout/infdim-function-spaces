@@ -13,6 +13,9 @@
 {-# LANGUAGE UnicodeSyntax     #-}
 {-# LANGUAGE LambdaCase        #-}
 
+import qualified Prelude as Hask
+import Control.Category.Constrained.Prelude
+
 import Presentation.Yeamer
 import Presentation.Yeamer.Maths
 import qualified Math.LaTeX.Prelude as LaTeX
@@ -58,6 +61,7 @@ import Data.Default.Class (def)
 import qualified Text.Show.Pragmatic as SP
 
 import Math.Function.FiniteElement.PWConst
+import Math.Function.FiniteElement.PWConst.Internal
 import Math.Function.FiniteElement.PWLinear
 
 
@@ -71,6 +75,30 @@ main = do
      "global-title"#%
        "Tests of infinite-dimensional-function-space data structures"
    
+   "Sinkhorn convergence"
+    ====== do
+     let visualiseSinkhornConv r c
+             = [ continFnPlot r
+               , plotLatest
+                   [ plotDelay 0.5 . plotMultiple
+                       $ [mempty,mempty]
+                        ++[ visualiseDistrib $ marg ot
+                          | marg <- [ lMarginal
+                                    , lMarginal . getLinearFunction transposeTensor]
+                          ]
+                   | ot <- entropyLimOptimalTransport (SinkhornOTConfig 18) r' c']
+               , continFnPlot c ]
+          where [r',c'] = asDistrib<$>[r,c]
+         visualiseDistrib :: DualVector (Haar D¹ ℝ) -> DynamicPlottable
+         visualiseDistrib d = continFnPlot $ evalHaarFunction f . D¹
+          where f = riesz_resolimited resoLimit $ d
+         asDistrib :: (ℝ->ℝ)->DualVector (Haar D¹ ℝ)
+         asDistrib f = case (homsampleHaarFunction resoLimit $ \(D¹ x)->f x)
+                                :: Haar D¹ ℝ of
+          fspld@(Haar_D¹ cf _) -> coRiesz_origReso $ fspld^/cf
+         resoLimit = TwoToThe 6
+     "converges" & plotServ
+       ( visualiseSinkhornConv (\x -> exp (-(x-0.4)^2*32)) (\x -> exp (-(x+0.4)^2*60)) )
 
 
 useLightColourscheme :: Bool
