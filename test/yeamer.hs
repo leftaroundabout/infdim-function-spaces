@@ -77,25 +77,27 @@ main = do
    
    "Sinkhorn convergence"
     ====== do
-     let visualiseSinkhornConv r c
+     let visualiseSinkhornConv r₀ c₀
              = [ continFnPlot r
                , plotLatest
                    [ plotDelay 0.5 . plotMultiple
                        $ [mempty,mempty]
                         ++[ visualiseDistrib $ marg ot
                           | marg <- [ lMarginal
-                                    , lMarginal . getLinearFunction transposeTensor]
+                                    , lMarginal . getLinearFunction transposeTensor ]
                           ]
                    | ot <- entropyLimOptimalTransport (SinkhornOTConfig 18) r' c']
                , continFnPlot c ]
-          where [r',c'] = asDistrib<$>[r,c]
+          where [r₀',c₀'] = asDistrib<$>[r₀,c₀]
+                [ar,ac] = pwconst_D¹_offset<$>[r₀',c₀']
+                r=(^/ar)<$>r₀; c=(^/ac)<$>c₀; r'=r₀'^/ar; c'=c₀'^/ac
          visualiseDistrib :: DualVector (Haar D¹ ℝ) -> DynamicPlottable
          visualiseDistrib d = continFnPlot $ evalHaarFunction f . D¹
           where f = riesz_resolimited resoLimit $ d
          asDistrib :: (ℝ->ℝ)->DualVector (Haar D¹ ℝ)
          asDistrib f = case (homsampleHaarFunction resoLimit $ \(D¹ x)->f x)
                                 :: Haar D¹ ℝ of
-          fspld@(Haar_D¹ cf _) -> coRiesz_origReso $ fspld^/cf
+          fspld -> coRiesz_origReso $ fspld
          resoLimit = TwoToThe 6
      "converges" & plotServ
        ( visualiseSinkhornConv (\x -> exp (-(x-0.4)^2*32)) (\x -> exp (-(x+0.4)^2*60)) )
