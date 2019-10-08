@@ -331,15 +331,18 @@ riesz_resolimited res = LinearFunction $ \(Haar_D¹ c₀ f)
 data SinkhornOTConfig = SinkhornOTConfig
   { _entropyLim_λ :: ℝ }
 
--- | Calculation of an approximately optimal (i.e. minimum earth-mover distance)
---   transport (i.e. joint distribution that has the two given marginals).
---   Uses the Sinkhorn algorithm as presented in
---   <http://papers.nips.cc/paper/4927-sinkhorn-distances-lightspeed-computation-of-optimal-transport Cuturi 2013>.
-entropyLimOptimalTransport :: SinkhornOTConfig
-     -> DualVector (Haar D¹ ℝ) -> DualVector (Haar D¹ ℝ)
-      -> [DualVector (Haar D¹ ℝ) ⊗ DualVector (Haar D¹ ℝ)]
-entropyLimOptimalTransport (SinkhornOTConfig λ) r c = sinkh False flatDistrib flatDistrib
- where sinkh :: Bool -> DualVector (Haar D¹ ℝ) -> DualVector (Haar D¹ ℝ)
+class OptimalTransportable v w where
+  -- | Calculation of an approximately optimal (i.e. minimum earth-mover distance)
+  --   transport (i.e. joint distribution that has the two given marginals).
+  --   Uses the Sinkhorn algorithm as presented in
+  --   <http://papers.nips.cc/paper/4927-sinkhorn-distances-lightspeed-computation-of-optimal-transport Cuturi 2013>.
+  entropyLimOptimalTransport :: SinkhornOTConfig -> v -> w -> [v ⊗ w]
+
+instance OptimalTransportable (Haar_D¹ DistributionSpace ℝ)
+                              (Haar_D¹ DistributionSpace ℝ) where
+  entropyLimOptimalTransport (SinkhornOTConfig λ) r c = sinkh False flatDistrib flatDistrib
+    where
+       sinkh :: Bool -> DualVector (Haar D¹ ℝ) -> DualVector (Haar D¹ ℝ)
                -> [DualVector (Haar D¹ ℝ) ⊗ DualVector (Haar D¹ ℝ)]
        sinkh rside u v = connection
             : sinkh (not rside)
