@@ -5,6 +5,7 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE ImplicitParams    #-}
@@ -12,6 +13,7 @@
 {-# LANGUAGE Rank2Types        #-}
 {-# LANGUAGE UnicodeSyntax     #-}
 {-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE DataKinds         #-}
 
 import qualified Prelude as Hask
 import Control.Category.Constrained.Prelude
@@ -64,6 +66,12 @@ import Math.Function.FiniteElement.PWConst
 import Math.Function.FiniteElement.PWConst.Internal
 import Math.Function.FiniteElement.PWLinear
 
+class HasIntervalFunctions v where
+  fromIntervalFunction :: PowerOfTwo -> (D¹ -> ℝ) -> v
+instance HasIntervalFunctions (Haar_D¹ 'DistributionSpace ℝ) where
+  fromIntervalFunction resoLimit f
+      = case homsampleHaarFunction resoLimit f :: Haar D¹ ℝ of
+          fspld -> coRiesz_origReso $ fspld
 
 main :: IO ()
 main = do
@@ -95,9 +103,7 @@ main = do
          visualiseDistrib d = continFnPlot $ evalHaarFunction f . D¹
           where f = riesz_resolimited resoLimit $ d
          asDistrib :: (ℝ->ℝ)->DualVector (Haar D¹ ℝ)
-         asDistrib f = case (homsampleHaarFunction resoLimit $ \(D¹ x)->f x)
-                                :: Haar D¹ ℝ of
-          fspld -> coRiesz_origReso $ fspld
+         asDistrib f = fromIntervalFunction resoLimit $ \(D¹ x)->f x
          resoLimit = TwoToThe 6
      plotServ
        ( visualiseSinkhornConv (SinkhornOTConfig 18)

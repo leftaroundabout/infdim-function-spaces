@@ -28,6 +28,7 @@ module Math.Function.FiniteElement.PWConst
          -- * Utility
         , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose, haarFunctionGraph
         , VAffineSpace, detailScale, riesz_resolimited, coRiesz_origReso
+        , Dualness(..)
          -- * Misc, unstable
         , dualPointwiseMul
         , lMarginal, entropyLimOptimalTransport, SinkhornOTConfig(..)
@@ -337,6 +338,7 @@ class OptimalTransportable v w where
   --   Uses the Sinkhorn algorithm as presented in
   --   <http://papers.nips.cc/paper/4927-sinkhorn-distances-lightspeed-computation-of-optimal-transport Cuturi 2013>.
   entropyLimOptimalTransport :: SinkhornOTConfig -> v -> w -> [v ⊗ w]
+  lMarginal :: v ⊗ w -> v
 
 instance OptimalTransportable (Haar_D¹ DistributionSpace ℝ)
                               (Haar_D¹ DistributionSpace ℝ) where
@@ -366,11 +368,28 @@ instance OptimalTransportable (Haar_D¹ DistributionSpace ℝ)
        flatDistrib :: DualVector (Haar D¹ ℝ)
        flatDistrib = Haar_D¹ 1 zeroV
 
-lMarginal :: DualVector (Haar D¹ Double) ⊗ DualVector (Haar D¹ Double)
-                 -> DualVector (Haar D¹ Double)
-lMarginal m = fromFlatTensor . fmap integrate $ m
- where integrate = LinearFunction (<.>^(Haar_D¹ 1 zeroV :: Haar D¹ ℝ))
+  lMarginal m = fromFlatTensor . fmap integrate $ m
+   where integrate = LinearFunction (<.>^(Haar_D¹ 1 zeroV :: Haar D¹ ℝ))
 
+instance OptimalTransportable (Haar_D¹ FunctionSpace ℝ)
+                              (Haar_D¹ FunctionSpace ℝ) where
+  entropyLimOptimalTransport (SinkhornOTConfig λ) r c = sinkh smearedDiag
+   where
+       sinkh m = m : (sinkh . transpose_setLMarginal c . transpose_setLMarginal r $ m)
+       transpose_setLMarginal :: Haar D¹ ℝ -> Haar D¹ ℝ ⊗ Haar D¹ ℝ -> Haar D¹ ℝ ⊗ Haar D¹ ℝ
+       transpose_setLMarginal p m
+          = fmap (LinearFunction (^*^ρ)) . transposeTensor $ m
+        where p' = lMarginal m
+              ρ = p^*^vmap recip p'
+       smearedDiag :: Haar D¹ ℝ ⊗ Haar D¹ ℝ
+       smearedDiag = Tensor . homsampleHaarFunction reso
+           $ \(D¹ x) -> Tensor . homsampleHaarFunction reso
+            $ \(D¹ x') -> exp $ -λ*abs (x-x')
+        where reso = (TwoToThe . max 0 . round $ log λ)
+
+  lMarginal m = fromFlatTensor . fmap integrate $ m
+   where integrate :: Haar D¹ ℝ -+> ℝ
+         integrate = LinearFunction $ (Haar_D¹ 1 zeroV<.>^)
 
 
 
