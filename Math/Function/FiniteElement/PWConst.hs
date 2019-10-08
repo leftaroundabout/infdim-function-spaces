@@ -32,6 +32,7 @@ module Math.Function.FiniteElement.PWConst
          -- * Misc, unstable
         , dualPointwiseMul
         , lMarginal, entropyLimOptimalTransport, SinkhornOTConfig(..)
+        , OptimalTransportable
         ) where
 
 import Math.Function.FiniteElement.PWConst.Internal

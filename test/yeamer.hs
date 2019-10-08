@@ -3,17 +3,20 @@
 -- To view a copy of this license, visit http://creativecommons.org/licenses/by-nd/4.0/
 -- or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes       #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE ImplicitParams    #-}
-{-# LANGUAGE TupleSections     #-}
-{-# LANGUAGE Rank2Types        #-}
-{-# LANGUAGE UnicodeSyntax     #-}
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE QuasiQuotes         #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE ImplicitParams      #-}
+{-# LANGUAGE TupleSections       #-}
+{-# LANGUAGE Rank2Types          #-}
+{-# LANGUAGE UnicodeSyntax       #-}
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 import qualified Prelude as Hask
 import Control.Category.Constrained.Prelude
@@ -68,10 +71,16 @@ import Math.Function.FiniteElement.PWLinear
 
 class HasIntervalFunctions v where
   fromIntervalFunction :: PowerOfTwo -> (D¹ -> ℝ) -> v
+  visualiseIvFn :: PowerOfTwo -> v -> DynamicPlottable
 instance HasIntervalFunctions (Haar_D¹ 'DistributionSpace ℝ) where
   fromIntervalFunction resoLimit f
       = case homsampleHaarFunction resoLimit f :: Haar D¹ ℝ of
           fspld -> coRiesz_origReso $ fspld
+  visualiseIvFn resoLimit d = continFnPlot $ evalHaarFunction f . D¹
+   where f = riesz_resolimited resoLimit $ d
+instance HasIntervalFunctions (Haar_D¹ 'FunctionSpace ℝ) where
+  fromIntervalFunction = homsampleHaarFunction
+  visualiseIvFn _ f = continFnPlot $ evalHaarFunction f . D¹
 
 main :: IO ()
 main = do
@@ -85,40 +94,57 @@ main = do
    
    "Sinkhorn convergence"
     ====== do
-     let visualiseSinkhornConv
-            :: SinkhornOTConfig -> (ℝ->ℝ) -> (ℝ->ℝ) -> [DynamicPlottable]
+     let visualiseSinkhornConv :: ∀ dn v
+           . (HasIntervalFunctions v, OptimalTransportable v v, v ~ Haar_D¹ dn ℝ)
+                  => SinkhornOTConfig -> (ℝ->ℝ) -> (ℝ->ℝ) -> [DynamicPlottable]
          visualiseSinkhornConv shOTC r₀ c₀
              = [ continFnPlot r
                , plotLatest
                    [ plotDelay 0.5 . plotMultiple
                        $ [mempty,mempty]
-                        ++[ visualiseDistrib $ marg ot
+                        ++[ visualiseIvFn resoLimit $ marg ot
                           | marg <- [ lMarginal
                                     , lMarginal . getLinearFunction transposeTensor ]
                           ]
                    | ot <- entropyLimOptimalTransport shOTC r' c']
                , continFnPlot c ]
-          where [r₀',c₀'] = asDistrib<$>[r₀,c₀]
+          where r', c', r₀', c₀' :: v
+                [r₀',c₀'] = asDistrib<$>[r₀,c₀]
                 [ar,ac] = pwconst_D¹_offset<$>[r₀',c₀']
                 r=(^/ar)<$>r₀; c=(^/ac)<$>c₀; r'=r₀'^/ar; c'=c₀'^/ac
-                visualiseDistrib :: DualVector (Haar D¹ ℝ) -> DynamicPlottable
-                visualiseDistrib d = continFnPlot $ evalHaarFunction f . D¹
-                 where f = riesz_resolimited resoLimit $ d
-                asDistrib :: (ℝ->ℝ)->DualVector (Haar D¹ ℝ)
+                asDistrib :: (ℝ->ℝ)->v
                 asDistrib f = fromIntervalFunction resoLimit $ \(D¹ x)->f x
                 resoLimit = TwoToThe 6
-     plotServ
-       ( visualiseSinkhornConv (SinkhornOTConfig 18)
-             (\x -> exp (-(x-0.4)^2*32)) (\x -> exp (-(x+0.4)^2*12)) )
-       "Broad peaks. Converges." ──
-      plotServ
-       ( visualiseSinkhornConv (SinkhornOTConfig 18)
-             (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
-       "Narrow peaks. Converges." ──
-      plotServ
-       ( visualiseSinkhornConv (SinkhornOTConfig 32)
-             (\x -> exp (-(x-0.4)^2*32)) (\x -> exp (-(x+0.4)^2*60)) )
-       "λ too big, doesn't converge."
+     do
+       "DistributionSpace"
+        ======
+        plotServ
+         ( visualiseSinkhornConv @'DistributionSpace (SinkhornOTConfig 18)
+               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+         "Broad peaks. Converges." ──
+        plotServ
+         ( visualiseSinkhornConv @'DistributionSpace (SinkhornOTConfig 18)
+               (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
+         "Narrow peaks. Converges." ──
+        plotServ
+         ( visualiseSinkhornConv @'DistributionSpace (SinkhornOTConfig 32)
+               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+         "λ too big, doesn't converge."
+      │do
+       "FunctionSpace"
+        ======
+        plotServ
+         ( visualiseSinkhornConv @'FunctionSpace (SinkhornOTConfig 18)
+               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+         "Broad peaks. Converges." ──
+        plotServ
+         ( visualiseSinkhornConv @'FunctionSpace (SinkhornOTConfig 18)
+               (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
+         "Narrow peaks. Diverges." ──
+        plotServ
+         ( visualiseSinkhornConv @'FunctionSpace (SinkhornOTConfig 32)
+               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+         "λ big, still converges."
 
 
 useLightColourscheme :: Bool
