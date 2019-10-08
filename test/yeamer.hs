@@ -85,7 +85,9 @@ main = do
    
    "Sinkhorn convergence"
     ====== do
-     let visualiseSinkhornConv shOTC r₀ c₀
+     let visualiseSinkhornConv
+            :: SinkhornOTConfig -> (ℝ->ℝ) -> (ℝ->ℝ) -> [DynamicPlottable]
+         visualiseSinkhornConv shOTC r₀ c₀
              = [ continFnPlot r
                , plotLatest
                    [ plotDelay 0.5 . plotMultiple
@@ -99,12 +101,12 @@ main = do
           where [r₀',c₀'] = asDistrib<$>[r₀,c₀]
                 [ar,ac] = pwconst_D¹_offset<$>[r₀',c₀']
                 r=(^/ar)<$>r₀; c=(^/ac)<$>c₀; r'=r₀'^/ar; c'=c₀'^/ac
-         visualiseDistrib :: DualVector (Haar D¹ ℝ) -> DynamicPlottable
-         visualiseDistrib d = continFnPlot $ evalHaarFunction f . D¹
-          where f = riesz_resolimited resoLimit $ d
-         asDistrib :: (ℝ->ℝ)->DualVector (Haar D¹ ℝ)
-         asDistrib f = fromIntervalFunction resoLimit $ \(D¹ x)->f x
-         resoLimit = TwoToThe 6
+                visualiseDistrib :: DualVector (Haar D¹ ℝ) -> DynamicPlottable
+                visualiseDistrib d = continFnPlot $ evalHaarFunction f . D¹
+                 where f = riesz_resolimited resoLimit $ d
+                asDistrib :: (ℝ->ℝ)->DualVector (Haar D¹ ℝ)
+                asDistrib f = fromIntervalFunction resoLimit $ \(D¹ x)->f x
+                resoLimit = TwoToThe 6
      plotServ
        ( visualiseSinkhornConv (SinkhornOTConfig 18)
              (\x -> exp (-(x-0.4)^2*32)) (\x -> exp (-(x+0.4)^2*12)) )
