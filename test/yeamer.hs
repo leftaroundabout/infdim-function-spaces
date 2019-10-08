@@ -77,7 +77,7 @@ main = do
    
    "Sinkhorn convergence"
     ====== do
-     let visualiseSinkhornConv r₀ c₀
+     let visualiseSinkhornConv shOTC r₀ c₀
              = [ continFnPlot r
                , plotLatest
                    [ plotDelay 0.5 . plotMultiple
@@ -86,7 +86,7 @@ main = do
                           | marg <- [ lMarginal
                                     , lMarginal . getLinearFunction transposeTensor ]
                           ]
-                   | ot <- entropyLimOptimalTransport (SinkhornOTConfig 18) r' c']
+                   | ot <- entropyLimOptimalTransport shOTC r' c']
                , continFnPlot c ]
           where [r₀',c₀'] = asDistrib<$>[r₀,c₀]
                 [ar,ac] = pwconst_D¹_offset<$>[r₀',c₀']
@@ -99,8 +99,18 @@ main = do
                                 :: Haar D¹ ℝ of
           fspld -> coRiesz_origReso $ fspld
          resoLimit = TwoToThe 6
-     "converges" & plotServ
-       ( visualiseSinkhornConv (\x -> exp (-(x-0.4)^2*32)) (\x -> exp (-(x+0.4)^2*60)) )
+     plotServ
+       ( visualiseSinkhornConv (SinkhornOTConfig 18)
+             (\x -> exp (-(x-0.4)^2*32)) (\x -> exp (-(x+0.4)^2*12)) )
+       "Broad peaks. Converges." ──
+      plotServ
+       ( visualiseSinkhornConv (SinkhornOTConfig 18)
+             (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
+       "Narrow peaks. Converges." ──
+      plotServ
+       ( visualiseSinkhornConv (SinkhornOTConfig 32)
+             (\x -> exp (-(x-0.4)^2*32)) (\x -> exp (-(x+0.4)^2*60)) )
+       "λ too big, doesn't converge."
 
 
 useLightColourscheme :: Bool
