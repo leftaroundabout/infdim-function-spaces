@@ -70,17 +70,23 @@ import Math.Function.FiniteElement.PWConst.Internal
 import Math.Function.FiniteElement.PWLinear
 
 class HasIntervalFunctions v where
-  fromIntervalFunction :: PowerOfTwo -> (D¹ -> ℝ) -> v
+  fromIntervalFunction :: PowerOfTwo -> (D¹ -> Scalar v) -> v
   visualiseIvFn :: PowerOfTwo -> v -> DynamicPlottable
-instance HasIntervalFunctions (Haar_D¹ 'DistributionSpace ℝ) where
-  fromIntervalFunction resoLimit f
-      = case homsampleHaarFunction resoLimit f :: Haar D¹ ℝ of
+instance ∀ s . (RealFrac s, Num' s, AffineSpace s, Diff s ~ s, Needle s ~ s)
+    => HasIntervalFunctions (Haar_D¹ 'DistributionSpace s) where
+  fromIntervalFunction = case closedScalarWitness @s of
+    ClosedScalarWitness -> \resoLimit f
+     -> case homsampleHaarFunction resoLimit f :: Haar D¹ s of
           fspld -> coRiesz_origReso $ fspld
-  visualiseIvFn resoLimit d = continFnPlot $ evalHaarFunction f . D¹
-   where f = riesz_resolimited resoLimit $ d
-instance HasIntervalFunctions (Haar_D¹ 'FunctionSpace ℝ) where
-  fromIntervalFunction = homsampleHaarFunction
-  visualiseIvFn _ f = continFnPlot $ evalHaarFunction f . D¹
+  visualiseIvFn resoLimit d = continFnPlot $ (realToFrac::s->ℝ) . evalHaarFunction f . D¹
+   where f = case closedScalarWitness @s of
+          ClosedScalarWitness
+           -> riesz_resolimited resoLimit $ d :: Haar_D¹ 'FunctionSpace s
+instance ∀ s . (RealFrac s, Num' s, AffineSpace s, Diff s ~ s, Needle s ~ s)
+    => HasIntervalFunctions (Haar_D¹ 'FunctionSpace s) where
+  fromIntervalFunction = case closedScalarWitness @s of
+     ClosedScalarWitness -> homsampleHaarFunction
+  visualiseIvFn _ f = continFnPlot $ realToFrac . evalHaarFunction f . D¹
 
 main :: IO ()
 main = do
@@ -94,58 +100,84 @@ main = do
    
    "Sinkhorn convergence"
     ====== do
-     let visualiseSinkhornConv :: ∀ dn v
-           . (HasIntervalFunctions v, OptimalTransportable v v, v ~ Haar_D¹ dn ℝ)
-                  => SinkhornOTConfig -> (ℝ->ℝ) -> (ℝ->ℝ) -> [DynamicPlottable]
-         visualiseSinkhornConv shOTC r₀ c₀
-             = [ continFnPlot r
+     let visualiseSinkhornConv :: ∀ dn s v
+           . ( HasIntervalFunctions v, OptimalTransportable v v, v ~ Haar_D¹ dn s
+             , RealFrac s, Num' s, s ~ Needle s, s ~ Scalar s
+             , AffineSpace s, s ~ Diff s )
+                  => (ℝ->s) -> SinkhornOTConfig -> (ℝ->ℝ) -> (ℝ->ℝ) -> [DynamicPlottable]
+         visualiseSinkhornConv convertS shOTC r₀ c₀
+             = [ continFnPlot $ realToFrac . r
                , plotLatest
                    [ plotDelay 0.5 . plotMultiple
                        $ [mempty,mempty]
                         ++[ visualiseIvFn resoLimit $ marg ot
                           | marg <- [ lMarginal
-                                    , lMarginal . getLinearFunction transposeTensor ]
+                                    , case scalarSpaceWitness @v of
+                                        ScalarSpaceWitness
+                                         -> lMarginal . getLinearFunction transposeTensor ]
                           ]
                    | ot <- entropyLimOptimalTransport shOTC r' c']
-               , continFnPlot c ]
+               , continFnPlot $ realToFrac . c ]
           where r', c', r₀', c₀' :: v
-                [r₀',c₀'] = asDistrib<$>[r₀,c₀]
+                [r₀',c₀'] = asDistrib . fmap convertS<$>[r₀,c₀]
                 [ar,ac] = pwconst_D¹_offset<$>[r₀',c₀']
-                r=(^/ar)<$>r₀; c=(^/ac)<$>c₀; r'=r₀'^/ar; c'=c₀'^/ac
-                asDistrib :: (ℝ->ℝ)->v
+                r = ((/ar).convertS)<$>r₀; r'=r₀'^/ar
+                c = ((/ac).convertS)<$>c₀; c'=c₀'^/ac
+                asDistrib :: (ℝ->s)->v
                 asDistrib f = fromIntervalFunction resoLimit $ \(D¹ x)->f x
                 resoLimit = TwoToThe 6
-     do
+     "Floating-point"======
+      do
        "DistributionSpace"
         ======
         plotServ
-         ( visualiseSinkhornConv @'DistributionSpace (SinkhornOTConfig 18)
+         ( visualiseSinkhornConv @'DistributionSpace id (SinkhornOTConfig 18)
                (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
          "Broad peaks. Converges." ──
         plotServ
-         ( visualiseSinkhornConv @'DistributionSpace (SinkhornOTConfig 18)
+         ( visualiseSinkhornConv @'DistributionSpace id (SinkhornOTConfig 18)
                (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
          "Narrow peaks. Converges." ──
         plotServ
-         ( visualiseSinkhornConv @'DistributionSpace (SinkhornOTConfig 32)
+         ( visualiseSinkhornConv @'DistributionSpace id (SinkhornOTConfig 32)
                (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
          "λ too big, doesn't converge."
       │do
        "FunctionSpace"
         ======
         plotServ
-         ( visualiseSinkhornConv @'FunctionSpace (SinkhornOTConfig 18)
+         ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 18)
                (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
          "Broad peaks. Converges." ──
         plotServ
-         ( visualiseSinkhornConv @'FunctionSpace (SinkhornOTConfig 18)
+         ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 18)
                (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
          "Narrow peaks. Diverges." ──
         plotServ
-         ( visualiseSinkhornConv @'FunctionSpace (SinkhornOTConfig 32)
+         ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 32)
                (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
          "λ big, still converges."
+     "Rational"======
+      do
+       "DistributionSpace"
+        ======
+        plotServ
+         ( visualiseSinkhornConv @'DistributionSpace rationalApprox (SinkhornOTConfig 18)
+               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+         "Broad peaks. Converges." ──
+        plotServ
+         ( visualiseSinkhornConv @'DistributionSpace rationalApprox (SinkhornOTConfig 18)
+               (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
+         "Narrow peaks. Converges." ──
+        plotServ
+         ( visualiseSinkhornConv @'DistributionSpace rationalApprox (SinkhornOTConfig 32)
+               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+         "λ too big, doesn't converge."
 
+
+rationalApprox :: ℝ -> Rational
+rationalApprox y = fromIntegral (round $ y/2^^magnitudeCutoff) * 2^^magnitudeCutoff
+ where magnitudeCutoff = round $ logBase 2 y - 5
 
 useLightColourscheme :: Bool
 useLightColourscheme = False
@@ -288,7 +320,7 @@ striking = later ("strikedOut"#%)
 
 plotServ :: (?plotLock :: IORef (Maybe ThreadId))
          => [DynamicPlottable] -> Presentation -> Presentation
-plotServ pl cont = serverSide`id`do
+plotServ pl cont = cont >> serverSide`id`do
        locked <- readIORef ?plotLock
        case locked of
         Nothing -> do
