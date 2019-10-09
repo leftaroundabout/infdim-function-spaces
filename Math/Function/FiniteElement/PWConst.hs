@@ -388,25 +388,32 @@ instance ∀ s .
                -> let integrate = LinearFunction (<.>^(Haar_D¹ 1 zeroV :: Haar D¹ s))
                   in \m -> fromFlatTensor . fmap integrate $ m
 
-instance OptimalTransportable (Haar_D¹ FunctionSpace ℝ)
-                              (Haar_D¹ FunctionSpace ℝ) where
+instance ∀ s . ( Num' s, RealFrac s
+               , TensorProduct s (Haar_D¹ 'FunctionSpace s)
+                                ~ Haar_D¹ 'FunctionSpace s )
+            => OptimalTransportable (Haar_D¹ FunctionSpace s)
+                                    (Haar_D¹ FunctionSpace s) where
   entropyLimOptimalTransport (SinkhornOTConfig λ) r c = sinkh smearedDiag
    where
        sinkh m = m : (sinkh . transpose_setLMarginal c . transpose_setLMarginal r $ m)
-       transpose_setLMarginal :: Haar D¹ ℝ -> Haar D¹ ℝ ⊗ Haar D¹ ℝ -> Haar D¹ ℝ ⊗ Haar D¹ ℝ
-       transpose_setLMarginal p m
-          = fmap (LinearFunction (^*^ρ)) . transposeTensor $ m
-        where p' = lMarginal m
-              ρ = p^*^vmap recip p'
-       smearedDiag :: Haar D¹ ℝ ⊗ Haar D¹ ℝ
-       smearedDiag = Tensor . homsampleHaarFunction reso
+       transpose_setLMarginal :: Haar D¹ s -> Haar D¹ s ⊗ Haar D¹ s -> Haar D¹ s ⊗ Haar D¹ s
+       transpose_setLMarginal = case (linearManifoldWitness @s, closedScalarWitness @s) of
+          (LinearManifoldWitness _, ClosedScalarWitness) -> \p m ->
+           let p' = lMarginal m
+               ρ = p^*^vmap recip p'
+           in fmap (LinearFunction (^*^ρ)) . transposeTensor $ m
+       smearedDiag :: Haar D¹ s ⊗ Haar D¹ s
+       smearedDiag = case (linearManifoldWitness @s, closedScalarWitness @s) of
+        (LinearManifoldWitness _, ClosedScalarWitness)
+          -> Tensor . homsampleHaarFunction reso
            $ \(D¹ x) -> Tensor . homsampleHaarFunction reso
-            $ \(D¹ x') -> exp $ -λ*abs (x-x')
+            $ \(D¹ x') -> realToFrac . exp $ -λ*abs (x-x')
         where reso = (TwoToThe . max 0 . round $ log λ)
 
-  lMarginal m = fromFlatTensor . fmap integrate $ m
-   where integrate :: Haar D¹ ℝ -+> ℝ
-         integrate = LinearFunction $ (Haar_D¹ 1 zeroV<.>^)
+  lMarginal m = case (linearManifoldWitness @s, closedScalarWitness @s) of
+      (LinearManifoldWitness _, ClosedScalarWitness)
+        -> let integrate = LinearFunction $ (Haar_D¹ 1 zeroV<.>^)
+           in fromFlatTensor . fmap integrate $ m
 
 
 

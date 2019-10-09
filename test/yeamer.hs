@@ -173,6 +173,21 @@ main = do
          ( visualiseSinkhornConv @'DistributionSpace rationalApprox (SinkhornOTConfig 32)
                (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
          "λ too big, doesn't converge."
+      │do
+       "FunctionSpace"
+        ======
+        plotServ
+         ( visualiseSinkhornConv @'FunctionSpace rationalApprox (SinkhornOTConfig 18)
+               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+         "Broad peaks. Converges." ──
+        plotServ
+         ( visualiseSinkhornConv @'FunctionSpace rationalApprox (SinkhornOTConfig 18)
+               (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
+         "Narrow peaks. Diverges." ──
+        plotServ
+         ( visualiseSinkhornConv @'FunctionSpace rationalApprox (SinkhornOTConfig 32)
+               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+         "λ big, still converges."
 
 
 rationalApprox :: ℝ -> Rational
