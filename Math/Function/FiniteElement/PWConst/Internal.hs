@@ -89,13 +89,13 @@ deriving instance (Show y, Show (Diff y)) => Show (Haar_D¹ dn y)
 
 type instance Haar D¹ y = Haar_D¹ FunctionSpace y
 
-instance (RealFrac s, Num' s)
+instance Num' s
    => CC.Functor (Haar0BiasTree dn) (LinearFunction s) (LinearFunction s) where
   fmap f = LinearFunction go
    where go HaarZero = HaarZero
          go (HaarUnbiased δ l r) = HaarUnbiased (f CC.$ δ) (go l) (go r)
 
-instance ∀ s dn . (RealFrac s, Num' s)
+instance ∀ s dn . Num' s
     => CC.Functor (Haar_D¹ dn) (LinearFunction s) (LinearFunction s) where
   fmap = fmapLFH
    where fmapLFH :: ∀ y z . ( TensorSpace y, TensorSpace z, Scalar y ~ s, Scalar z ~ s )
@@ -106,7 +106,7 @@ instance ∀ s dn . (RealFrac s, Num' s)
             \(Haar_D¹ y₀ δs) -> Haar_D¹ (f CC.$ y₀)
                       $ getLinearFunction (CC.fmap f) δs
 
-instance ∀ s dn . (RealFrac s, Num' s)
+instance ∀ s dn . Num' s
      => CC.Monoidal (Haar0BiasTree dn) (LinearFunction s) (LinearFunction s) where
   pureUnit = LinearFunction $ \Origin -> HaarZero
   fzipWith = fzwLFH
@@ -128,7 +128,7 @@ instance ∀ s dn . (RealFrac s, Num' s)
                  = HaarUnbiased (f CC.$ (δx,δy)) (go (lx,ly)) (go (rx,ry))
             in LinearFunction go
 
-instance ∀ s dn . (RealFrac s, Num' s)
+instance ∀ s dn . Num' s
     => CC.Monoidal (Haar_D¹ dn) (LinearFunction s) (LinearFunction s) where
   pureUnit = LinearFunction $ \Origin -> zeroV
   fzipWith = fzwLFH
@@ -231,19 +231,19 @@ instance VectorSpace y => VectorSpace (Haar0BiasTree dn y) where
   _ *^ HaarZero = HaarZero
   μ *^ HaarUnbiased δlr δsl δsr = HaarUnbiased (μ*^δlr) (μ*^δsl) (μ*^δsr)
   
-instance (VAffineSpace y) => AffineSpace (Haar_D¹ dn y) where
+instance VAffineSpace y => AffineSpace (Haar_D¹ dn y) where
   type Diff (Haar_D¹ dn y) = Haar_D¹ dn (Diff y)
   Haar_D¹ y₀ δ₀ .+^ Haar_D¹ y₁ δ₁ = Haar_D¹ (y₀.+^y₁) (δ₀.+^δ₁)
   Haar_D¹ y₀ δ₀ .-. Haar_D¹ y₁ δ₁ = Haar_D¹ (y₀.-.y₁) (δ₀.-.δ₁)
 
-instance (VAffineSpace y, Diff y ~ y, AdditiveGroup y)
+instance VAffineSpace y
              => AdditiveGroup (Haar_D¹ dn y) where
   zeroV = Haar_D¹ zeroV zeroV
   (^+^) = (.+^)
   (^-^) = (.-.)
   negateV (Haar_D¹ y δ) = Haar_D¹ (negateV y) (negateV δ)
 
-instance (VectorSpace y, AffineSpace y, Diff y ~ y)
+instance VAffineSpace y
              => VectorSpace (Haar_D¹ dn y) where
   type Scalar (Haar_D¹ dn y) = Scalar y
   μ *^ Haar_D¹ y δ = Haar_D¹ (μ*^y) (μ*^δ)
@@ -259,38 +259,29 @@ instance (InnerSpace y, Fractional (Scalar y), AffineSpace y, Diff y ~ y)
              => InnerSpace (Haar_D¹ FunctionSpace y) where
   Haar_D¹ y₀ δ₀ <.> Haar_D¹ y₁ δ₁ = 2*(y₀<.>y₁ + δ₀<.>δ₁)
 
-instance ( VAffineSpace y
-         , Semimanifold y, Needle y ~ Diff y
-         , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
+instance VAffineSpace y
              => Semimanifold (Haar0BiasTree dn y) where
-  type Needle (Haar0BiasTree dn y) = Haar0BiasTree dn (Needle y)
+  type Needle (Haar0BiasTree dn y) = Haar0BiasTree dn y
   type Interior (Haar0BiasTree dn y) = Haar0BiasTree dn y
   translateP = Tagged (.+^)
   toInterior = Just
   fromInterior = id
-instance ( VAffineSpace y
-         , Semimanifold y, Needle y ~ Diff y
-         , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
+instance VAffineSpace y
              => PseudoAffine (Haar0BiasTree dn y) where
   (.-~!) = (.-.)
 
-instance ( VAffineSpace y
-         , Semimanifold y, Needle y ~ Diff y
-         , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
+instance VAffineSpace y
              => Semimanifold (Haar_D¹ dn y) where
-  type Needle (Haar_D¹ dn y) = Haar_D¹ dn (Needle y)
+  type Needle (Haar_D¹ dn y) = Haar_D¹ dn y
   type Interior (Haar_D¹ dn y) = Haar_D¹ dn y
   translateP = Tagged (.+^)
   toInterior = Just
   fromInterior = id
-instance ( VAffineSpace y
-         , Semimanifold y, Needle y ~ Diff y
-         , Semimanifold (Diff y), Needle (Diff y) ~ Diff y )
+instance ( VAffineSpace y )
              => PseudoAffine (Haar_D¹ dn y) where
   (.-~!) = (.-.)
 
-instance ∀ y dn . ( TensorSpace y, AffineSpace y
-                  , Diff y ~ y, Needle y ~ y, RealFrac (Scalar y) )
+instance ∀ y dn . ( TensorSpace y, VAffineSpace y, Num' (Scalar y) )
              => TensorSpace (Haar0BiasTree dn y) where
   type TensorProduct (Haar0BiasTree dn y) w = Haar0BiasTree dn (y⊗w)
   wellDefinedVector HaarZero = Just HaarZero
@@ -340,13 +331,15 @@ instance ∀ y dn . ( TensorSpace y, AffineSpace y
    ScalarSpaceWitness -> bilinearFunction $ \a (Tensor f, Tensor g)
              -> Tensor $ CC.fzipWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
 instance ∀ y dn
-         . (TensorSpace y, AffineSpace y, Diff y ~ y, Needle y ~ y, RealFrac (Scalar y))
+         . (TensorSpace y, VAffineSpace y, Num' (Scalar y))
              => TensorSpace (Haar_D¹ dn y) where
   type TensorProduct (Haar_D¹ dn y) w = Haar_D¹ dn (y⊗w)
-  wellDefinedVector (Haar_D¹ y₀ δs)
-       = Haar_D¹ <$> wellDefinedVector y₀ <*> wellDefinedVector δs
-  wellDefinedTensor (Tensor (Haar_D¹ y₀ δs))
-       = Tensor <$> (Haar_D¹ <$> wellDefinedVector y₀ <*> wellDefinedVector δs)
+  wellDefinedVector = case scalarSpaceWitness @y of
+   ScalarSpaceWitness -> \(Haar_D¹ y₀ δs)
+       -> Haar_D¹ <$> wellDefinedVector y₀ <*> wellDefinedVector δs
+  wellDefinedTensor = case scalarSpaceWitness @y of
+   ScalarSpaceWitness -> \(Tensor (Haar_D¹ y₀ δs))
+       -> Tensor <$> (Haar_D¹ <$> wellDefinedVector y₀ <*> wellDefinedVector δs)
   scalarSpaceWitness = case scalarSpaceWitness :: ScalarSpaceWitness y of
      ScalarSpaceWitness -> ScalarSpaceWitness
   linearManifoldWitness = case linearManifoldWitness :: LinearManifoldWitness y of
