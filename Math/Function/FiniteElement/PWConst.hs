@@ -322,8 +322,10 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                               $ (Tensor f :: Haar_D¹ dn y⊗u)
                   | (a,f) <- (ac,fc) : zip al fl ++ zip ar fr ]
 
-riesz_resolimited :: PowerOfTwo -> (DualVector (Haar D¹ Double) -+> Haar D¹ Double)
-riesz_resolimited res = LinearFunction $ \(Haar_D¹ c₀ f)
+riesz_resolimited :: ∀ s . (Num' s, Fractional s)
+                     => PowerOfTwo -> (DualVector (Haar D¹ s) -+> Haar D¹ s)
+riesz_resolimited res = case closedScalarWitness @s of
+  ClosedScalarWitness -> LinearFunction $ \(Haar_D¹ c₀ f)
                            -> Haar_D¹ (c₀^/2) $ go res (1/2) f 
  where go (TwoToThe n) μ (HaarUnbiased δ l r)
         | n > 0     = HaarUnbiased (μ*^δ)
@@ -395,8 +397,10 @@ instance OptimalTransportable (Haar_D¹ FunctionSpace ℝ)
 
 
 
-coRiesz_origReso :: Haar D¹ Double -+> DualVector (Haar D¹ Double)
-coRiesz_origReso = LinearFunction $ \(Haar_D¹ c₀ f) -> Haar_D¹ (c₀^*2) $ go 2 f 
+coRiesz_origReso :: ∀ s . (Num' s, Fractional s)
+                     => Haar D¹ s -+> DualVector (Haar D¹ s)
+coRiesz_origReso = case closedScalarWitness @s of
+  ClosedScalarWitness -> LinearFunction $ \(Haar_D¹ c₀ f) -> Haar_D¹ (c₀^*2) $ go 2 f 
  where go μ (HaarUnbiased δ l r)
            = HaarUnbiased (μ*^δ) (go (μ/2) l) (go (μ/2) r)
        go μ HaarZero = HaarZero
