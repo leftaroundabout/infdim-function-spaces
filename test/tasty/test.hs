@@ -97,7 +97,7 @@ main = defaultMain $ testGroup "Tests"
                    ι = boxDistributionD¹ (D¹ $ -1, D¹ 1) 1 :: DualVector (Haar D¹ ℝ)
                in (dualPointwiseMul f₀ $ ι) <.>^ f₁ ≃ ι <.>^ (f₀^*^f₁)
   , testProperty "Multiplicativity of dual vectors: arbitrary"
-         $ \u ψ φ -> (dualPointwiseMul ψ $ u) <.>^ φ ≃ u <.>^ (ψ^*^φ)
+         $ \u (ψ::Haar D¹ ℝ) φ -> (dualPointwiseMul ψ $ u) <.>^ φ ≃ u <.>^ (ψ^*^φ)
   , testProperty "Multiplicativity of dual vectors: reciprocal"
          $ \(f :: Haar D¹ ℝ) (g :: Haar D¹ ℝ) p
               -> let f² = vmap ((+0.1).(^2)) f
