@@ -56,7 +56,7 @@ import Control.Arrow.Constrained
 
 
 instance ( FreeVectorSpace y, VAffineSpace y
-         , TensorSpace y, Needle y ~ y, Scalar y ~ ℝ )
+         , TensorSpace y, Needle y ~ y, Num' (Scalar y), RealFrac (Scalar y) )
                 => FreeVectorSpace (Haar_D¹ 'FunctionSpace y) where
   
   Haar_D¹ c₀ HaarZero ^*^ Haar_D¹ c₁ HaarZero = Haar_D¹ (c₀^*^c₁) HaarZero
@@ -74,17 +74,20 @@ instance ( FreeVectorSpace y, VAffineSpace y
          (Haar_D¹ cl fl, Haar_D¹ cr fr)
            -> Haar_D¹ ((cl^+^cr)^/2) $ HaarUnbiased ((cr^-^cl)^/2) fl fr
          
-dualPointwiseMul :: Haar_D¹ FunctionSpace ℝ
-          -> Haar_D¹ DistributionSpace ℝ -> Haar_D¹ DistributionSpace ℝ
+dualPointwiseMul :: ∀ s . (Num' s, RealFrac s, AffineSpace s, s ~ Diff s, s ~ Needle s)
+   => Haar_D¹ FunctionSpace s
+          -> Haar_D¹ DistributionSpace s -> Haar_D¹ DistributionSpace s
 dualPointwiseMul (Haar_D¹ c₀ HaarZero) (Haar_D¹ c₁ HaarZero)
        = Haar_D¹ (c₀*c₁) HaarZero
-dualPointwiseMul (Haar_D¹ c HaarZero) f
-           = fmap (LinearFunction (c*)) $ f
+dualPointwiseMul (Haar_D¹ c HaarZero) f = case closedScalarWitness @s of
+     ClosedScalarWitness -> fmap (LinearFunction (c*)) $ f
 dualPointwiseMul f (Haar_D¹ c HaarZero)
            = dualPointwiseMul f $ Haar_D¹ c (HaarUnbiased zeroV zeroV zeroV)
 dualPointwiseMul (Haar_D¹ c₀ (HaarUnbiased δ₀ f₀l f₀r))
                  (Haar_D¹ c₁ (HaarUnbiased δ₁ f₁l f₁r))
-      = case ( dualPointwiseMul (Haar_D¹ (c₀^-^δ₀) f₀l) (Haar_D¹ ((c₁^-^δ₁)^/2) f₁l)
+ = case closedScalarWitness @s of
+    ClosedScalarWitness
+     -> case ( dualPointwiseMul (Haar_D¹ (c₀^-^δ₀) f₀l) (Haar_D¹ ((c₁^-^δ₁)^/2) f₁l)
              , dualPointwiseMul (Haar_D¹ (c₀^+^δ₀) f₀r) (Haar_D¹ ((c₁^+^δ₁)^/2) f₁r) ) of
          (Haar_D¹ cl fl, Haar_D¹ cr fr)
            -> Haar_D¹ (cl^+^cr) $ HaarUnbiased (cr^-^cl) fl fr
@@ -343,12 +346,21 @@ class OptimalTransportable v w where
   entropyLimOptimalTransport :: SinkhornOTConfig -> v -> w -> [v ⊗ w]
   lMarginal :: v ⊗ w -> v
 
-instance OptimalTransportable (Haar_D¹ DistributionSpace ℝ)
-                              (Haar_D¹ DistributionSpace ℝ) where
-  entropyLimOptimalTransport (SinkhornOTConfig λ) r c = sinkh False flatDistrib flatDistrib
+instance ∀ s .
+     ( Num' s, RealFrac s
+     , AffineSpace s, s ~ Diff s, DualVector s ~ s, s ~ Needle s
+     , TensorProduct s (Haar_D¹ 'FunctionSpace s)
+                      ~ Haar_D¹ 'FunctionSpace s )
+      => OptimalTransportable (Haar_D¹ DistributionSpace s)
+                              (Haar_D¹ DistributionSpace s) where
+  entropyLimOptimalTransport (SinkhornOTConfig λ) = elot closedScalarWitness where
+   elot :: ClosedScalarWitness s
+                  -> Haar_D¹ 'DistributionSpace s -> Haar_D¹ 'DistributionSpace s
+                -> [ Haar_D¹ 'DistributionSpace s ⊗  Haar_D¹ 'DistributionSpace s ]
+   elot ClosedScalarWitness r c = sinkh False flatDistrib flatDistrib
     where
-       sinkh :: Bool -> DualVector (Haar D¹ ℝ) -> DualVector (Haar D¹ ℝ)
-               -> [DualVector (Haar D¹ ℝ) ⊗ DualVector (Haar D¹ ℝ)]
+       sinkh :: Bool -> DualVector (Haar D¹ s) -> DualVector (Haar D¹ s)
+               -> [DualVector (Haar D¹ s) ⊗ DualVector (Haar D¹ s)]
        sinkh rside u v = connection
             : sinkh (not rside)
                (if   rside   then dualPointwiseMul (vmap recip $ kv) r else u)
@@ -360,19 +372,21 @@ instance OptimalTransportable (Haar_D¹ DistributionSpace ℝ)
                                    . transposeTensor $ Tensor q
 
        -- | Corresponds to the 𝐾 matrix in Cuturi 2013.
-       smearedDiag :: DualVector (Haar D¹ ℝ) +> Haar D¹ ℝ
+       smearedDiag :: DualVector (Haar D¹ s) +> Haar D¹ s
        smearedDiag = LinearMap . homsampleHaarFunction reso
            $ \(D¹ x) -> Tensor . homsampleHaarFunction reso
-            $ \(D¹ x') -> exp $ -λ*abs (x-x')
+            $ \(D¹ x') -> (realToFrac::ℝ->s) . exp $ -λ*abs (x-x')
         where reso = TwoToThe (max 0 . round $ log λ)
-       smearedDiag' :: DualVector (Haar D¹ ℝ) +> Haar D¹ ℝ
+       smearedDiag' :: DualVector (Haar D¹ s) +> Haar D¹ s
        smearedDiag' = adjoint $ smearedDiag
        
-       flatDistrib :: DualVector (Haar D¹ ℝ)
+       flatDistrib :: DualVector (Haar D¹ s)
        flatDistrib = Haar_D¹ 1 zeroV
 
-  lMarginal m = fromFlatTensor . fmap integrate $ m
-   where integrate = LinearFunction (<.>^(Haar_D¹ 1 zeroV :: Haar D¹ ℝ))
+  lMarginal = case closedScalarWitness @s of
+           ClosedScalarWitness
+               -> let integrate = LinearFunction (<.>^(Haar_D¹ 1 zeroV :: Haar D¹ s))
+                  in \m -> fromFlatTensor . fmap integrate $ m
 
 instance OptimalTransportable (Haar_D¹ FunctionSpace ℝ)
                               (Haar_D¹ FunctionSpace ℝ) where

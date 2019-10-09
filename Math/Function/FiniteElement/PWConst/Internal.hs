@@ -377,11 +377,9 @@ instance ∀ y dn
 
 
 
-instance ∀ y dn . ( LinearSpace y, AffineSpace y
-                  , Diff y ~ y, Needle y ~ y, Scalar y ~ ℝ
-                  , Diff (DualVector y) ~ DualVector y, Needle (DualVector y) ~ DualVector y
-                  , AffineSpace (DualVector y)
-                  , ValidDualness dn )
+instance ∀ y dn
+         . ( LinearSpace y, VAffineSpace y, Num' (Scalar y), ValidDualness dn
+           , AffineSpace (DualVector y), Diff (DualVector y) ~ DualVector y )
              => LinearSpace (Haar0BiasTree dn y) where
   type DualVector (Haar0BiasTree dn y) = Haar0BiasTree (Dual dn) (DualVector y)
   dualSpaceWitness = case ( dualSpaceWitness :: DualSpaceWitness y
@@ -400,11 +398,11 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                      (CC.fmap (CC.fmap  . LinearFunction
                                         $ \r -> HaarUnbiased zeroV zeroV r) CC.$ hId)
   tensorId = LinearMap $ hId
-   where hId :: ∀ w . (LinearSpace w, Scalar w ~ ℝ)
+   where hId :: ∀ w . (LinearSpace w, Scalar w ~ Scalar y)
                => Haar0BiasTree (Dual dn)
                     (Tensor (Scalar (DualVector y))
                             (DualVector y)
-                            (Tensor Double (DualVector w) (Tensor ℝ (Haar0BiasTree dn y) w)))
+                            (Tensor (Scalar y) (DualVector w) (Haar0BiasTree dn y ⊗ w)))
          hId = case ( dualSpaceWitness :: DualSpaceWitness y
                     , dualSpaceWitness :: DualSpaceWitness w ) of
           (DualSpaceWitness, DualSpaceWitness)
@@ -419,26 +417,27 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                      (CC.fmap (CC.fmap . CC.fmap . LinearFunction
                             $ \(Tensor r) -> Tensor $ HaarUnbiased zeroV zeroV r) CC.$ hId)
   applyDualVector = bilinearFunction $ \a f -> go a f
-   where go :: Haar0BiasTree (Dual dn) (DualVector y) -> Haar0BiasTree dn y -> ℝ
+   where go :: Haar0BiasTree (Dual dn) (DualVector y) -> Haar0BiasTree dn y -> Scalar y
          go HaarZero _ = zeroV
          go _ HaarZero = zeroV
          go (HaarUnbiased δa al ar) (HaarUnbiased δy fl fr)
-          = case dualSpaceWitness :: DualSpaceWitness y of
-           DualSpaceWitness
+          = case (dualSpaceWitness @y, scalarSpaceWitness @y) of
+           (DualSpaceWitness, ScalarSpaceWitness)
                -> (getLinearFunction applyDualVector δa CC.$ δy) + go al fl + go ar fr
   applyTensorFunctional = bilinearFunction $ \(LinearMap a) (Tensor f)
                         -> go a f
-   where go :: ∀ u . (LinearSpace u, Scalar u ~ ℝ)
-             => Haar0BiasTree (Dual dn) (DualVector y⊗DualVector u) -> Haar0BiasTree dn (y⊗u) -> ℝ
+   where go :: ∀ u . (LinearSpace u, Scalar u ~ Scalar y)
+             => Haar0BiasTree (Dual dn) (DualVector y⊗DualVector u)
+                   -> Haar0BiasTree dn (y⊗u) -> Scalar y
          go HaarZero _ = zeroV
          go _ HaarZero = zeroV
          go (HaarUnbiased (Tensor δa) al ar) (HaarUnbiased δy fl fr)
-          = case dualSpaceWitness :: DualSpaceWitness y of
-           DualSpaceWitness
+          = case (dualSpaceWitness @y, scalarSpaceWitness @y) of
+           (DualSpaceWitness, ScalarSpaceWitness)
                -> (getLinearFunction applyDualVector (LinearMap δa :: y+>DualVector u) CC.$ δy)
                     + go al fl + go ar fr
   applyLinear = bilinearFunction $ \(LinearMap a) f -> go a f
-   where go :: ∀ w . (TensorSpace w, Scalar w ~ ℝ)
+   where go :: ∀ w . (TensorSpace w, Scalar w ~ Scalar y)
                 => Haar0BiasTree (Dual dn) (Tensor (Scalar (DualVector y)) (DualVector y) w)
                       -> Haar0BiasTree dn y -> w
          go HaarZero _ = zeroV
@@ -448,11 +447,12 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                    ^+^ go al fl ^+^ go ar fr
   applyTensorLinMap = bilinearFunction $ \(LinearMap a) (Tensor f)
                  -> go a f
-   where go :: ∀ u w . (LinearSpace u, Scalar u ~ ℝ, TensorSpace w, Scalar w ~ ℝ)
+   where go :: ∀ u w . ( LinearSpace u, Scalar u ~ Scalar y
+                       , TensorSpace w, Scalar w ~ Scalar y )
                 => Haar0BiasTree (Dual dn) (Tensor
                            (Scalar (DualVector y))
                             (DualVector y)
-                            (Tensor Double (DualVector u) w))
+                            (Tensor (Scalar y) (DualVector u) w))
                  -> Haar0BiasTree dn (y⊗u) -> w
          go HaarZero _ = zeroV
          go _ HaarZero = zeroV
@@ -461,11 +461,9 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                           (LinearMap δa :: (y⊗u)+>w)) CC.$ δyu )
                    ^+^ go al fl ^+^ go ar fr
                  
-instance ∀ y dn . ( LinearSpace y, AffineSpace y
-                  , Diff y ~ y, Needle y ~ y, Scalar y ~ ℝ
-                  , Diff (DualVector y) ~ DualVector y, Needle (DualVector y) ~ DualVector y
-                  , AffineSpace (DualVector y)
-                  , ValidDualness dn )
+instance ∀ y dn .
+           ( LinearSpace y, VAffineSpace y, Num' (Scalar y), ValidDualness dn
+           , AffineSpace (DualVector y), Diff (DualVector y) ~ DualVector y ) 
              => LinearSpace (Haar_D¹ dn y) where
   type DualVector (Haar_D¹ dn y) = Haar_D¹ (Dual dn) (DualVector y)
   dualSpaceWitness = case ( dualSpaceWitness :: DualSpaceWitness y
@@ -483,11 +481,12 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                                           $ \δs -> Haar_D¹ zeroV δs) CC.$ getLinearMap
                                               (linearId :: Haar0BiasTree dn y+>Haar0BiasTree dn y))
   tensorId = LinearMap $ hId
-   where hId :: ∀ w . (LinearSpace w, Scalar w ~ ℝ)
+   where hId :: ∀ w . (LinearSpace w, Scalar w ~ Scalar y)
                => Haar_D¹ (Dual dn)
                     (Tensor (Scalar (DualVector y))
                             (DualVector y)
-                            (Tensor Double (DualVector w) (Tensor ℝ (Haar_D¹ dn y) w)))
+                            (Tensor (Scalar y) (DualVector w)
+                                (Tensor (Scalar y) (Haar_D¹ dn y) w)))
          hId = case ( dualSpaceWitness :: DualSpaceWitness y
                     , dualSpaceWitness :: DualSpaceWitness w ) of
           (DualSpaceWitness, DualSpaceWitness)
@@ -503,33 +502,35 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                                        $ \(Tensor q) -> Tensor (Haar_D¹ zeroV q))
                                  CC.$ h₀ywId)
   applyDualVector = bilinearFunction $ \(Haar_D¹ a₀ δa) (Haar_D¹ f₀ δf)
-      -> case dualSpaceWitness :: DualSpaceWitness y of
-           DualSpaceWitness -> (getLinearFunction applyDualVector a₀ CC.$ f₀)
-                             + (getLinearFunction applyDualVector δa CC.$ δf)
+      -> case (dualSpaceWitness @y, scalarSpaceWitness @y) of
+           (DualSpaceWitness, ScalarSpaceWitness)
+                -> (getLinearFunction applyDualVector a₀ CC.$ f₀)
+                 + (getLinearFunction applyDualVector δa CC.$ δf)
   applyTensorFunctional = bilinearFunction $ \(LinearMap a) (Tensor f) -> go a f
-   where go :: ∀ u . (LinearSpace u, Scalar u ~ ℝ)
-             => Haar_D¹ (Dual dn) (DualVector y⊗DualVector u) -> Haar_D¹ dn (y⊗u) -> ℝ
+   where go :: ∀ u . (LinearSpace u, Scalar u ~ Scalar y)
+             => Haar_D¹ (Dual dn) (DualVector y⊗DualVector u)
+                 -> Haar_D¹ dn (y⊗u) -> Scalar y
          go (Haar_D¹ (Tensor a₀) δa) (Haar_D¹ f₀ δf)
-          = case ( dualSpaceWitness :: DualSpaceWitness y
-                 , dualSpaceWitness :: DualSpaceWitness u ) of
-           (DualSpaceWitness, DualSpaceWitness)
+          = case ( dualSpaceWitness @y, dualSpaceWitness @u, scalarSpaceWitness @y ) of
+           (DualSpaceWitness, DualSpaceWitness, ScalarSpaceWitness)
                -> (getLinearFunction applyDualVector (LinearMap a₀ :: y+>DualVector u)
                                                               CC.$ f₀)
                 + (getLinearFunction applyDualVector
                               (Coercion CC.$ δa) CC.$ δf)
   applyLinear = bilinearFunction $ \(LinearMap a) f -> go a f
-   where go :: ∀ w . (TensorSpace w, Scalar w ~ ℝ)
+   where go :: ∀ w . (TensorSpace w, Scalar w ~ Scalar y)
                 => Haar_D¹ (Dual dn) (Tensor (Scalar (DualVector y)) (DualVector y) w)
                       -> Haar_D¹ dn y -> w
          go (Haar_D¹ (Tensor a₀) δa) (Haar_D¹ f₀ δf)
            = ( (getLinearFunction applyLinear (LinearMap a₀ :: y+>w)) CC.$ f₀ )
           ^+^ ( getLinearFunction applyLinear (LinearMap δa :: Haar0BiasTree dn y+>w) CC.$ δf )
   applyTensorLinMap = bilinearFunction $ \(LinearMap a) (Tensor f) -> go a f
-   where go :: ∀ u w . (LinearSpace u, Scalar u ~ ℝ, TensorSpace w, Scalar w ~ ℝ)
+   where go :: ∀ u w . ( LinearSpace u, Scalar u ~ Scalar y
+                       , TensorSpace w, Scalar w ~ Scalar y )
                 => Haar_D¹ (Dual dn) (Tensor
                            (Scalar (DualVector y))
                             (DualVector y)
-                            (Tensor Double (DualVector u) w))
+                            (Tensor (Scalar y) (DualVector u) w))
                  -> Haar_D¹ dn (y⊗u) -> w
          go (Haar_D¹ (Tensor a₀) δa) (Haar_D¹ f₀ δf)
                = ( (getLinearFunction applyTensorLinMap
