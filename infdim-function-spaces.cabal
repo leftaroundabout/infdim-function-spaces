@@ -110,6 +110,7 @@ executable infdim-spaces-yeamer-playground
                      , lens
                      , data-default-class
                      , pragmatic-show
+                     , qd >=1.0 && <1.1
   ghc-options:       -O2 -threaded "-with-rtsopts=-N3"
   hs-source-dirs: test
   main-is: yeamer.hs

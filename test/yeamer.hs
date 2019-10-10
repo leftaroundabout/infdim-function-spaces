@@ -49,6 +49,7 @@ import Math.Manifold.Embedding.Simple.Class
 import Linear.V2
 import Linear.V3
 import Math.Rotations.Class (Rotatable, AxisSpace, rotateAbout, zAxis)
+import qualified Numeric.QD.QuadDouble as QD
 
 import Graphics.Dynamic.Plot.R2
 import qualified Diagrams.Prelude as Dia
@@ -157,42 +158,38 @@ main = do
          ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 32)
                (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
          "λ big, still converges."
-     "Rational"======
+     "Quad-double"======
       do
        "DistributionSpace"
         ======
         plotServ
-         ( visualiseSinkhornConv @'DistributionSpace rationalApprox (SinkhornOTConfig 18)
+         ( visualiseSinkhornConv @'DistributionSpace QD.fromDouble (SinkhornOTConfig 18)
                (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
          "Broad peaks. Converges." ──
         plotServ
-         ( visualiseSinkhornConv @'DistributionSpace rationalApprox (SinkhornOTConfig 18)
+         ( visualiseSinkhornConv @'DistributionSpace QD.fromDouble (SinkhornOTConfig 18)
                (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
          "Narrow peaks. Converges." ──
         plotServ
-         ( visualiseSinkhornConv @'DistributionSpace rationalApprox (SinkhornOTConfig 32)
+         ( visualiseSinkhornConv @'DistributionSpace QD.fromDouble (SinkhornOTConfig 32)
                (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
          "λ too big, doesn't converge."
       │do
        "FunctionSpace"
         ======
         plotServ
-         ( visualiseSinkhornConv @'FunctionSpace rationalApprox (SinkhornOTConfig 18)
+         ( visualiseSinkhornConv @'FunctionSpace QD.fromDouble (SinkhornOTConfig 18)
                (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
          "Broad peaks. Converges." ──
         plotServ
-         ( visualiseSinkhornConv @'FunctionSpace rationalApprox (SinkhornOTConfig 18)
+         ( visualiseSinkhornConv @'FunctionSpace QD.fromDouble (SinkhornOTConfig 18)
                (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
          "Narrow peaks. Diverges." ──
         plotServ
-         ( visualiseSinkhornConv @'FunctionSpace rationalApprox (SinkhornOTConfig 32)
+         ( visualiseSinkhornConv @'FunctionSpace QD.fromDouble (SinkhornOTConfig 32)
                (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
          "λ big, still converges."
 
-
-rationalApprox :: ℝ -> Rational
-rationalApprox y = fromIntegral (round $ y/2^^magnitudeCutoff) * 2^^magnitudeCutoff
- where magnitudeCutoff = round $ logBase 2 y - 5
 
 useLightColourscheme :: Bool
 useLightColourscheme = False
@@ -375,3 +372,43 @@ opac :: Double -> DynamicPlottable -> DynamicPlottable
 opac = tweakPrerendered . Dia.opacity
 
 
+
+
+instance AdditiveGroup QD.QuadDouble where
+  zeroV = 0
+  (^+^) = (+)
+  (^-^) = (-)
+  negateV = negate
+instance VectorSpace QD.QuadDouble where
+  type Scalar QD.QuadDouble = QD.QuadDouble
+  (*^) = (*)
+instance Semimanifold QD.QuadDouble where
+  type Needle QD.QuadDouble = QD.QuadDouble
+  toInterior = pure
+  translateP = pure (+)
+instance PseudoAffine QD.QuadDouble where
+instance AffineSpace QD.QuadDouble where
+  type Diff QD.QuadDouble = QD.QuadDouble
+  (.-.) = (-)
+  (.+^) = (+)
+instance TensorSpace QD.QuadDouble where
+  type TensorProduct QD.QuadDouble w = w
+  linearManifoldWitness = LinearManifoldWitness BoundarylessWitness
+  scalarSpaceWitness = ScalarSpaceWitness
+  fmapTensor = bilinearFunction $ \(LinearFunction f) (Tensor w) -> Tensor $ f w
+  scaleTensor = bilinearFunction $ \μ (Tensor w) -> Tensor $ μ*^w
+  addTensors (Tensor w₀) (Tensor w₁) = Tensor $ w₀ ^+^ w₁
+  negateTensor = LinearFunction $ \(Tensor w) -> Tensor $ negateV w
+  zeroTensor = Tensor zeroV
+  transposeTensor = LinearFunction $ \(Tensor w) -> toFlatTensor $ w
+  toFlatTensor = LinearFunction Tensor
+  fromFlatTensor = LinearFunction getTensorProduct
+instance LinearSpace QD.QuadDouble where
+  type DualVector QD.QuadDouble = QD.QuadDouble
+  dualSpaceWitness = DualSpaceWitness
+  applyDualVector = bilinearFunction (*^)
+  applyLinear = bilinearFunction $ \(LinearMap w) μ -> w^*μ
+instance FreeVectorSpace QD.QuadDouble where
+  vmap = id
+  (^*^) = (*)
+instance Num' QD.QuadDouble where
