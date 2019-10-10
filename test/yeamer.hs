@@ -105,8 +105,8 @@ main = do
            . ( HasIntervalFunctions v, OptimalTransportable v v, v ~ Haar_D¹ dn s
              , RealFrac s, Num' s, s ~ Needle s, s ~ Scalar s
              , AffineSpace s, s ~ Diff s )
-                  => (ℝ->s) -> SinkhornOTConfig -> (ℝ->ℝ) -> (ℝ->ℝ) -> [DynamicPlottable]
-         visualiseSinkhornConv convertS shOTC r₀ c₀
+                  => (ℝ->s) -> SinkhornOTConfig -> (ℝ->ℝ, ℝ->ℝ) -> [DynamicPlottable]
+         visualiseSinkhornConv convertS shOTC (r₀, c₀)
              = [ continFnPlot $ realToFrac . r
                , plotLatest
                    [ plotDelay 0.5 . plotMultiple
@@ -127,36 +127,39 @@ main = do
                 asDistrib :: (ℝ->s)->v
                 asDistrib f = fromIntervalFunction resoLimit $ \(D¹ x)->f x
                 resoLimit = TwoToThe 6
+         broadPeaks, narrowPeaks :: (ℝ->ℝ, ℝ->ℝ)
+         broadPeaks = (\x -> exp (-(x-0.4)^2*7), \x -> exp (-(x+0.4)^2*12))
+         narrowPeaks = (\x -> exp (-(x-0.4)^2*1072), \x -> exp (-(x+0.4)^2*660))
      "Floating-point"======
       do
        "DistributionSpace"
         ======
         plotServ
          ( visualiseSinkhornConv @'DistributionSpace id (SinkhornOTConfig 18)
-               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+              broadPeaks )
          "Broad peaks. Converges." ──
         plotServ
          ( visualiseSinkhornConv @'DistributionSpace id (SinkhornOTConfig 18)
-               (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
+              narrowPeaks )
          "Narrow peaks. Converges." ──
         plotServ
          ( visualiseSinkhornConv @'DistributionSpace id (SinkhornOTConfig 32)
-               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+               broadPeaks )
          "λ too big, doesn't converge."
       │do
        "FunctionSpace"
         ======
         plotServ
          ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 18)
-               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+               broadPeaks )
          "Broad peaks. Converges." ──
         plotServ
          ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 18)
-               (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
+               narrowPeaks )
          "Narrow peaks. Diverges." ──
         plotServ
          ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 32)
-               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+               broadPeaks )
          "λ big, still converges."
      "Quad-double"======
       do
@@ -164,30 +167,30 @@ main = do
         ======
         plotServ
          ( visualiseSinkhornConv @'DistributionSpace QD.fromDouble (SinkhornOTConfig 18)
-               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+               broadPeaks )
          "Broad peaks. Converges." ──
         plotServ
          ( visualiseSinkhornConv @'DistributionSpace QD.fromDouble (SinkhornOTConfig 18)
-               (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
+               narrowPeaks )
          "Narrow peaks. Converges." ──
         plotServ
          ( visualiseSinkhornConv @'DistributionSpace QD.fromDouble (SinkhornOTConfig 32)
-               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+               broadPeaks )
          "λ too big, doesn't converge."
       │do
        "FunctionSpace"
         ======
         plotServ
          ( visualiseSinkhornConv @'FunctionSpace QD.fromDouble (SinkhornOTConfig 18)
-               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+               broadPeaks )
          "Broad peaks. Converges." ──
         plotServ
          ( visualiseSinkhornConv @'FunctionSpace QD.fromDouble (SinkhornOTConfig 18)
-               (\x -> exp (-(x-0.4)^2*1072)) (\x -> exp (-(x+0.4)^2*660)) )
+               narrowPeaks )
          "Narrow peaks. Diverges." ──
         plotServ
          ( visualiseSinkhornConv @'FunctionSpace QD.fromDouble (SinkhornOTConfig 32)
-               (\x -> exp (-(x-0.4)^2*7)) (\x -> exp (-(x+0.4)^2*12)) )
+               broadPeaks )
          "λ big, still converges."
 
 
