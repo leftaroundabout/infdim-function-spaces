@@ -127,10 +127,11 @@ main = do
                 asDistrib :: (ℝ->s)->v
                 asDistrib f = fromIntervalFunction resoLimit $ \(D¹ x)->f x
                 resoLimit = TwoToThe 6
-         broadPeaks, narrowPeaks :: (ℝ->ℝ, ℝ->ℝ)
+         broadPeaks, mediumPeaks, narrowPeaks :: (ℝ->ℝ, ℝ->ℝ)
          broadPeaks = (\x -> exp (-(x-0.4)^2*7), \x -> exp (-(x+0.4)^2*12))
+         mediumPeaks = (\x -> exp (-(x-0.4)^2*37), \x -> exp (-(x+0.4)^2*29))
          narrowPeaks = (\x -> exp (-(x-0.4)^2*1072), \x -> exp (-(x+0.4)^2*660))
-     "Floating-point"======
+     "Double-precision floating-point"======
       do
        "DistributionSpace"
         ======
@@ -138,6 +139,10 @@ main = do
          ( visualiseSinkhornConv @'DistributionSpace id (SinkhornOTConfig 18)
               broadPeaks )
          "Broad peaks. Converges." ──
+        plotServ
+         ( visualiseSinkhornConv @'DistributionSpace id (SinkhornOTConfig 18)
+              mediumPeaks )
+         "Medium peaks. Converges." ──
         plotServ
          ( visualiseSinkhornConv @'DistributionSpace id (SinkhornOTConfig 18)
               narrowPeaks )
@@ -155,13 +160,17 @@ main = do
          "Broad peaks. Converges." ──
         plotServ
          ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 18)
+               mediumPeaks )
+         "Medium peaks. Diverges." ──
+        plotServ
+         ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 18)
                narrowPeaks )
          "Narrow peaks. Diverges." ──
         plotServ
          ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 32)
                broadPeaks )
          "λ big, still converges."
-     "Quad-double"======
+     "Quad-double floating-point"======
       do
        "DistributionSpace"
         ======
@@ -169,6 +178,10 @@ main = do
          ( visualiseSinkhornConv @'DistributionSpace QD.fromDouble (SinkhornOTConfig 18)
                broadPeaks )
          "Broad peaks. Converges." ──
+        plotServ
+         ( visualiseSinkhornConv @'DistributionSpace QD.fromDouble (SinkhornOTConfig 18)
+               mediumPeaks )
+         "Medium peaks. Converges." ──
         plotServ
          ( visualiseSinkhornConv @'DistributionSpace QD.fromDouble (SinkhornOTConfig 18)
                narrowPeaks )
@@ -184,6 +197,10 @@ main = do
          ( visualiseSinkhornConv @'FunctionSpace QD.fromDouble (SinkhornOTConfig 18)
                broadPeaks )
          "Broad peaks. Converges." ──
+        plotServ
+         ( visualiseSinkhornConv @'FunctionSpace QD.fromDouble (SinkhornOTConfig 18)
+               mediumPeaks )
+         "Medium peaks. Converges!" ──
         plotServ
          ( visualiseSinkhornConv @'FunctionSpace QD.fromDouble (SinkhornOTConfig 18)
                narrowPeaks )
