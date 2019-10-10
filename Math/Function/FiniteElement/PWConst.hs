@@ -348,9 +348,7 @@ class OptimalTransportable v w where
 
 instance ∀ s .
      ( Num' s, RealFrac s
-     , AffineSpace s, s ~ Diff s, DualVector s ~ s, s ~ Needle s
-     , TensorProduct s (Haar_D¹ 'FunctionSpace s)
-                      ~ Haar_D¹ 'FunctionSpace s )
+     , AffineSpace s, s ~ Diff s, DualVector s ~ s, s ~ Needle s )
       => OptimalTransportable (Haar_D¹ DistributionSpace s)
                               (Haar_D¹ DistributionSpace s) where
   entropyLimOptimalTransport (SinkhornOTConfig λ) = elot closedScalarWitness where
@@ -373,7 +371,8 @@ instance ∀ s .
 
        -- | Corresponds to the 𝐾 matrix in Cuturi 2013.
        smearedDiag :: DualVector (Haar D¹ s) +> Haar D¹ s
-       smearedDiag = LinearMap . homsampleHaarFunction reso
+       smearedDiag = case trivialTensorWitness @s @(Haar D¹ s) of
+        TrivialTensorWitness -> LinearMap . homsampleHaarFunction reso
            $ \(D¹ x) -> Tensor . homsampleHaarFunction reso
             $ \(D¹ x') -> (realToFrac::ℝ->s) . exp $ -λ*abs (x-x')
         where reso = TwoToThe (max 0 . round $ log λ)
@@ -388,9 +387,7 @@ instance ∀ s .
                -> let integrate = LinearFunction (<.>^(Haar_D¹ 1 zeroV :: Haar D¹ s))
                   in \m -> fromFlatTensor . fmap integrate $ m
 
-instance ∀ s . ( Num' s, RealFrac s
-               , TensorProduct s (Haar_D¹ 'FunctionSpace s)
-                                ~ Haar_D¹ 'FunctionSpace s )
+instance ∀ s . ( Num' s, RealFrac s )
             => OptimalTransportable (Haar_D¹ FunctionSpace s)
                                     (Haar_D¹ FunctionSpace s) where
   entropyLimOptimalTransport (SinkhornOTConfig λ) r c = sinkh smearedDiag
@@ -403,8 +400,10 @@ instance ∀ s . ( Num' s, RealFrac s
                ρ = p^*^vmap recip p'
            in fmap (LinearFunction (^*^ρ)) . transposeTensor $ m
        smearedDiag :: Haar D¹ s ⊗ Haar D¹ s
-       smearedDiag = case (linearManifoldWitness @s, closedScalarWitness @s) of
-        (LinearManifoldWitness _, ClosedScalarWitness)
+       smearedDiag = case
+            ( linearManifoldWitness @s, closedScalarWitness @s
+            , trivialTensorWitness @s @(Haar D¹ s) ) of
+        (LinearManifoldWitness _, ClosedScalarWitness, TrivialTensorWitness)
           -> Tensor . homsampleHaarFunction reso
            $ \(D¹ x) -> Tensor . homsampleHaarFunction reso
             $ \(D¹ x') -> realToFrac . exp $ -λ*abs (x-x')
