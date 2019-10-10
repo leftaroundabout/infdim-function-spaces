@@ -131,84 +131,45 @@ main = do
          broadPeaks = (\x -> exp (-(x-0.4)^2*7), \x -> exp (-(x+0.4)^2*12))
          mediumPeaks = (\x -> exp (-(x-0.4)^2*37), \x -> exp (-(x+0.4)^2*29))
          narrowPeaks = (\x -> exp (-(x-0.4)^2*1072), \x -> exp (-(x+0.4)^2*660))
+         
+         testGroup :: ∀ dn s v
+           . ( HasIntervalFunctions v, OptimalTransportable v v, v ~ Haar_D¹ dn s
+             , RealFrac s, Num' s, s ~ Needle s, s ~ Scalar s
+             , AffineSpace s, s ~ Diff s
+             , ?plotLock :: IORef (Maybe ThreadId) )
+                  => (ℝ->s) -> Presentation
+         testGroup convS
+           = plotServ
+             ( visualiseSinkhornConv @dn convS (SinkhornOTConfig 18)
+                  broadPeaks )
+             "Broad peaks" ──
+            plotServ
+             ( visualiseSinkhornConv @dn convS (SinkhornOTConfig 18)
+                  mediumPeaks )
+             "Medium peaks" ──
+            plotServ
+             ( visualiseSinkhornConv @dn convS (SinkhornOTConfig 18)
+                  narrowPeaks )
+             "Narrow peaks" ──
+            plotServ
+             ( visualiseSinkhornConv @dn convS (SinkhornOTConfig 32)
+                   broadPeaks )
+             "Broad peaks, big λ"
+
      "Double-precision floating-point"======
       do
        "DistributionSpace"
-        ======
-        plotServ
-         ( visualiseSinkhornConv @'DistributionSpace id (SinkhornOTConfig 18)
-              broadPeaks )
-         "Broad peaks. Converges." ──
-        plotServ
-         ( visualiseSinkhornConv @'DistributionSpace id (SinkhornOTConfig 18)
-              mediumPeaks )
-         "Medium peaks. Converges." ──
-        plotServ
-         ( visualiseSinkhornConv @'DistributionSpace id (SinkhornOTConfig 18)
-              narrowPeaks )
-         "Narrow peaks. Converges." ──
-        plotServ
-         ( visualiseSinkhornConv @'DistributionSpace id (SinkhornOTConfig 32)
-               broadPeaks )
-         "λ too big, doesn't converge."
+        ====== testGroup @'DistributionSpace id
       │do
        "FunctionSpace"
-        ======
-        plotServ
-         ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 18)
-               broadPeaks )
-         "Broad peaks. Converges." ──
-        plotServ
-         ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 18)
-               mediumPeaks )
-         "Medium peaks. Diverges." ──
-        plotServ
-         ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 18)
-               narrowPeaks )
-         "Narrow peaks. Diverges." ──
-        plotServ
-         ( visualiseSinkhornConv @'FunctionSpace id (SinkhornOTConfig 32)
-               broadPeaks )
-         "λ big, still converges."
+        ====== testGroup @'FunctionSpace id
      "Quad-double floating-point"======
       do
        "DistributionSpace"
-        ======
-        plotServ
-         ( visualiseSinkhornConv @'DistributionSpace QD.fromDouble (SinkhornOTConfig 18)
-               broadPeaks )
-         "Broad peaks. Converges." ──
-        plotServ
-         ( visualiseSinkhornConv @'DistributionSpace QD.fromDouble (SinkhornOTConfig 18)
-               mediumPeaks )
-         "Medium peaks. Converges." ──
-        plotServ
-         ( visualiseSinkhornConv @'DistributionSpace QD.fromDouble (SinkhornOTConfig 18)
-               narrowPeaks )
-         "Narrow peaks. Converges." ──
-        plotServ
-         ( visualiseSinkhornConv @'DistributionSpace QD.fromDouble (SinkhornOTConfig 32)
-               broadPeaks )
-         "λ too big, doesn't converge."
+        ====== testGroup @'DistributionSpace QD.fromDouble
       │do
        "FunctionSpace"
-        ======
-        plotServ
-         ( visualiseSinkhornConv @'FunctionSpace QD.fromDouble (SinkhornOTConfig 18)
-               broadPeaks )
-         "Broad peaks. Converges." ──
-        plotServ
-         ( visualiseSinkhornConv @'FunctionSpace QD.fromDouble (SinkhornOTConfig 18)
-               mediumPeaks )
-         "Medium peaks. Converges!" ──
-        plotServ
-         ( visualiseSinkhornConv @'FunctionSpace QD.fromDouble (SinkhornOTConfig 18)
-               narrowPeaks )
-         "Narrow peaks. Diverges." ──
-        plotServ
-         ( visualiseSinkhornConv @'FunctionSpace QD.fromDouble (SinkhornOTConfig 32)
-               broadPeaks )
-         "λ big, still converges."
+        ====== testGroup @'FunctionSpace QD.fromDouble
 
 
 useLightColourscheme :: Bool
