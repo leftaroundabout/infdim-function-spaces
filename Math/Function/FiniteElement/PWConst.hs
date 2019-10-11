@@ -420,7 +420,16 @@ instance ∀ s . ( Num' s, RealFrac s )
 coRiesz_origReso :: ∀ s . (Num' s, Fractional s)
                      => Haar D¹ s -+> DualVector (Haar D¹ s)
 coRiesz_origReso = case closedScalarWitness @s of
-  ClosedScalarWitness -> LinearFunction $ \(Haar_D¹ c₀ f) -> Haar_D¹ (c₀^*2) $ go 2 f 
- where go μ (HaarUnbiased δ l r)
-           = HaarUnbiased (μ*^δ) (go (μ/2) l) (go (μ/2) r)
+  ClosedScalarWitness -> coRiesz_origReso_with id
+
+coRiesz_origReso_with :: ∀ y . (LinearSpace y, Fractional (Scalar y))
+         => (y -> DualVector y) -> Haar D¹ y -+> DualVector (Haar D¹ y)
+coRiesz_origReso_with sdl = case dualSpaceWitness @y of
+  DualSpaceWitness
+      -> LinearFunction ((\(Haar_D¹ c₀ f) -> Haar_D¹ (sdl $ c₀^*2) $ go 2 f)
+                             :: Haar D¹ y -> DualVector (Haar D¹ y) )
+ where go :: Scalar y -> Haar0BiasTree 'FunctionSpace y
+                      -> Haar0BiasTree 'DistributionSpace (DualVector y)
+       go μ (HaarUnbiased δ l r)
+           = HaarUnbiased (sdl $ μ*^δ) (go (μ/2) l) (go (μ/2) r)
        go μ HaarZero = HaarZero
