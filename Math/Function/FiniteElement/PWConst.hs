@@ -55,13 +55,15 @@ import Control.Category.Constrained.Prelude
 import Control.Arrow.Constrained
 
 
-instance ( FreeVectorSpace y, VAffineSpace y
-         , TensorSpace y, Needle y ~ y, Num' (Scalar y), RealFrac (Scalar y) )
+instance ∀ y . ( FreeVectorSpace y, VAffineSpace y
+               , TensorSpace y, RealFrac (Scalar y) )
                 => FreeVectorSpace (Haar_D¹ 'FunctionSpace y) where
   
   Haar_D¹ c₀ HaarZero ^*^ Haar_D¹ c₁ HaarZero = Haar_D¹ (c₀^*^c₁) HaarZero
-  Haar_D¹ c HaarZero ^*^ f = fmap (LinearFunction (c^*^)) $ f
-  f ^*^ Haar_D¹ c HaarZero = fmap (LinearFunction (^*^c)) $ f
+  Haar_D¹ c HaarZero ^*^ f = case scalarSpaceWitness @y of
+    ScalarSpaceWitness -> fmap (LinearFunction (c^*^)) $ f
+  f ^*^ Haar_D¹ c HaarZero = case scalarSpaceWitness @y of
+    ScalarSpaceWitness -> fmap (LinearFunction (^*^c)) $ f
   Haar_D¹ c₀ (HaarUnbiased δ₀ f₀l f₀r) ^*^ Haar_D¹ c₁ (HaarUnbiased δ₁ f₁l f₁r)
       = case ( Haar_D¹ (c₀^-^δ₀) f₀l ^*^ Haar_D¹ (c₁^-^δ₁) f₁l
              , Haar_D¹ (c₀^+^δ₀) f₀r ^*^ Haar_D¹ (c₁^+^δ₁) f₁r ) of
