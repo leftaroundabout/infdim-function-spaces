@@ -392,24 +392,39 @@ instance ∀ s .
 instance ∀ s . ( Num' s, RealFrac s )
             => OptimalTransportable (Haar_D¹ FunctionSpace s)
                                     (Haar_D¹ FunctionSpace s) where
-  entropyLimOptimalTransport (SinkhornOTConfig λ) r c = sinkh smearedDiag
-   where
-       sinkh m = m : (sinkh . transpose_setLMarginal c . transpose_setLMarginal r $ m)
-       transpose_setLMarginal :: Haar D¹ s -> Haar D¹ s ⊗ Haar D¹ s -> Haar D¹ s ⊗ Haar D¹ s
-       transpose_setLMarginal = case (linearManifoldWitness @s, closedScalarWitness @s) of
-          (LinearManifoldWitness _, ClosedScalarWitness) -> \p m ->
-           let p' = lMarginal m
-               ρ = p^*^vmap recip p'
-           in fmap (LinearFunction (^*^ρ)) . transposeTensor $ m
-       smearedDiag :: Haar D¹ s ⊗ Haar D¹ s
-       smearedDiag = case
-            ( linearManifoldWitness @s, closedScalarWitness @s
-            , trivialTensorWitness @s @(Haar D¹ s) ) of
-        (LinearManifoldWitness _, ClosedScalarWitness, TrivialTensorWitness)
-          -> Tensor . homsampleHaarFunction reso
+  entropyLimOptimalTransport (SinkhornOTConfig λ)
+                  = elot closedScalarWitness linearManifoldWitness where
+   elot :: ClosedScalarWitness s -> LinearManifoldWitness s
+                  -> Haar_D¹ 'FunctionSpace s -> Haar_D¹ 'FunctionSpace s
+                -> [ Haar_D¹ 'FunctionSpace s ⊗  Haar_D¹ 'FunctionSpace s ]
+   elot ClosedScalarWitness (LinearManifoldWitness _) r c = sinkh False flatFunc flatFunc
+    where
+       sinkh :: Bool -> (Haar D¹ s) -> (Haar D¹ s) -> [(Haar D¹ s) ⊗ (Haar D¹ s)]
+       sinkh rside u v = connection
+            : sinkh (not rside)
+               (if   rside   then r ^*^ (vmap recip $ kv) else u)
+               (if not rside then c ^*^ (vmap recip $ k'u) else v)
+        where k'u = smearedDiag' $ u
+              kv = smearedDiag' $ v
+              connection ::  Haar_D¹ 'FunctionSpace s ⊗  Haar_D¹ 'FunctionSpace s 
+              connection = 2*^ -- TODO: find out why this factor is needed
+                      case fmap (LinearFunction (u^*^)) $ smearedDiag of
+                   LinearMap q -> fmap (LinearFunction (v^*^))
+                                   . transposeTensor $ Tensor q
+
+       -- | Corresponds to the 𝐾 matrix in Cuturi 2013.
+       smearedDiag :: DualVector (Haar D¹ s) +> Haar D¹ s
+       smearedDiag = case ( trivialTensorWitness @s @(Haar_D¹ 'FunctionSpace s) ) of
+        TrivialTensorWitness
+          -> LinearMap . homsampleHaarFunction reso
            $ \(D¹ x) -> Tensor . homsampleHaarFunction reso
-            $ \(D¹ x') -> realToFrac . exp $ -λ*abs (x-x')
-        where reso = (TwoToThe . max 0 . round $ log λ)
+            $ \(D¹ x') -> (realToFrac::ℝ->s) . exp $ -λ*abs (x-x')
+        where reso = TwoToThe (max 0 . round $ log λ)
+       smearedDiag' :: Haar D¹ s +> Haar D¹ s
+       smearedDiag' = adjoint . fmap coRiesz_origReso $ smearedDiag
+       
+       flatFunc :: Haar D¹ s
+       flatFunc = Haar_D¹ 1 zeroV
 
   lMarginal m = case (linearManifoldWitness @s, closedScalarWitness @s) of
       (LinearManifoldWitness _, ClosedScalarWitness)
