@@ -11,6 +11,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
