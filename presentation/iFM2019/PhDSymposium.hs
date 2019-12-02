@@ -471,11 +471,12 @@ id = CoHaar_D¹
         (fmap (\r -> HaarUnbiased 0 zeroV r) idUnbiased)
       |]
 
-   "Outlook / TODO" 
+   "Accuracy, convergence, smoothness" 
     ======do
-     items_p'
-      [("Other domains", id)
-      ,("Higher-order reconstruction",
+    "Piecewise-constant functions have several suboptimal properties:"
+     ──
+     items
+      ["Discontinuous" & later`id`
        let f (D¹ x) = fExample x + 3
            fHaar = homsampleCHaarFunction (TwoToThe 10) f
            goProg xc w doml domr fvw
@@ -501,10 +502,9 @@ id = CoHaar_D¹
           , mempty  & legendName "𝑓l"
           , mempty  & legendName "𝑓r"
           , xAxisLabel "𝑥"
-          , yAxisLabel "𝑓(𝑥)" ])
-      ,("Pruning heuristics", id)
-      ,("Reconsider data structure of tensors", id)
-      ,("Applications", id)
+          , yAxisLabel "𝑓(𝑥)" ]
+      ,"Derivative zero a.e."
+      ,"Inefficient"
       ]
 
 
