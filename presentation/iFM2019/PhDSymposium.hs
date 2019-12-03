@@ -18,6 +18,7 @@ import Presentation.Yeamer.Maths
 import qualified Math.LaTeX.Prelude as LaTeX
 import Math.LaTeX.StringLiterals
 import Text.LaTeX.Base.Math (operatorname)
+import Text.LaTeX.Packages.AMSFonts (mathbb)
 import qualified Text.Blaze.Html as Blaze
 import Text.Hamlet
 import Text.Cassius
@@ -72,6 +73,8 @@ main = do
        "Towards Better Data Structures for Numerics such as Optimal Transport"
      ──
      "Justus Sagemüller"
+     ──
+     "Supervisors: Olivier Verdier, Volker Stolz"
      ──
      "reference"#%("Western Norway University of Applied Sciences")
    
@@ -516,6 +519,8 @@ id = CoHaar_D¹
       , bf"Optimal transport"
       ]
 
+   let pr = mathbb 𝑃◞"r"
+       pg = mathbb 𝑃◞"g"
    "Optimal transport" 
     ======do
      let fTp t x = 1/w * exp (-((x-x₀)/w)^2)
@@ -524,12 +529,42 @@ id = CoHaar_D¹
      later(plotServ
         [ startFrozen $ plotLatest
            [ continFnPlot $ fTp t | t <- [0,0.03..1] ]
-        , continFnPlot $ fTp 0
-        , continFnPlot $ fTp 1 ] )
-      ("Idea: give two distributions "<>𝑎$<>" and "<>𝑏$<>" on domain "<>𝑀
-       $<>", find the easiest way to “transport” "<>𝑎$<>" to "<>𝑏$<>".")
+        , continFnPlot (fTp 0) & legendName "ℙr"
+        , continFnPlot (fTp 1) & legendName "ℙg"] )
+      ("Idea: give two distributions "<>pr$<>" and "<>pg$<>" on domain "<>𝑀
+       $<>", find the easiest way to “transport” "<>pr$<>" to "<>pg$<>".")
       ──
-      "Practical formulation: find joint distribution on "<>𝑀×𝑀$<>", such that one marginal is "<>𝑎$<>" and the other "<>𝑏$<>" and the mass is nearest possible to the identity-diagonal."
+      "Practical formulation: find joint distribution "<>γ$<>" on "<>𝑀×𝑀$<>", such that one marginal is "<>pr$<>" and the other "<>pg$<>" and the mass is nearest possible to the identity-diagonal."
+
+   "Sinkhorn algorithm" 
+    ======do
+     items
+      ["Iteratively refine the marginals so they match the desired ones"
+      ,"Start state influences thickness of the result"
+      ,"Starting with a distribution that strongly decreases with transport-distance gives an approximation to OT!"
+      ]
+      ──maths
+       [[ 𝑀◞0°(𝑥،𝑦) ⩵ exp (-λ*norm (𝑥-𝑦)) ]
+       ,[ 𝑀◞(𝑛+1/2) ⩵ "fmap"◞"y"°(""-\-𝑝␣𝑥 ↦ pr°𝑥/(𝑝°𝑥))°𝑀◞𝑛 ]
+       ,[ 𝑀◞(𝑛+1) ⩵ "fmap"◞"x"°(""-\-𝑝␣𝑦 ↦ pg°𝑦/(𝑝°𝑦))°𝑀◞(𝑛+1/2) ]
+       ]""
+     "A function space "<>𝐴$<>" is a "<>emph"commutative algebra"
+      ──
+      "Define “dual pointwise multiplication”"
+       <>maths
+          [ [ "("*")" ⸪ 𝐴◝"*" × 𝐴 -→ 𝐴◝"*" ]
+          , [ (𝑢*ψ)⁀φ ⩵ 𝑢°(ψ*φ) ]
+          ]"."
+      ──
+       "Cuturi-Sinkhorn on left and right premultipliers:"
+        <>maths
+          [ [ γ ⩵ "("⁀𝑣*")" ∘ 𝐾 ∘ (𝑢*"")◝"*", "", 𝐾 ⩵ 𝑀◞0 ]
+          , [ 𝑢 ←- pr/(𝐾◝"*"°𝑣) , 𝑣 ←- pg/(𝐾°𝑢) ]
+          ]""
+
+     "Floating-point issues"
+      ======do
+       "Cuturi-Sinkhorn relies on "<>emph"high dynamic range"<>" of floats."
 
 useLightColourscheme :: Bool
 useLightColourscheme = False
