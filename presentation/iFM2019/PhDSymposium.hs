@@ -504,9 +504,32 @@ id = CoHaar_D¹
           , xAxisLabel "𝑥"
           , yAxisLabel "𝑓(𝑥)" ]
       ,"Derivative zero a.e."
-      ,"Inefficient"
+      ,"Inefficient (only linear convergence)"
       ]
 
+   "Applications" 
+    ======do
+     items
+      [ "Differential equations"
+      , "Signal processing"
+      , "... machine learning ..."
+      , bf"Optimal transport"
+      ]
+
+   "Optimal transport" 
+    ======do
+     let fTp t x = 1/w * exp (-((x-x₀)/w)^2)
+          where x₀ = -0.2 + t/2
+                w = 0.4 - t/8
+     later(plotServ
+        [ startFrozen $ plotLatest
+           [ continFnPlot $ fTp t | t <- [0,0.03..1] ]
+        , continFnPlot $ fTp 0
+        , continFnPlot $ fTp 1 ] )
+      ("Idea: give two distributions "<>𝑎$<>" and "<>𝑏$<>" on domain "<>𝑀
+       $<>", find the easiest way to “transport” "<>𝑎$<>" to "<>𝑏$<>".")
+      ──
+      "Practical formulation: find joint distribution on "<>𝑀×𝑀$<>", such that one marginal is "<>𝑎$<>" and the other "<>𝑏$<>" and the mass is nearest possible to the identity-diagonal."
 
 useLightColourscheme :: Bool
 useLightColourscheme = False
