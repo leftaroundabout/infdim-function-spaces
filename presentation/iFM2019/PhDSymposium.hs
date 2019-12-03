@@ -212,7 +212,7 @@ main = do
       & later`id`
        let f (D¹ x) = fExample x + 3
            fHaar = homsampleHaarFunction (TwoToThe 10) f
-           goProg xc w doml domr fvw
+           goProg fvw xc w doml domr
              | w > domr-doml  = plotMultiple
                 [ continFnPlot (embedD¹ (doml,domr) $ evalHaarFunction fvw)
                 , continFnPlot (embedD¹ (doml,domr) f₀)
@@ -221,13 +221,13 @@ main = do
                                       $ evalHaarFunction fl)
                 , continFnPlot (embedD¹ (domm,domr)
                                       $ evalHaarFunction fr) ]
-             | xc < domm      = goProg xc w doml domm fl
-             | otherwise      = goProg xc w domm domr fr
+             | xc < domm      = goProg fl xc w doml domm
+             | otherwise      = goProg fr xc w domm domr
             where (y₀, (fl, fr)) = multiscaleDecompose fvw
                   f₀ _ = y₀
                   domm = (doml+domr)/2
        in plotServ
-          [ plot (\(ViewXCenter xc) (ViewWidth w) -> goProg xc w (-1) 1 fHaar)
+          [ plot . blendZoomSteps $ goProg fHaar
           , mempty  & legendName "𝑓"
           , mempty  & legendName "𝑦₀"
           , mempty
@@ -279,7 +279,7 @@ main = do
       & later`id`
        let f (D¹ x) = fExample x + 3
            fHaar = homsampleHaarFunction (TwoToThe 10) f
-           goProg xc w doml domr fvw
+           goProg fvw xc w doml domr
              | w > domr-doml  = plotMultiple
                 [ continFnPlot (embedD¹ (doml,domr) $ evalHaarFunction fvw)
                 , continFnPlot (embedD¹ (doml,domr) f₀)
@@ -289,15 +289,15 @@ main = do
                                    . evalHaarFunction fl)
                 , continFnPlot (embedD¹ (domm,domr) $ subtract δlr
                                    . evalHaarFunction fr) ]
-             | xc < domm      = goProg xc w doml domm $ fl ^+^ cδlr
-             | otherwise      = goProg xc w domm domr $ fr ^-^ cδlr
+             | xc < domm      = goProg (fl ^+^ cδlr) xc w doml domm
+             | otherwise      = goProg (fr ^-^ cδlr) xc w domm domr
             where (y₀, (fl, fr)) = multiscaleDecompose fvw
                   f₀ _ = y₀
                   δlr = (fst (multiscaleDecompose fr) - fst (multiscaleDecompose fl))/2
                   domm = (doml+domr)/2
                   cδlr = homsampleHaarFunction (TwoToThe 1) (const δlr :: D¹->ℝ)
        in plotServ
-          [ plot (\(ViewXCenter xc) (ViewWidth w) -> goProg xc w (-1) 1 fHaar)
+          [ plot . blendZoomSteps $ goProg fHaar
           , mempty  & legendName "𝑓"
           , mempty  & legendName "𝑦₀"
           , mempty  & legendName "δ𝑦lr"
@@ -479,7 +479,7 @@ id = CoHaar_D¹
       ["Discontinuous" & later`id`
        let f (D¹ x) = fExample x + 3
            fHaar = homsampleCHaarFunction (TwoToThe 10) f
-           goProg xc w doml domr fvw
+           goProg fvw xc w doml domr
              | w > domr-doml  = plotMultiple
                 [ continFnPlot (embedD¹ (doml,domr) $ evalCHaarFunction fvw)
                 , continFnPlot (embedD¹ (doml,domr) f₀)
@@ -488,14 +488,14 @@ id = CoHaar_D¹
                                       $ evalCHaarFunction fl)
                 , continFnPlot (embedD¹ (domm,domr)
                                       $ evalCHaarFunction fr) ]
-             | xc < domm      = goProg xc w doml domm fl
-             | otherwise      = goProg xc w domm domr fr
+             | xc < domm      = goProg fl xc w doml domm
+             | otherwise      = goProg fr xc w domm domr
             where ((yl,ym,yr), (fl, fr)) = multiscaleCDecompose fvw
                   f₀ (D¹ x) | x>0        = ym + (yr-ym)*x
                             | otherwise  = ym - (yl-ym)*x
                   domm = (doml+domr)/2
        in plotServ
-          [ plot (\(ViewXCenter xc) (ViewWidth w) -> goProg xc w (-1) 1 fHaar)
+          [ plot . blendZoomSteps $ goProg fHaar
           , mempty  & legendName "𝑓"
           , mempty  & legendName "Λ𝑦:∫"
           , mempty
@@ -689,3 +689,10 @@ opac :: Double -> DynamicPlottable -> DynamicPlottable
 opac = tweakPrerendered . Dia.opacity
 
 
+blendZoomSteps :: (Double -> Double -> Double -> Double -> DynamicPlottable)
+                     -> ViewXCenter -> ViewWidth -> DynamicPlottable
+blendZoomSteps gpf (ViewXCenter xc) (ViewWidth w)
+               = let lw = logBase 2 w
+                     η = lw - fromIntegral (floor lw)
+                 in tweakPrerendered (Dia.opacity $ 1-η) (gpf xc w (-1) 1)
+                  <> tweakPrerendered (Dia.opacity η) (gpf xc (w*sqrt 2) (-1) 1)
