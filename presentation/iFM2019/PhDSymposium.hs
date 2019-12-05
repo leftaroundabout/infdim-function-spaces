@@ -3,15 +3,20 @@
 -- To view a copy of this license, visit http://creativecommons.org/licenses/by-nd/4.0/
 -- or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes       #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE ImplicitParams    #-}
-{-# LANGUAGE TupleSections     #-}
-{-# LANGUAGE Rank2Types        #-}
-{-# LANGUAGE UnicodeSyntax     #-}
-{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE QuasiQuotes          #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE ImplicitParams       #-}
+{-# LANGUAGE TupleSections        #-}
+{-# LANGUAGE Rank2Types           #-}
+{-# LANGUAGE UnicodeSyntax        #-}
+{-# LANGUAGE LambdaCase           #-}
+{-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE TypeApplications     #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE DataKinds            #-}
 
 import Presentation.Yeamer
 import Presentation.Yeamer.Maths
@@ -59,7 +64,30 @@ import Data.Default.Class (def)
 import qualified Text.Show.Pragmatic as SP
 
 import Math.Function.FiniteElement.PWConst
+import Math.Function.FiniteElement.PWConst.Internal
 import Math.Function.FiniteElement.PWLinear
+
+import qualified Control.Category.Constrained.Prelude as CC
+
+
+class HasIntervalFunctions v where
+  fromIntervalFunction :: PowerOfTwo -> (D¹ -> Scalar v) -> v
+  visualiseIvFn :: PowerOfTwo -> v -> DynamicPlottable
+instance ∀ s . (RealFrac s, Num' s, AffineSpace s, Diff s ~ s, Needle s ~ s)
+    => HasIntervalFunctions (Haar_D¹ 'DistributionSpace s) where
+  fromIntervalFunction = case closedScalarWitness @s of
+    ClosedScalarWitness -> \resoLimit f
+     -> case homsampleHaarFunction resoLimit f :: Haar D¹ s of
+          fspld -> coRiesz_origReso CC.$ fspld
+  visualiseIvFn resoLimit d = continFnPlot $ (realToFrac::s->ℝ) . evalHaarFunction f . D¹
+   where f = case closedScalarWitness @s of
+          ClosedScalarWitness
+           -> riesz_resolimited resoLimit CC.$ d :: Haar_D¹ 'FunctionSpace s
+instance ∀ s . (RealFrac s, Num' s, AffineSpace s, Diff s ~ s, Needle s ~ s)
+    => HasIntervalFunctions (Haar_D¹ 'FunctionSpace s) where
+  fromIntervalFunction = case closedScalarWitness @s of
+     ClosedScalarWitness -> homsampleHaarFunction
+  visualiseIvFn _ f = continFnPlot $ realToFrac . evalHaarFunction f . D¹
 
 
 main :: IO ()
@@ -123,7 +151,7 @@ main = do
            <> " as weighted superposition of "<>𝑛$<>" basis vectors."
         , plotServ [ withDraggablePoints
                         [(1,0), (0,1), (0.1,0.1)]
-                        (\[e₀@(x₀,y₀),e₁@(x₁,y₁),v] -> 
+                        (\[e0@(x₀,y₀),e1@(x₁,y₁),v] -> 
                           let (e₀',e₁') = ((y₁,-x₁),(-y₀,x₀))
                                           ^/ (x₀*y₁-x₁*y₀)
                               [v₀,v₁] = (<.>v) <$> [e₀',e₁']
@@ -135,10 +163,10 @@ main = do
                                | (t,r,sty) <- grp ]
                                  & legendName lgn
                               | (grp,lgn)
-                                  <- [ ( [ (e₀    , zeroV , strong  )
-                                         , (e₀^*v₀, zeroV , weak) ], "𝐞₀" )
-                                     , ( [ (e₁    , zeroV , strong  )
-                                         , (v     , e₀^*v₀, weak) ], "𝐞₁" )
+                                  <- [ ( [ (e0    , zeroV , strong  )
+                                         , (e0^*v₀, zeroV , weak) ], "𝐞₀" )
+                                     , ( [ (e1    , zeroV , strong  )
+                                         , (v     , e0^*v₀, weak) ], "𝐞₁" )
                                      , ( [ (v     , zeroV , strong  ) ]
                                        , printf "%.1g·𝐞₀ + %.1g·𝐞₁" v₀ v₁ )
                                      ]
@@ -536,6 +564,48 @@ id = CoHaar_D¹
       ──
       "Practical formulation: find joint distribution "<>γ$<>" on "<>𝑀×𝑀$<>", such that one marginal is "<>pr$<>" and the other "<>pg$<>" and the mass is nearest possible to the identity-diagonal."
 
+   let visualiseSinkhornConv :: ∀ dn s v
+         . ( HasIntervalFunctions v, OptimalTransportable v v, v ~ Haar_D¹ dn s
+           , RealFrac s, Num' s, s ~ Needle s, s ~ Scalar s
+           , AffineSpace s, s ~ Diff s )
+                => (ℝ->s) -> SinkhornOTConfig -> (ℝ->ℝ, ℝ->ℝ) -> [DynamicPlottable]
+       visualiseSinkhornConv convertS shOTC (r₀, c₀)
+           = [ continFnPlot $ realToFrac . r
+             , startFrozen $ plotLatest
+                 [ plotDelay 0.8 . plotMultiple
+                     $ [mempty,mempty]
+                      ++[ visualiseIvFn resoLimit $ marg ot
+                        | marg <- [ lMarginal
+                                  , case scalarSpaceWitness @v of
+                                      ScalarSpaceWitness
+                                       -> lMarginal . getLinearFunction transposeTensor ]
+                        ]
+                 | ot <- entropyLimOptimalTransport shOTC r' c']
+             , continFnPlot $ realToFrac . c ]
+        where r', c', r₀', c₀' :: v
+              [r₀',c₀'] = asDistrib . fmap convertS<$>[r₀,c₀]
+              [ar,ac] = pwconst_D¹_offset<$>[r₀',c₀']
+              r = ((/ar).convertS)<$>r₀; r'=r₀'^/ar
+              c = ((/ac).convertS)<$>c₀; c'=c₀'^/ac
+              asDistrib :: (ℝ->s)->v
+              asDistrib f = fromIntervalFunction resoLimit $ \(D¹ x)->f x
+              resoLimit = TwoToThe 6
+       broadPeaks, mediumPeaks, narrowPeaks :: (ℝ->ℝ, ℝ->ℝ)
+       broadPeaks = (\x -> exp (-(x-0.4)^2*7), \x -> exp (-(x+0.4)^2*12))
+       mediumPeaks = (\x -> exp (-(x-0.4)^2*37), \x -> exp (-(x+0.4)^2*29))
+       narrowPeaks = (\x -> exp (-(x-0.4)^2*2072), \x -> exp (-(x+0.4)^2*1660))
+       
+       testSinkhorn :: ∀ dn s v
+         . ( HasIntervalFunctions v, OptimalTransportable v v, v ~ Haar_D¹ dn s
+           , RealFrac s, Num' s, s ~ Needle s, s ~ Scalar s
+           , AffineSpace s, s ~ Diff s
+           , ?plotLock :: IORef (Maybe ThreadId) )
+                => SinkhornOTConfig -> (ℝ->ℝ, ℝ->ℝ) -> (ℝ->s) -> Presentation -> Presentation
+       testSinkhorn shConf peakFns convS
+         = plotServ
+           ( visualiseSinkhornConv @dn convS shConf
+                peakFns )
+
    "Sinkhorn algorithm" 
     ======do
      items
@@ -556,15 +626,20 @@ id = CoHaar_D¹
           , [ (𝑢*ψ)⁀φ ⩵ 𝑢°(ψ*φ) ]
           ]"."
       ──
-       "Cuturi-Sinkhorn on left and right premultipliers:"
+       ("Cuturi-Sinkhorn on left and right premultipliers:"
         <>maths
           [ [ γ ⩵ "("⁀𝑣*")" ∘ 𝐾 ∘ (𝑢*"")◝"*", "", 𝐾 ⩵ 𝑀◞0 ]
           , [ 𝑢 ←- pr/(𝐾◝"*"°𝑣) , 𝑣 ←- pg/(𝐾°𝑢) ]
           ]""
+       ) & later (testSinkhorn @'DistributionSpace (SinkhornOTConfig 18) broadPeaks id)
 
-     "Floating-point issues"
-      ======do
-       "Cuturi-Sinkhorn relies on "<>emph"high dynamic range"<>" of floats."
+   "Issues"
+    ======do
+     ("Cuturi-Sinkhorn relies on "<>emph"high dynamic range"<>" of floats."
+       & later (testSinkhorn @'DistributionSpace (SinkhornOTConfig 64) narrowPeaks id))
+      ──
+      "Exact Dirac requires exporting to infinite depth, and a tensor-transpose."
+
 
 useLightColourscheme :: Bool
 useLightColourscheme = False
