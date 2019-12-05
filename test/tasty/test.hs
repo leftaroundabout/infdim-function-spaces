@@ -79,6 +79,8 @@ main = defaultMain $ testGroup "Tests"
  , testGroup "Dual space of 𝓛² Hilbert space"
   [ testProperty "Co-Riesz functionals"
       $ \f g -> (coRiesz$f)<.>^(g :: Haar D¹ ℝ) ≃ f<.>g
+  , testProperty "Co-Riesz functionals"
+      $ \f g -> (coRiesz_origReso$f)<.>^(g :: Haar D¹ ℝ) ≃ f<.>g
   , testProperty "Linearity"
       $ \f g μ h -> let f' = coRiesz$(f :: Haar D¹ ℝ)
                     in f'<.>^(g ^+^ μ*^h :: Haar D¹ ℝ)
@@ -95,7 +97,12 @@ main = defaultMain $ testGroup "Tests"
                    ι = boxDistributionD¹ (D¹ $ -1, D¹ 1) 1 :: DualVector (Haar D¹ ℝ)
                in (dualPointwiseMul f₀ $ ι) <.>^ f₁ ≃ ι <.>^ (f₀^*^f₁)
   , testProperty "Multiplicativity of dual vectors: arbitrary"
-         $ \u ψ φ -> (dualPointwiseMul ψ $ u) <.>^ φ ≃ u <.>^ (ψ^*^φ)
+         $ \u (ψ::Haar D¹ ℝ) φ -> (dualPointwiseMul ψ $ u) <.>^ φ ≃ u <.>^ (ψ^*^φ)
+  , testProperty "Multiplicativity of dual vectors: reciprocal"
+         $ \(f :: Haar D¹ ℝ) (g :: Haar D¹ ℝ) p
+              -> let f² = vmap ((+0.1).(^2)) f
+                 in (dualPointwiseMul (vmap recip f²) . dualPointwiseMul f² $ p) <.>^ g
+                         ≃ p<.>^g
   ]
  , testGroup "Tensors"
   [ testProperty "Bilinearity of tensor product"

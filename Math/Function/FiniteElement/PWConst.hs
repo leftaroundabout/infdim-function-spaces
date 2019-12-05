@@ -11,6 +11,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -27,9 +28,12 @@ module Math.Function.FiniteElement.PWConst
         , integrateHaarFunction
          -- * Utility
         , PowerOfTwo(..), getPowerOfTwo, multiscaleDecompose, haarFunctionGraph
-        , VAffineSpace, detailScale, riesz_resolimited
+        , VAffineSpace, detailScale, riesz_resolimited, coRiesz_origReso
+        , Dualness(..)
          -- * Misc, unstable
         , dualPointwiseMul
+        , lMarginal, entropyLimOptimalTransport, SinkhornOTConfig(..)
+        , OptimalTransportable
         ) where
 
 import Math.Function.FiniteElement.PWConst.Internal
@@ -52,13 +56,15 @@ import Control.Category.Constrained.Prelude
 import Control.Arrow.Constrained
 
 
-instance ( FreeVectorSpace y, VAffineSpace y
-         , TensorSpace y, Needle y ~ y, Scalar y ~ ℝ )
+instance ∀ y . ( FreeVectorSpace y, VAffineSpace y
+               , TensorSpace y, RealFrac (Scalar y) )
                 => FreeVectorSpace (Haar_D¹ 'FunctionSpace y) where
   
   Haar_D¹ c₀ HaarZero ^*^ Haar_D¹ c₁ HaarZero = Haar_D¹ (c₀^*^c₁) HaarZero
-  Haar_D¹ c HaarZero ^*^ f = fmap (LinearFunction (c^*^)) $ f
-  f ^*^ Haar_D¹ c HaarZero = fmap (LinearFunction (^*^c)) $ f
+  Haar_D¹ c HaarZero ^*^ f = case scalarSpaceWitness @y of
+    ScalarSpaceWitness -> fmap (LinearFunction (c^*^)) $ f
+  f ^*^ Haar_D¹ c HaarZero = case scalarSpaceWitness @y of
+    ScalarSpaceWitness -> fmap (LinearFunction (^*^c)) $ f
   Haar_D¹ c₀ (HaarUnbiased δ₀ f₀l f₀r) ^*^ Haar_D¹ c₁ (HaarUnbiased δ₁ f₁l f₁r)
       = case ( Haar_D¹ (c₀^-^δ₀) f₀l ^*^ Haar_D¹ (c₁^-^δ₁) f₁l
              , Haar_D¹ (c₀^+^δ₀) f₀r ^*^ Haar_D¹ (c₁^+^δ₁) f₁r ) of
@@ -71,17 +77,20 @@ instance ( FreeVectorSpace y, VAffineSpace y
          (Haar_D¹ cl fl, Haar_D¹ cr fr)
            -> Haar_D¹ ((cl^+^cr)^/2) $ HaarUnbiased ((cr^-^cl)^/2) fl fr
          
-dualPointwiseMul :: Haar_D¹ FunctionSpace ℝ
-          -> Haar_D¹ DistributionSpace ℝ -> Haar_D¹ DistributionSpace ℝ
+dualPointwiseMul :: ∀ s . (Num' s, RealFrac s, AffineSpace s, s ~ Diff s, s ~ Needle s)
+   => Haar_D¹ FunctionSpace s
+          -> Haar_D¹ DistributionSpace s -> Haar_D¹ DistributionSpace s
 dualPointwiseMul (Haar_D¹ c₀ HaarZero) (Haar_D¹ c₁ HaarZero)
        = Haar_D¹ (c₀*c₁) HaarZero
-dualPointwiseMul (Haar_D¹ c HaarZero) f
-           = fmap (LinearFunction (c*)) $ f
+dualPointwiseMul (Haar_D¹ c HaarZero) f = case closedScalarWitness @s of
+     ClosedScalarWitness -> fmap (LinearFunction (c*)) $ f
 dualPointwiseMul f (Haar_D¹ c HaarZero)
            = dualPointwiseMul f $ Haar_D¹ c (HaarUnbiased zeroV zeroV zeroV)
 dualPointwiseMul (Haar_D¹ c₀ (HaarUnbiased δ₀ f₀l f₀r))
                  (Haar_D¹ c₁ (HaarUnbiased δ₁ f₁l f₁r))
-      = case ( dualPointwiseMul (Haar_D¹ (c₀^-^δ₀) f₀l) (Haar_D¹ ((c₁^-^δ₁)^/2) f₁l)
+ = case closedScalarWitness @s of
+    ClosedScalarWitness
+     -> case ( dualPointwiseMul (Haar_D¹ (c₀^-^δ₀) f₀l) (Haar_D¹ ((c₁^-^δ₁)^/2) f₁l)
              , dualPointwiseMul (Haar_D¹ (c₀^+^δ₀) f₀r) (Haar_D¹ ((c₁^+^δ₁)^/2) f₁r) ) of
          (Haar_D¹ cl fl, Haar_D¹ cr fr)
            -> Haar_D¹ (cl^+^cr) $ HaarUnbiased (cr^-^cl) fl fr
@@ -319,10 +328,126 @@ instance ∀ y dn . ( LinearSpace y, AffineSpace y
                               $ (Tensor f :: Haar_D¹ dn y⊗u)
                   | (a,f) <- (ac,fc) : zip al fl ++ zip ar fr ]
 
-riesz_resolimited :: PowerOfTwo -> (DualVector (Haar D¹ Double) -+> Haar D¹ Double)
-riesz_resolimited res = LinearFunction $ \(Haar_D¹ c₀ f)
+riesz_resolimited :: ∀ s . (Num' s, Fractional s)
+                     => PowerOfTwo -> (DualVector (Haar D¹ s) -+> Haar D¹ s)
+riesz_resolimited res = case closedScalarWitness @s of
+  ClosedScalarWitness -> LinearFunction $ \(Haar_D¹ c₀ f)
                            -> Haar_D¹ (c₀^/2) $ go res (1/2) f 
  where go (TwoToThe n) μ (HaarUnbiased δ l r)
         | n > 0     = HaarUnbiased (μ*^δ)
                        (go (TwoToThe $ n-1) (μ*2) l) (go (TwoToThe $ n-1) (μ*2) r)
        go _ _ _ = HaarZero
+
+data SinkhornOTConfig = SinkhornOTConfig
+  { _entropyLim_λ :: ℝ }
+
+class OptimalTransportable v w where
+  -- | Calculation of an approximately optimal (i.e. minimum earth-mover distance)
+  --   transport (i.e. joint distribution that has the two given marginals).
+  --   Uses the Sinkhorn algorithm as presented in
+  --   <http://papers.nips.cc/paper/4927-sinkhorn-distances-lightspeed-computation-of-optimal-transport Cuturi 2013>.
+  entropyLimOptimalTransport :: SinkhornOTConfig -> v -> w -> [v ⊗ w]
+  lMarginal :: v ⊗ w -> v
+
+instance ∀ s .
+     ( Num' s, RealFrac s
+     , AffineSpace s, s ~ Diff s, DualVector s ~ s, s ~ Needle s )
+      => OptimalTransportable (Haar_D¹ DistributionSpace s)
+                              (Haar_D¹ DistributionSpace s) where
+  entropyLimOptimalTransport (SinkhornOTConfig λ) = elot closedScalarWitness where
+   elot :: ClosedScalarWitness s
+                  -> Haar_D¹ 'DistributionSpace s -> Haar_D¹ 'DistributionSpace s
+                -> [ Haar_D¹ 'DistributionSpace s ⊗  Haar_D¹ 'DistributionSpace s ]
+   elot ClosedScalarWitness r c = sinkh False flatDistrib flatDistrib
+    where
+       sinkh :: Bool -> DualVector (Haar D¹ s) -> DualVector (Haar D¹ s)
+               -> [DualVector (Haar D¹ s) ⊗ DualVector (Haar D¹ s)]
+       sinkh rside u v = connection
+            : sinkh (not rside)
+               (if   rside   then dualPointwiseMul (vmap recip $ kv) r else u)
+               (if not rside then dualPointwiseMul (vmap recip $ k'u) c else v)
+        where k'u = smearedDiag' $ u
+              kv = smearedDiag $ v
+              connection = case fmap (LinearFunction (`dualPointwiseMul`u)) $ smearedDiag of
+                   LinearMap q -> fmap (LinearFunction (`dualPointwiseMul`v))
+                                   . transposeTensor $ Tensor q
+
+       -- | Corresponds to the 𝐾 matrix in Cuturi 2013.
+       smearedDiag :: DualVector (Haar D¹ s) +> Haar D¹ s
+       smearedDiag = case trivialTensorWitness @s @(Haar D¹ s) of
+        TrivialTensorWitness -> LinearMap . homsampleHaarFunction reso
+           $ \(D¹ x) -> Tensor . homsampleHaarFunction reso
+            $ \(D¹ x') -> (realToFrac::ℝ->s) . exp $ -λ*abs (x-x')
+        where reso = TwoToThe (max 0 . round $ log λ)
+       smearedDiag' :: DualVector (Haar D¹ s) +> Haar D¹ s
+       smearedDiag' = adjoint $ smearedDiag
+       
+       flatDistrib :: DualVector (Haar D¹ s)
+       flatDistrib = Haar_D¹ 1 zeroV
+
+  lMarginal = case closedScalarWitness @s of
+           ClosedScalarWitness
+               -> let integrate = LinearFunction (<.>^(Haar_D¹ 1 zeroV :: Haar D¹ s))
+                  in \m -> fromFlatTensor . fmap integrate $ m
+
+instance ∀ s . ( Num' s, RealFrac s )
+            => OptimalTransportable (Haar_D¹ FunctionSpace s)
+                                    (Haar_D¹ FunctionSpace s) where
+  entropyLimOptimalTransport (SinkhornOTConfig λ)
+                  = elot closedScalarWitness linearManifoldWitness where
+   elot :: ClosedScalarWitness s -> LinearManifoldWitness s
+                  -> Haar_D¹ 'FunctionSpace s -> Haar_D¹ 'FunctionSpace s
+                -> [ Haar_D¹ 'FunctionSpace s ⊗  Haar_D¹ 'FunctionSpace s ]
+   elot ClosedScalarWitness (LinearManifoldWitness _) r c = sinkh False flatFunc flatFunc
+    where
+       sinkh :: Bool -> (Haar D¹ s) -> (Haar D¹ s) -> [(Haar D¹ s) ⊗ (Haar D¹ s)]
+       sinkh rside u v = connection
+            : sinkh (not rside)
+               (if   rside   then r ^*^ (vmap recip $ kv) else u)
+               (if not rside then c ^*^ (vmap recip $ k'u) else v)
+        where k'u = smearedDiag' $ u
+              kv = smearedDiag' $ v
+              connection ::  Haar_D¹ 'FunctionSpace s ⊗  Haar_D¹ 'FunctionSpace s 
+              connection = 2*^ -- TODO: find out why this factor is needed
+                      case fmap (LinearFunction (u^*^)) $ smearedDiag of
+                   LinearMap q -> fmap (LinearFunction (v^*^))
+                                   . transposeTensor $ Tensor q
+
+       -- | Corresponds to the 𝐾 matrix in Cuturi 2013.
+       smearedDiag :: DualVector (Haar D¹ s) +> Haar D¹ s
+       smearedDiag = case ( trivialTensorWitness @s @(Haar_D¹ 'FunctionSpace s) ) of
+        TrivialTensorWitness
+          -> LinearMap . homsampleHaarFunction reso
+           $ \(D¹ x) -> Tensor . homsampleHaarFunction reso
+            $ \(D¹ x') -> (realToFrac::ℝ->s) . exp $ -λ*abs (x-x')
+        where reso = TwoToThe (max 0 . round $ log λ)
+       smearedDiag' :: Haar D¹ s +> Haar D¹ s
+       smearedDiag' = adjoint . fmap coRiesz_origReso $ smearedDiag
+       
+       flatFunc :: Haar D¹ s
+       flatFunc = Haar_D¹ 1 zeroV
+
+  lMarginal m = case (linearManifoldWitness @s, closedScalarWitness @s) of
+      (LinearManifoldWitness _, ClosedScalarWitness)
+        -> let integrate = LinearFunction $ (Haar_D¹ 1 zeroV<.>^)
+           in fromFlatTensor . fmap integrate $ m
+
+
+
+
+coRiesz_origReso :: ∀ s . (Num' s, Fractional s)
+                     => Haar D¹ s -+> DualVector (Haar D¹ s)
+coRiesz_origReso = case closedScalarWitness @s of
+  ClosedScalarWitness -> coRiesz_origReso_with id
+
+coRiesz_origReso_with :: ∀ y . (LinearSpace y, Fractional (Scalar y))
+         => (y -> DualVector y) -> Haar D¹ y -+> DualVector (Haar D¹ y)
+coRiesz_origReso_with sdl = case dualSpaceWitness @y of
+  DualSpaceWitness
+      -> LinearFunction ((\(Haar_D¹ c₀ f) -> Haar_D¹ (sdl $ c₀^*2) $ go 2 f)
+                             :: Haar D¹ y -> DualVector (Haar D¹ y) )
+ where go :: Scalar y -> Haar0BiasTree 'FunctionSpace y
+                      -> Haar0BiasTree 'DistributionSpace (DualVector y)
+       go μ (HaarUnbiased δ l r)
+           = HaarUnbiased (sdl $ μ*^δ) (go (μ/2) l) (go (μ/2) r)
+       go μ HaarZero = HaarZero
