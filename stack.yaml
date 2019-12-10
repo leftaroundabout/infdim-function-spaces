@@ -1,0 +1,40 @@
+flags: {}
+packages:
+- './'
+extra-deps:
+- number-show-0.1.0.0
+- pragmatic-show-0.1.2.0
+- constrained-categories-0.4.0.0
+- trivial-constraint-0.4.0.0
+- free-vector-spaces-0.1.5.0
+- linearmap-category-0.4.0.0
+- vector-space-0.15
+- spatial-rotations-0.1.0.1
+- manifolds-core-0.5.0.4
+- manifolds-0.5.0.4
+- manifold-random-0.5.0.4
+- colour-space-0.1.5.1
+- cairo-0.13.6.0
+- pango-0.13.6.0
+- diagrams-cairo-1.4.1
+- diagrams-gtk-1.4
+- glib-0.13.7.0
+- git: https://github.com/leftaroundabout/gtk2hs
+  commit: 775cdb957f2a4259b64aa44e498806931cb34d24
+  subdirs:
+  - gtk
+- gtk2hs-buildtools-0.13.5.0
+- dynamic-plot-0.4.1.0
+- TeX-my-math-0.201.2.0
+- numbered-semigroups-0.1.0.0
+- yeamer-0.1.0.3
+- HaTeX-3.22.0.0
+- decimal-literals-0.1.0.1@sha256:e0eda8044c7d6b9a1897f90357c4a69d6d58095d4d241d38df3d9db0fc383f3e,1192
+- dumb-cas-0.2.0.0@sha256:0f37c3f2a74d26c3931025868c17d0d6c5b2a315f8367ceb33286eeebde4c988,2254
+- flat-0.3.4@sha256:002a0e0ae656ea8cc02a772d0bcb6ea7dbd7f2e79070959cc748ad1e7138eb38,4276
+- these-lens-1@sha256:960f53c44201f5f67d0158162ce39cc7095b958d584d76a2aead358a54c137d3,1138
+- these-1
+- gio-0.13.6.0@sha256:00fce1b49c902ba82433cc018fb5d4651797464342a9cbc66df2c62bb8884650,3102
+- assoc-1@sha256:8d32ce39b6b6ce15394e9346f9ddb8752885aaa506a603e65d1c2769aff79741,1024
+resolver: lts-13.19
+allow-newer: true

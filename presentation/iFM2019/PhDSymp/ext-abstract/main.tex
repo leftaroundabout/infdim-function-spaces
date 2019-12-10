@@ -1,0 +1,158 @@
+% easychair.tex,v 3.5 2017/03/15
+
+\documentclass[a4paper]{easychair}
+%\documentclass[EPiC]{easychair}
+%\documentclass[EPiCempty]{easychair}
+%\documentclass[debug]{easychair}
+%\documentclass[verbose]{easychair}
+%\documentclass[notimes]{easychair}
+%\documentclass[withtimes]{easychair}
+%\documentclass[a4paper]{easychair}
+%\documentclass[letterpaper]{easychair}
+
+\usepackage{doc}
+\usepackage{xspace}
+
+\usepackage{fontspec}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{xfrac}
+
+%\makeindex
+
+%% Front Matter
+%%
+% Regular title as in the article class.
+%
+\title{Towards Better Data Structures for Numerics such as Optimal Transport}
+
+% Authors are joined by \and. Their affiliations are given by \inst, which indexes
+% into the list defined using \institute
+%
+\author{
+   Justus Sagemüller\inst{1}
+\and
+    Olivier Verdier\inst{1}
+\and
+    Volker Stolz\inst{1}
+}
+
+% Institutes for affiliations are also joined by \and,
+\institute{
+  Western Norway University of Applied Sciences, 
+  Bergen, Norway\\
+  \email{\{jsag,over,vsto\}@hvl.no}
+ }
+
+%  \authorrunning{} has to be set for the shorter version of the authors' names;
+% otherwise a warning will be rendered in the running heads. When processed by
+% EasyChair, this command is mandatory: a document without \authorrunning
+% will be rejected by EasyChair
+
+\authorrunning{Sagemüller, Verdier and Stolz}
+
+% \titlerunning{} has to be set to either the main title or its shorter
+% version for the running heads. When processed by
+% EasyChair, this command is mandatory: a document without \titlerunning
+% will be rejected by EasyChair
+\titlerunning{Towards Better Data Structures for Optimal Transport}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  In machine learning, it is often necessary to compare data distributions. One way of doing that is \emph{Optimal transport}. OT is a useful tool for assessing the difference/divergence (\emph{Wasserstein} or \emph{Earth mover distance}) between probability distributions, histograms etc., or for interpolating between them, particularly in case of non-overlapping distributions.
+  
+  The \emph{Cuturi-Sinkhorn algorithm} is an efficient means of calculating OT for arbitrary metrics on the base space. However it is in practice carried out only on a \emph{discretised representation} of the distributions.
+  
+  We implement the Sinkhorn algorithm on a data structure which handles the infinite dimensionality of the continuous distribution space through lazy evaluation. Apart from safer, easier handling of what resolution is necessary, this includes the ability to express with \emph{types} the mathematical meaning of a function or distribution.
+  
+  Our Sinkhorn implementation does work, but floating-point instability is observed in certain cases. Interestingly, it depends on whether the distributions are considered as functions or dual-functions, a distinction that does not appear in the conventional a-priori finite-dimensional reduction. We discuss this and whether it is possible to use types to prevent such issues, or to warn about them.
+\end{abstract}
+
+\label{sec:introduction}
+\noindent%
+Probability distributions are the foundation of statistics and its applications. In the discrete case, such distributions are readily represented by a concrete probability value for each possible event -- i.e.\ as a function from the set of events $X$ to probabilities $[0,1]$.
+Many applications however require, at least conceptually, probability distribution on \emph{continuous} spaces $X$ (real intervals, Euclidean planes, manifolds etc.).
+Standard procedure is to discretise such spaces to a finite-dimensional approximation and then carry out any computer algorithms on the resulting discrete space of distributions. 
+
+The resulting view suggests that distributions can still be understood as functions on $X$, as \emph{probability density functions}. Indeed this view has some merit thanks to the Riesz-Fréchet representation theorem, but fundamentally, distributions are better understood as (normalised) function{al}s: as linear mappings from the space of functions $X\to\mathbb{R}$ to $\mathbb{R}$.
+That includes in particular also discrete, point-distributions on the continuous space (the prototype being the \emph{Dirac distribution}, which expresses that all the events happen at 0 on the real line). Such distributions do not correspond to any function $X\to\mathbb{R}$, but they do correspond to functionals $(X\to\mathbb{R})\to\mathbb{R}$, namely pointwise evaluation.
+
+\newcommand{\marg}[1]{\mathbb{P}_\mathrm{#1}}
+A natural question to ask is, given two distributions $\marg r$ and $\marg g$, how similar or dissimilar they are. This is of immediate importance in machine learning. In the function-view of distributions, a naïve attempt would be to sum/integrate the point-wise difference between them ($\mathcal{L}^1$ difference); in practice the Kullback-Leibler\cite{Kullback_1951} divergence family is more common, including the Jensen-Shannon divergence which can be used as a proper \emph{metric} on the distribution space.
+ All of those share the problem that they do not take the topology of the base space $X$ into account. In particular, point-distributions are almost always classified as infinitely far apart, even when the points lie arbitrarily close in $X$. This is for example a problem in generative adversarial networks, leading to mode collapse. Resolution-limit / smearing can avoid this, but at the obvious cost of loss of resolution and without addressing the underlying problem.
+What can address it\cite{pmlr-v70-arjovsky17a} is switching to a metric that does consider the topology of $X$. The \emph{Wasserstein metric} or \emph{earth mover distance} measures how far the “mass” in the distribution $\marg r$ needs to be moved across $X$ in order to obtain $\marg g$. This movement process, with the minimum movement-distance, is called \emph{optimal transport}.
+
+\paragraph{Sinkhorn algorithm.} \emph{The} optimal transport between $\marg r$ and $\marg g$ can be seen as a joint distribution $\gamma$, i.e. a distribution on $X\times X$, such that the marginal on one side is $\marg r$ and on the other $\marg g$, and the integrated cost is minimal.
+The \emph{Sinkhorn OT algorithm}\cite{CuturiSinkhornLightspeed} obtains this iteratively. The following is a novel formulation of this algorithm, taylored towards distributions as duals of abstract function spaces.
+
+A function space is a \emph{commutative algebra}, with both addition and multiplication defined point-wise. Let $A$ and $B$ be such algebras; we consider $\marg r \in A^\ast$ and $\marg g \in B^\ast$, i.e. in the dual space. There is now a multiplication operation available
+\[\begin{aligned}
+            && (\cdot) &: A^\ast \times A \to A^\ast
+ \\\text{or}&& (\cdot) &: B^\ast \times B \to B^\ast
+ \\         && (u\cdot\psi)& \phi := u(\psi\cdot\phi)
+\end{aligned}\]
+Here, the result functional is defined by its result for a function $\phi$, and $\psi\cdot\phi$ denotes the pointwise multiplication, i.e. standard multiplication in the algebra $A$ or $B$, respectively.
+
+Furthermore there are division operations of the same types, that use the point-wise reciprocal of $\phi$. This, like the multiplication, is linear in its left argument.
+
+Now, given a positive “matrix”, in form of a linear mapping $K: A^\ast\to B$ and its adjoint $K^\ast: B^\ast\to A$, and two (normalised) distributions $\marg r\in A^\ast$, $\marg g\in B^\ast$, the \emph{Sinkhorn algorithm}\cite{SinkhornDiagEquivlc} provides a uniquely-defined $\gamma: A\to B^\ast$ of the form
+\[
+  \gamma = (v\cdot) \circ K \circ (u\cdot)^\ast
+\]
+with $u\in A^\ast, v\in B^\ast$ such that $\gamma(\mathbf{1}_A)=\marg g$ and $\gamma^\ast(\mathbf{1}_B)=\marg r$. It does this by iteratively, alternatingly updating
+\[\begin{aligned}
+  u &\leftarrow \sfrac{\marg r}{K^\ast v};
+   & v &\leftarrow \sfrac{\marg g}{K u}.
+\end{aligned}\]
+The linear operators for premultiplication, $(u\cdot)$ and $(v\cdot)$, are more commonly described as diagonal matrices.
+
+The \emph{Cuturi-Sinkhorn algorithm}\cite{CuturiSinkhornLightspeed} uses this to obtain an optimal transport. For $A=B=\mathcal{C}(X)$ (continuous functions), it encodes the metric $\|\ \|$ on $X$ into $K$ as
+\[\begin{aligned}
+  K&:(\mathcal{C}(X))^\ast \to \mathcal{C}(X), & K(w)(x) &:= w(\backslash y \mapsto e^{-\lambda\cdot\|x-y\|}).
+\end{aligned}\]
+Then, the fixpoint of the Sinkhorn iteration will be an \emph{entropy-limited approximation} to the optimal transport. In the limit $\lambda\to\infty$, this approximation becomes arbtrarily good.
+
+
+\paragraph{Data structures.}
+The usual way Sinkhorn-Cuturi is used is on discrete $X$ or with discretised representations of the functions on it. In this case, $\mathcal{C}(X)$ and $\mathcal{C}(X)^\ast$ are both types of vectors/arrays of numbers (in practice usually floating-point). The multiplication operation is just element-wise multiplication in those arrays.
+However, natural as this may seem, it is known from numerical applications (in particular, differential equations) that such a choice of spatial-points sampling can be suboptimal. To name one issue, point-wise multiplication generally leads to frequency aliasing.
+
+In Sagemüller and Verdier 2019\cite{SagVerdier-LazyWavelet}, we proposed a tree data structure to represent functions and their duals \emph{without} any a-priori resolution choice. It is a simple transformation closely related to the standard Haar wavelet transform.
+
+The subject of this work is the use of that structure as the representation for distributions in Sinkhorn optimal transport. The first attempt was to treat the distributions \emph{as functions} in this wavelet expansion, and use the multiplication directly pointwise on those functions, analogous to pointwise on array on the standard discretised implementations.
+That however leads to numerical instability when transporting non-overlapping distributions: namely, the marginals oscillate uncontrolledly rather than converging towards the desired ones (as Sinkhorn guarantees they should do, given exact calculations). This appears to arise from floating-point inaccuracies in connection with the point-wise cancellation that is required to represent confined distributions in wavelets (or other bases that are not completely local by construction).
+
+Unlike with finite-dimensional vectors, the structure for duals/distributions in our Haar representation is not exactly the same as for functions: they have both different strictness, and different weighting of the coefficients.
+It turns out that switching to the dual-space view of Sinkhorn-Cuturi outlined in the previous section does both promise allowing to represent confined distributions better (even point/Dirac-distributions are possible), it is also less susceptible to the floating-point problems. We discuss reasons for this behaviour.
+A main way in which both representations differ is that in the function-space view, the wavelet coefficients describing a narrow peak grow as the tree branches narrow down (so that numbers of very \emph{different} magnitude are summed up), whereas the dual space always only cares about the full integral across a subdomain, which does not change when zooming in so that \emph{similar}-magnitude numbers are summed up, which is generally more precise in floating-point.
+
+% The table of contents below is added for your convenience. Please do not use
+% the table of contents if you are preparing your paper for publication in the
+% EPiC Series or Kalpa Publications series
+
+%\setcounter{tocdepth}{2}
+%{\small
+%\tableofcontents}
+
+%\section{To mention}
+%
+%Processing in EasyChair - number of pages.
+%
+%Examples of how EasyChair processes papers. Caveats (replacement of EC
+%class, errors).
+
+%------------------------------------------------------------------------------
+%\bibliographystyle{plain}
+%\bibliographystyle{alpha}
+%\bibliographystyle{unsrt}
+\bibliographystyle{abbrv}
+
+\bibliography{ref}
+
+
+\end{document}
+
