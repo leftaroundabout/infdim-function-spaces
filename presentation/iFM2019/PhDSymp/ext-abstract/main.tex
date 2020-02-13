@@ -95,11 +95,11 @@ A function space is a \emph{commutative algebra}, with both addition and multipl
  \\\text{or}&& (\cdot) &: B^\ast \times B \to B^\ast
  \\         && (u\cdot\psi)& \phi := u(\psi\cdot\phi)
 \end{aligned}\]
-Here, the result functional is defined by its result for a function $\phi$, and $\psi\cdot\phi$ denotes the pointwise multiplication, i.e. standard multiplication in the algebra $A$ or $B$, respectively.
+Here, the functional $u\cdot\psi$ is defined by its result for a function $\phi$, and $\psi\cdot\phi$ denotes the pointwise multiplication, i.e. standard multiplication in the algebra $A$ or $B$, respectively.
 
 Furthermore there are division operations of the same types, that use the point-wise reciprocal of $\phi$. This, like the multiplication, is linear in its left argument.
 
-Now, given a positive “matrix”, in form of a linear mapping $K: A^\ast\to B$ and its adjoint $K^\ast: B^\ast\to A$, and two (normalised) distributions $\marg r\in A^\ast$, $\marg g\in B^\ast$, the \emph{Sinkhorn algorithm} \cite{SinkhornDiagEquivlc} provides a uniquely-defined $\gamma: A\to B^\ast$ of the form
+Now, given a positive “matrix”, in the form of a linear mapping $K: A^\ast\to B$ and its adjoint $K^\ast: B^\ast\to A$, and two (normalised) distributions $\marg r\in A^\ast$, $\marg g\in B^\ast$, the \emph{Sinkhorn algorithm} \cite{SinkhornDiagEquivlc} provides a uniquely-defined $\gamma: A\to B^\ast$ of the form
 \[
   \gamma = (v\cdot) \circ K \circ (u\cdot)^\ast
 \]
@@ -124,7 +124,7 @@ However, natural as this may seem, it is known from numerical applications (in p
 In Sagemüller and Verdier 2019 \cite{SagVerdier-LazyWavelet}, we proposed a tree data structure to represent functions and their duals \emph{without} any a-priori resolution choice. It is a simple transformation closely related to the standard Haar wavelet transform.
 
 The subject of this work is the use of that structure as the representation for distributions in Sinkhorn optimal transport. The first attempt was to treat the distributions \emph{as functions} in this wavelet expansion, and use the multiplication directly pointwise on those functions, analogous to pointwise on array on the standard discretised implementations.
-That however leads to numerical instability when transporting non-overlapping distributions: namely, the marginals oscillate uncontrolledly rather than converging towards the desired ones (as Sinkhorn guarantees they should do, given exact calculations). This appears to arise from floating-point inaccuracies in connection with the point-wise cancellation that is required to represent confined distributions in wavelets (or other bases that are not completely local by construction).
+That however leads to numerical instability when transporting non-overlapping distributions: namely, the marginals oscillate in an uncontrolled manner rather than converging towards the desired ones (as Sinkhorn guarantees they should do, given exact calculations). This appears to arise from floating-point inaccuracies in connection with the point-wise cancellation that is required to represent confined distributions in wavelets (or other bases that are not completely local by construction).
 
 Unlike with finite-dimensional vectors, the structure for duals/distributions in our Haar representation is not exactly the same as for functions: they have both different strictness, and different weighting of the coefficients.
 It turns out that switching to the dual-space view of Sinkhorn-Cuturi outlined in the previous section does both promise allowing to represent confined distributions better (even point/Dirac-distributions are possible), it is also less susceptible to the floating-point problems. We discuss reasons for this behaviour.
