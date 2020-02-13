@@ -69,7 +69,7 @@
   
   We implement the Sinkhorn algorithm on a data structure which handles the infinite dimensionality of the continuous distribution space through lazy evaluation. Apart from safer, easier handling of what resolution is necessary, this includes the ability to express with \emph{types} the mathematical meaning of a function or distribution.
   
-  Our Sinkhorn implementation does work, but floating-point instability is observed in certain cases. Interestingly, it depends on whether the distributions are considered as functions or dual-functions, a distinction that does not appear in the conventional a-priori finite-dimensional reduction. We discuss this and whether it is possible to use types to prevent such issues, or to warn about them.
+  Our Sinkhorn implementation does work, but floating-point instability is observed in certain cases. Interestingly, it depends on whether the distributions are considered as functions or \emph{dual-functions}, a distinction that does not appear in the conventional a-priori finite-dimensional reduction. We discuss this and whether it is possible to use types to prevent such issues, or to warn about them.
 \end{abstract}
 
 \label{sec:introduction}
@@ -79,7 +79,7 @@ Many applications however require, at least conceptually, probability distributi
 Standard procedure is to discretise such spaces to a finite-dimensional approximation and then carry out any computer algorithms on the resulting discrete space of distributions. 
 
 The resulting view suggests that distributions can still be understood as functions on $X$, as \emph{probability density functions}. Indeed this view has some merit thanks to the Riesz-Fréchet representation theorem, but fundamentally, distributions are better understood as (normalised) function{al}s: as linear mappings from the space of functions $X\to\mathbb{R}$ to $\mathbb{R}$.
-That includes in particular also discrete, point-distributions on the continuous space (the prototype being the \emph{Dirac distribution}, which expresses that all the events happen at 0 on the real line). Such distributions do not correspond to any function $X\to\mathbb{R}$, but they do correspond to functionals $(X\to\mathbb{R})\to\mathbb{R}$, namely pointwise evaluation.
+That includes in particular also discrete, point-distributions on the continuous space (the prototype being the \emph{Dirac distribution}, which expresses that all the events happen at a single point on the real line, for example all at 0). Such distributions do not correspond to any function $X\to\mathbb{R}$, but they do correspond to functionals $(X\to\mathbb{R})\to\mathbb{R}$, namely pointwise evaluation.
 
 \newcommand{\marg}[1]{\mathbb{P}_\mathrm{#1}}
 A natural question to ask is, given two distributions $\marg r$ and $\marg g$, how similar or dissimilar they are. This is of immediate importance in machine learning. In the function-view of distributions, a naïve attempt would be to sum/integrate the point-wise difference between them ($\mathcal{L}^1$ difference); in practice the Kullback-Leibler \cite{Kullback_1951} divergence family is more common, including the Jensen-Shannon divergence which can be used as a proper \emph{metric} on the distribution space.
