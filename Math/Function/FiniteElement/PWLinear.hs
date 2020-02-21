@@ -650,3 +650,63 @@ multiscaleCDecompose (CHaar_D¹ y₀ yl yr CHaarZero) = ((yl,y₀,yr), zeroV)
 multiscaleCDecompose (CHaar_D¹ y₀ yl yr (CHaarUnbiased δilr ym fl fr))
             = ((zeroV,y₀,zeroV), ( CHaar_D¹ (negateV δilr) yl ym fl
                                  , CHaar_D¹ (        δilr) ym yr fr ))
+
+data CHaarDualT y w = CHaarDual {
+      _zeropointEvaluation :: y+>w
+    , _derivativeIntegration :: Haar_D¹ 'FunctionSpace (y+>w) }
+ deriving (Generic)
+
+type LinearSpPair y w = (LinearSpace y, VAffineSpace y, TensorSpace w, Scalar y ~ Scalar w)
+
+instance LinearSpPair y w => AdditiveGroup (CHaarDualT y w) where
+  zeroV = case dualSpaceWitness @y of
+     DualSpaceWitness ->  CHaarDual zeroV zeroV
+  (^+^) = case dualSpaceWitness @y of
+     DualSpaceWitness -> \(CHaarDual a₀ fa) (CHaarDual b₀ fb)
+                   -> CHaarDual (a₀^+^b₀) (fa^+^fb)
+  negateV = case dualSpaceWitness @y of
+     DualSpaceWitness -> \(CHaarDual y₀ f) -> CHaarDual (negateV y₀) (negateV f)
+instance LinearSpPair y w => AffineSpace (CHaarDualT y w) where
+  type Diff (CHaarDualT y w) = CHaarDualT y w
+  (.-.) = case dualSpaceWitness @y of
+     DualSpaceWitness -> \(CHaarDual a₀ fa) (CHaarDual b₀ fb)
+                   -> CHaarDual (a₀^-^b₀) (fa.-.fb)
+  (.+^) = (^+^)
+instance LinearSpPair y w => VectorSpace (CHaarDualT y w) where
+  type Scalar (CHaarDualT y w) = Scalar y
+  (*^) = case dualSpaceWitness @y of
+     DualSpaceWitness -> \μ (CHaarDual y₀ f) -> CHaarDual (μ*^y₀) (μ*^f)
+ 
+instance LinearSpPair y w => Semimanifold (CHaarDualT y w) where 
+  type Interior (CHaarDualT y w) = CHaarDualT y w
+  type Needle (CHaarDualT y w) = CHaarDualT y w
+  toInterior = pure
+  translateP = Tagged (^+^)
+instance LinearSpPair y w => PseudoAffine (CHaarDualT y w) where 
+
+instance (TensorSpace y, VAffineSpace y, Scalar y ~ ℝ)
+             => TensorSpace (CHaar_D¹ 'FunctionSpace y) where
+  type TensorProduct (CHaar_D¹ 'FunctionSpace y) w = CHaar_D¹ 'FunctionSpace (y⊗w)
+  wellDefinedVector (CHaar_D¹ y₀ yl yr ff)
+      = CHaar_D¹ <$> wellDefinedVector y₀
+                 <*> wellDefinedVector yl
+                 <*> wellDefinedVector yr <*> wellDefinedVector ff
+  wellDefinedTensor (Tensor (CHaar_D¹ y₀ yl yr δs))
+       = Tensor <$> (CHaar_D¹ <$> wellDefinedVector y₀
+                              <*> wellDefinedVector yl
+                              <*> wellDefinedVector yr <*> wellDefinedVector δs)
+
+instance (LinearSpPair y w, Scalar y ~ ℝ)
+             => TensorSpace (CHaarDualT y w) where
+  type TensorProduct (CHaarDualT y w) v = CHaarDualT y (w⊗v)
+  wellDefinedVector = case dualSpaceWitness @y of
+    DualSpaceWitness -> \(CHaarDual y₀ ff)
+      -> CHaarDual <$> wellDefinedVector y₀ <*> wellDefinedVector ff
+  wellDefinedTensor = case dualSpaceWitness @y of
+    DualSpaceWitness -> \(Tensor (CHaarDual y₀ δs))
+      -> Tensor <$> (CHaarDual <$> wellDefinedVector y₀ <*> wellDefinedVector δs)
+  addTensors (Tensor t) (Tensor u) = Tensor $ t^+^u
+  subtractTensors (Tensor t) (Tensor u) = Tensor $ t^-^u
+  scaleTensor = bilinearFunction $ \μ (Tensor t) -> Tensor $ μ*^t
+  negateTensor = LinearFunction $ \(Tensor t) -> Tensor $ negateV t
+
