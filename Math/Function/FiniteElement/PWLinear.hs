@@ -713,6 +713,11 @@ instance (LinearSpPair y w, Scalar y ~ ℝ)
 fromPseudoTensor :: ℝ⊗w -> w
 fromPseudoTensor (Tensor w) = w
 
+infixr 0 +$>
+(+$>) :: (TensorSpace w, LinearSpace v, Scalar v ~ Scalar w)
+           => (v+>w) -> v -> w
+f+$>x = applyLinear`getLinearFunction`f`getLinearFunction`x
+
 instance (LinearSpace y, VAffineSpace y, Scalar y ~ ℝ)
              => LinearSpace (CHaar_D¹ 'FunctionSpace y) where
   type DualVector (CHaar_D¹ 'FunctionSpace y) = CHaarDualT y ℝ
@@ -743,4 +748,10 @@ instance (LinearSpace y, VAffineSpace y, Scalar y ~ ℝ)
                                  (getLinearFunction applyLinear evalBoundsDiff) $ yr^-^yl)
                      ^+^ case (evalFine, fine) of
                            (HaarZero, CHaarZero) -> 
-                             applyLinear`getLinearFunction`eval0`getLinearFunction`intg
+                             eval0 +$> intg ^-^ (yl^+^yr)
+                           (HaarZero, CHaarUnbiased δilr yctr _ _) -> 
+                             eval0 +$> yctr
+                           (HaarUnbiased evalδdrvIlr _ _, CHaarZero) -> 
+                             (eval0 +$> intg ^-^ (yl^+^yr))
+                              ^+^ let yctr = intg ^-^ (yl^+^yr)^/2
+                                  in (evalδdrvIlr +$> ((yr^-^yctr) ^-^ (yctr^-^yl)))
