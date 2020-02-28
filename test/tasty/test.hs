@@ -201,6 +201,14 @@ main = defaultMain $ testGroup "Tests"
       $ \f g h μ -> (f^+^g)<.>(μ*^h :: CHaar D¹ ℝ)
                    ≃ μ*(f<.>h + g<.>h)
   ]
+ , testGroup "LinearSpace laws"
+  [ testProperty "Identity map"
+      $ \f -> ((id :: CHaar D¹ ℝ+>CHaar D¹ ℝ) $ f) ≃ f
+  , testProperty "Associativity of addition"
+      $ \f g h -> f ^+^ (g ^+^ h) ≃ ((f ^+^ g) ^+^ h :: CHaar D¹ ℝ)
+  , testProperty "Distributivity"
+      $ \f g μ -> μ*^(f ^+^ g :: CHaar D¹ ℝ) ≃ μ*^f ^+^ μ*^g
+  ]
  ]
 
 

@@ -30,7 +30,7 @@ import qualified Text.Blaze.Html as Blaze
 import Text.Hamlet
 import Text.Cassius
 
-import Data.Semigroup
+import Data.Semigroup hiding ((<>))
 import Data.Semigroup.Numbered
 import Data.List (transpose, inits, tails, partition, minimumBy)
 import Data.Ord (comparing)
@@ -101,14 +101,21 @@ main = do
    
    "PW-lin function sampling"
     ====== do
-     let fDemo x = tan $ cos (pi*x) + sin x/2
-     maths [[ fDemo 𝑥 ]]""
-      & plotServ
-         [ continFnPlot fDemo
-         , clickThrough
-            [ chaarPlot $ homsampleCHaarFunction res (fDemo . \(D¹ x)->x)
-            | res <- TwoToThe <$> [0..] ]
-         ]
+     let demoPWlinSampling :: (∀ n . Floating n => n -> n) -> Presentation
+         demoPWlinSampling fDemo
+          = maths [[ 𝑥 ↦ fDemo 𝑥 ]]""
+             & plotServ
+            [ continFnPlot fDemo
+            , clickThrough
+               [ Hask.foldMap chaarPlot
+                  [ homsampleCHaarFunction res (fDemo . \(D¹ x)->x)
+                  , linearId $ homsampleCHaarFunction res (fDemo . \(D¹ x)->x) ]
+               | res <- TwoToThe <$> [0..] ]
+            ]
+     demoPWlinSampling     (\_ -> 1)
+      ── demoPWlinSampling (\x -> x)
+      ── demoPWlinSampling (\x -> x^2)
+      ── demoPWlinSampling (\x -> tan $ cos (pi*x) + sin x/2)
    
    "Sinkhorn convergence"
     ====== do
