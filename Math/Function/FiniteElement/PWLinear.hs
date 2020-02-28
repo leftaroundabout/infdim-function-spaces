@@ -726,7 +726,7 @@ instance (LinearSpace y, VAffineSpace y, Scalar y ~ ℝ)
                (CC.fmap (LinearFunction $ \y -> 1⊗CHaar_D¹ (2*^y) y y zeroV)
                        CC.$ linearId)
                (Haar_D¹
-                 (CC.fmap (LinearFunction $ \y -> 1⊗
+                 (CC.fmap (LinearFunction $ \y -> 0.5⊗
                               CHaar_D¹ zeroV (negateV y) y zeroV)
                        CC.$ linearId)
                  (case linearId :: CHaar_D¹ 'FunctionSpace y
@@ -734,7 +734,7 @@ instance (LinearSpace y, VAffineSpace y, Scalar y ~ ℝ)
                     LinearMap (CHaarDual _ (Haar_D¹ _ level₂)) ->
                       HaarUnbiased
                         (CC.fmap (LinearFunction $ \y
-                                   -> 1⊗CHaar_D¹ zeroV (y^/4) (y^/4) zeroV)
+                                   -> 0.5⊗CHaar_D¹ y y y zeroV)
                           CC.$ linearId)
                         (HaarUnbiased zeroV level₂ zeroV)
                         (HaarUnbiased zeroV zeroV level₂)
@@ -743,18 +743,17 @@ instance (LinearSpace y, VAffineSpace y, Scalar y ~ ℝ)
   applyLinear = bilinearFunction
                  $ \(LinearMap (CHaarDual eval0 (Haar_D¹ evalBoundsDiff evalFine)))
                     (CHaar_D¹ intg yl yr fine)
-                 -> fromPseudoTensor $
-                         (getLinearFunction
-                                 (getLinearFunction applyLinear evalBoundsDiff) $ yr^-^yl)
-                     ^+^ case (evalFine, fine) of
+                 -> let yctr = intg ^-^ (yl^+^yr)^/2
+                    in fromPseudoTensor $
+                         (evalBoundsDiff +$> yr^-^yl)
+                        ^+^ case (evalFine, fine) of
                            (HaarZero, CHaarZero) -> 
-                             eval0 +$> intg ^-^ (yl^+^yr)
+                             eval0 +$> yctr
                            (HaarZero, CHaarUnbiased δilr yctr _ _) -> 
                              eval0 +$> yctr
                            (HaarUnbiased evalδdrvIlr _ _, CHaarZero) -> 
-                             (eval0 +$> intg ^-^ (yl^+^yr))
-                              ^+^ let yctr = intg ^-^ (yl^+^yr)^/2
-                                  in (evalδdrvIlr +$> ((yr^-^yctr) ^-^ (yctr^-^yl)))
+                             (eval0 +$> yctr)
+                              ^+^ (evalδdrvIlr +$> ((yr^-^yctr) ^-^ (yctr^-^yl)))
 
 
 chaarFunctionGraph :: (VAffineSpace y, Fractional (Scalar y)) => CHaar D¹ y -> [(D¹,y)]
