@@ -99,6 +99,17 @@ main = do
      "global-title"#%
        "Tests of infinite-dimensional-function-space data structures"
    
+   "PW-lin function sampling"
+    ====== do
+     let fDemo x = tan $ cos (pi*x) + sin x/2
+     maths [[ fDemo 𝑥 ]]""
+      & plotServ
+         [ continFnPlot fDemo
+         , clickThrough
+            [ chaarPlot $ homsampleCHaarFunction res (fDemo . \(D¹ x)->x)
+            | res <- TwoToThe <$> [0..] ]
+         ]
+   
    "Sinkhorn convergence"
     ====== do
      let visualiseSinkhornConv :: ∀ dn s v
@@ -348,6 +359,9 @@ embedD¹ (l,r) f x
 
 haarPlot :: Haar D¹ ℝ -> DynamicPlottable
 haarPlot = lineSegPlot . map (first $ \(D¹ x) -> x) . haarFunctionGraph
+
+chaarPlot :: CHaar D¹ ℝ -> DynamicPlottable
+chaarPlot = lineSegPlot . map (first $ \(D¹ x) -> x) . chaarFunctionGraph
 
 opac :: Double -> DynamicPlottable -> DynamicPlottable
 opac = tweakPrerendered . Dia.opacity

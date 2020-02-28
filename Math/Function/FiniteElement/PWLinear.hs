@@ -30,7 +30,7 @@ module Math.Function.FiniteElement.PWLinear
        ( -- * Functions
           HaarI, HaarISamplingDomain(..)
         , CHaar, CHaarSamplingDomain(..)
-        , BinsubPWLinear, toBinsubPWLinear, evalBinsubPWLinear
+        , BinsubPWLinear, toBinsubPWLinear, evalBinsubPWLinear, chaarFunctionGraph
          -- * Utility
         , PowerOfTwo(..), getPowerOfTwo, VAffineSpace, multiscaleCDecompose
         ) where
@@ -755,3 +755,12 @@ instance (LinearSpace y, VAffineSpace y, Scalar y ~ ℝ)
                              (eval0 +$> intg ^-^ (yl^+^yr))
                               ^+^ let yctr = intg ^-^ (yl^+^yr)^/2
                                   in (evalδdrvIlr +$> ((yr^-^yctr) ^-^ (yctr^-^yl)))
+
+
+chaarFunctionGraph :: (VAffineSpace y, Fractional (Scalar y)) => CHaar D¹ y -> [(D¹,y)]
+chaarFunctionGraph f = go id (toBinsubPWLinear f) []
+ where go bounds (PWLinearSegment yl yr)
+                      = ([(bounds (D¹ $ -1), yl), (bounds $ D¹ 1, yr)]++)
+       go bounds (PWLinearDivision fl fr)
+        = go (bounds . view (re leftHalf)) fl
+           . go (bounds . view (re rightHalf)) fr
