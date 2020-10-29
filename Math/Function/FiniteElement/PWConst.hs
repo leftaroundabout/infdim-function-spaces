@@ -23,7 +23,7 @@ module Math.Function.FiniteElement.PWConst
        ( -- * Functions
            Haar, HaarSamplingDomain(evalHaarFunction, homsampleHaarFunction)
          -- * Distributions
-        , dirac, boxDistributionD¹
+        , dirac, boxDistributionD¹, boxDistributionS¹
          -- * Calculus
         , integrateHaarFunction
          -- * Utility
@@ -77,6 +77,12 @@ instance ∀ y . ( FreeVectorSpace y, VAffineSpace y
          (Haar_D¹ cl fl, Haar_D¹ cr fr)
            -> Haar_D¹ ((cl^+^cr)^/2) $ HaarUnbiased ((cr^-^cl)^/2) fl fr
          
+instance ∀ y . ( FreeVectorSpace y, VAffineSpace y
+               , TensorSpace y, RealFrac (Scalar y) )
+                => FreeVectorSpace (Haar_S¹ 'FunctionSpace y) where
+  Haar_S¹ f₀ ^*^ Haar_S¹ f₁ = Haar_S¹ $ f₀^*^f₁
+  vmap f (Haar_S¹ g) = Haar_S¹ $ vmap f g
+
 dualPointwiseMul :: ∀ s . (Num' s, RealFrac s, AffineSpace s, s ~ Diff s, s ~ Needle s)
    => Haar_D¹ FunctionSpace s
           -> Haar_D¹ DistributionSpace s -> Haar_D¹ DistributionSpace s
@@ -451,3 +457,7 @@ coRiesz_origReso_with sdl = case dualSpaceWitness @y of
        go μ (HaarUnbiased δ l r)
            = HaarUnbiased (sdl $ μ*^δ) (go (μ/2) l) (go (μ/2) r)
        go μ HaarZero = HaarZero
+
+
+convolution :: Bilinear (Haar D¹ s) (DualVector (Haar D¹ s)) (Haar D¹ s)
+convolution = bilinearFunction undefined

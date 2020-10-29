@@ -87,7 +87,12 @@ data Haar_D¹ dn y = Haar_D¹
     , pwconst_D¹_variation :: Haar0BiasTree dn y }
 deriving instance (Show y, Show (Diff y)) => Show (Haar_D¹ dn y)
 
+newtype Haar_S¹ (dn :: Dualness) (y :: *)
+    = Haar_S¹ { getUnclosedHaarS¹Function :: Haar_D¹ dn y }
+deriving instance (Show y, Show (Diff y)) => Show (Haar_S¹ dn y)
+
 type instance Haar D¹ y = Haar_D¹ FunctionSpace y
+type instance Haar S¹ y = Haar_S¹ FunctionSpace y
 
 instance Num' s
    => CC.Functor (Haar0BiasTree dn) (LinearFunction s) (LinearFunction s) where
@@ -105,6 +110,16 @@ instance ∀ s dn . Num' s
            LinearFunction $
             \(Haar_D¹ y₀ δs) -> Haar_D¹ (f CC.$ y₀)
                       $ getLinearFunction (CC.fmap f) δs
+
+instance ∀ s dn . Num' s
+    => CC.Functor (Haar_S¹ dn) (LinearFunction s) (LinearFunction s) where
+  fmap = fmapLFH
+   where fmapLFH :: ∀ y z . ( TensorSpace y, TensorSpace z, Scalar y ~ s, Scalar z ~ s )
+             => (y-+>z) -> (Haar_S¹ dn y-+>Haar_S¹ dn z)
+         fmapLFH f = case (linearManifoldWitness @z, linearManifoldWitness @y) of
+          (LinearManifoldWitness _, LinearManifoldWitness _) ->
+           LinearFunction $ \(Haar_S¹ g)
+             -> Haar_S¹ . getLinearFunction (CC.fmap f) $ g
 
 instance ∀ s dn . Num' s
      => CC.Monoidal (Haar0BiasTree dn) (LinearFunction s) (LinearFunction s) where
@@ -144,6 +159,22 @@ instance ∀ s dn . Num' s
                    $ \(Haar_D¹ x δxs, Haar_D¹ y δys)
                         -> Haar_D¹ (f CC.$ (x,y))
                                    (getLinearFunction (CC.fzipWith f) (δxs,δys))
+
+instance ∀ s dn . Num' s
+    => CC.Monoidal (Haar_S¹ dn) (LinearFunction s) (LinearFunction s) where
+  pureUnit = LinearFunction $ \Origin -> zeroV
+  fzipWith = fzwLFH
+   where fzwLFH :: ∀ x y z dn . 
+                      ( TensorSpace x, TensorSpace y, TensorSpace z
+                      , Scalar x ~ s, Scalar y ~ s, Scalar z ~ s )
+                   => ((x,y)-+>z) -> ((Haar_S¹ dn x, Haar_S¹ dn y) -+> Haar_S¹ dn z)
+         fzwLFH = case ( linearManifoldWitness @x
+                       , linearManifoldWitness @y
+                       , linearManifoldWitness @z ) of
+          (LinearManifoldWitness _, LinearManifoldWitness _, LinearManifoldWitness _)
+             -> \f -> LinearFunction
+                   $ \(Haar_S¹ xs, Haar_S¹ ys)
+                        -> Haar_S¹ (getLinearFunction (CC.fzipWith f) (xs,ys))
          
 evalHaar_D¹ :: VAffineSpace y => Haar D¹ y -> D¹ -> y
 evalHaar_D¹ (Haar_D¹ offs varis) x = offs .+^ evalVari varis x
@@ -151,6 +182,9 @@ evalHaar_D¹ (Haar_D¹ offs varis) x = offs .+^ evalVari varis x
        evalVari (HaarUnbiased δlr lh rh) p = case p^.halves of
         Left pl  -> evalVari lh pl ^-^ δlr
         Right pr -> evalVari rh pr ^+^ δlr
+
+evalHaar_S¹ :: VAffineSpace y => Haar S¹ y -> S¹ -> y
+evalHaar_S¹ (Haar_S¹ f) (S¹Polar ϑ) = evalHaar_D¹ f (D¹ $ ϑ/pi)
 
 homsampleHaar_D¹ :: (VAffineSpace y, Diff y ~ y, Fractional (Scalar y))
             => PowerOfTwo -> (D¹ -> y) -> Haar D¹ y
@@ -161,6 +195,10 @@ homsampleHaar_D¹ (TwoToThe i) f
                                                 , f . view (re rightHalf) ] of
        [Haar_D¹ y₀l sfl, Haar_D¹ y₀r sfr]
         -> Haar_D¹ ((y₀l^+^y₀r)^/2) $ HaarUnbiased ((y₀r^-^y₀l)^/2) sfl sfr
+
+homsampleHaar_S¹ :: (VAffineSpace y, Diff y ~ y, Fractional (Scalar y))
+            => PowerOfTwo -> (S¹ -> y) -> Haar S¹ y
+homsampleHaar_S¹ r f = Haar_S¹ . homsampleHaar_D¹ r $ f . \(D¹ x) -> S¹Polar $ x*pi
 
 boxDistributionD¹ :: (VectorSpace y, RealFrac (Scalar y))
                      => (D¹, D¹) -> y -> Haar_D¹ DistributionSpace y
@@ -177,8 +215,21 @@ boxDistributionD¹ (D¹ l, D¹ r) y
        Haar_D¹ wr rstru = boxDistributionD¹ (D¹ $ max 0 l*2 - 1, D¹ $ r*2 - 1)
                             $ y^*if l<0 then realToFrac $ r/(r-l) else 1
 
+boxDistributionS¹ :: (VectorSpace y, Scalar y ~ Double, AffineSpace y, y ~ Diff y)
+                     => (S¹, S¹) -> y -> Haar_S¹ DistributionSpace y
+boxDistributionS¹ (S¹Polar ϑl, S¹Polar ϑr) y
+  | ϑl > ϑr    = Haar_S¹ $ boxDistributionD¹ (D¹ l, D¹ 1) (y^*(ll/li))
+                         ^+^ boxDistributionD¹ (D¹ $ -1, D¹ r) (y^*(lr/li))
+  | otherwise  = Haar_S¹ $ boxDistributionD¹ (D¹ l, D¹ r) y
+ where l = ϑl/pi; r = ϑr/pi
+       ll = 1-l; lr = r+1
+       li = ll + lr
+
 diracD¹ :: D¹ -> DualVector (Haar D¹ ℝ)
 diracD¹ x₀ = boxDistributionD¹ (x₀,x₀) 1
+
+diracS¹ :: S¹ -> DualVector (Haar S¹ ℝ)
+diracS¹ x₀ = boxDistributionS¹ (x₀,x₀) 1
 
 
 -- | Given a function \(f\) and an interval \((\ell,r)\), yield the integral
@@ -199,6 +250,11 @@ instance HaarSamplingDomain D¹ where
   evalHaarFunction = evalHaar_D¹
   homsampleHaarFunction = homsampleHaar_D¹
   dirac = diracD¹
+
+instance HaarSamplingDomain S¹ where
+  evalHaarFunction = evalHaar_S¹
+  homsampleHaarFunction = homsampleHaar_S¹
+  dirac = diracS¹
 
 
 instance QC.Arbitrary PowerOfTwo where
@@ -236,6 +292,11 @@ instance VAffineSpace y => AffineSpace (Haar_D¹ dn y) where
   Haar_D¹ y₀ δ₀ .+^ Haar_D¹ y₁ δ₁ = Haar_D¹ (y₀.+^y₁) (δ₀.+^δ₁)
   Haar_D¹ y₀ δ₀ .-. Haar_D¹ y₁ δ₁ = Haar_D¹ (y₀.-.y₁) (δ₀.-.δ₁)
 
+instance VAffineSpace y => AffineSpace (Haar_S¹ dn y) where
+  type Diff (Haar_S¹ dn y) = Haar_S¹ dn (Diff y)
+  Haar_S¹ f₀ .+^ Haar_S¹ f₁ = Haar_S¹ $ f₀ .+^ f₁
+  Haar_S¹ f₀ .-. Haar_S¹ f₁ = Haar_S¹ $ f₀ .-. f₁
+
 instance VAffineSpace y
              => AdditiveGroup (Haar_D¹ dn y) where
   zeroV = Haar_D¹ zeroV zeroV
@@ -244,9 +305,21 @@ instance VAffineSpace y
   negateV (Haar_D¹ y δ) = Haar_D¹ (negateV y) (negateV δ)
 
 instance VAffineSpace y
+             => AdditiveGroup (Haar_S¹ dn y) where
+  zeroV = Haar_S¹ zeroV
+  (^+^) = (.+^)
+  (^-^) = (.-.)
+  negateV (Haar_S¹ f) = Haar_S¹ $ negateV f
+
+instance VAffineSpace y
              => VectorSpace (Haar_D¹ dn y) where
   type Scalar (Haar_D¹ dn y) = Scalar y
   μ *^ Haar_D¹ y δ = Haar_D¹ (μ*^y) (μ*^δ)
+
+instance VAffineSpace y
+             => VectorSpace (Haar_S¹ dn y) where
+  type Scalar (Haar_S¹ dn y) = Scalar y
+  μ *^ Haar_S¹ f = Haar_S¹ $ μ*^f
 
 instance (InnerSpace y, Fractional (Scalar y)) => InnerSpace (HaarUnbiased y) where
   HaarZero <.> _ = 0
@@ -258,6 +331,11 @@ instance (InnerSpace y, Fractional (Scalar y)) => InnerSpace (HaarUnbiased y) wh
 instance (InnerSpace y, Fractional (Scalar y), AffineSpace y, Diff y ~ y)
              => InnerSpace (Haar_D¹ FunctionSpace y) where
   Haar_D¹ y₀ δ₀ <.> Haar_D¹ y₁ δ₁ = 2*(y₀<.>y₁ + δ₀<.>δ₁)
+
+-- | 𝓛² product on 𝑆¹ functions, i.e. @𝑓<.>𝑔 ⩵ ∫_𝑆¹ dϑ 𝑓(ϑ)·𝑔(ϑ)@
+instance (InnerSpace y, Floating (Scalar y), AffineSpace y, Diff y ~ y)
+             => InnerSpace (Haar_S¹ FunctionSpace y) where
+  Haar_S¹ f₀ <.> Haar_S¹ f₁ = pi*(f₀<.>f₁)
 
 instance VAffineSpace y
              => Semimanifold (Haar0BiasTree dn y) where
@@ -279,6 +357,17 @@ instance VAffineSpace y
   fromInterior = id
 instance ( VAffineSpace y )
              => PseudoAffine (Haar_D¹ dn y) where
+  (.-~!) = (.-.)
+
+instance VAffineSpace y
+             => Semimanifold (Haar_S¹ dn y) where
+  type Needle (Haar_S¹ dn y) = Haar_S¹ dn y
+  type Interior (Haar_S¹ dn y) = Haar_S¹ dn y
+  translateP = Tagged (.+^)
+  toInterior = Just
+  fromInterior = id
+instance ( VAffineSpace y )
+             => PseudoAffine (Haar_S¹ dn y) where
   (.-~!) = (.-.)
 
 instance ∀ y dn . ( TensorSpace y, VAffineSpace y, Num' (Scalar y) )
@@ -374,6 +463,47 @@ instance ∀ y dn
    ScalarSpaceWitness -> bilinearFunction $ \a (Tensor f, Tensor g)
              -> Tensor $ CC.fzipWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
 
+instance ∀ y dn
+         . (TensorSpace y, VAffineSpace y, Num' (Scalar y))
+             => TensorSpace (Haar_S¹ dn y) where
+  type TensorProduct (Haar_S¹ dn y) w = Haar_S¹ dn (y⊗w)
+  wellDefinedVector = case scalarSpaceWitness @y of
+   ScalarSpaceWitness -> \(Haar_S¹ f)
+       -> Haar_S¹ <$> wellDefinedVector f
+  wellDefinedTensor = case scalarSpaceWitness @y of
+   ScalarSpaceWitness -> \(Tensor (Haar_S¹ f))
+       -> Tensor <$> (Haar_S¹ <$> wellDefinedVector f)
+  scalarSpaceWitness = case scalarSpaceWitness :: ScalarSpaceWitness y of
+     ScalarSpaceWitness -> ScalarSpaceWitness
+  linearManifoldWitness = case linearManifoldWitness :: LinearManifoldWitness y of
+     LinearManifoldWitness BoundarylessWitness -> LinearManifoldWitness BoundarylessWitness
+  coerceFmapTensorProduct = cftlp
+   where cftlp :: ∀ a b p . p (Haar_S¹ dn y) -> Coercion a b
+                   -> Coercion (Haar_S¹ dn (Diff y ⊗ a))
+                               (Haar_S¹ dn (Diff y ⊗ b))
+         cftlp _ c = case CC.fmap c :: Coercion (y ⊗ a) (y ⊗ b) of
+            Coercion -> Coercion
+  zeroTensor = Tensor zeroV
+  toFlatTensor = case scalarSpaceWitness @y of
+   ScalarSpaceWitness -> LinearFunction Tensor CC.. CC.fmap toFlatTensor
+  fromFlatTensor = case scalarSpaceWitness @y of
+   ScalarSpaceWitness -> CC.fmap fromFlatTensor CC.. LinearFunction getTensorProduct
+  addTensors (Tensor f) (Tensor g) = Tensor $ f^+^g
+  scaleTensor = bilinearFunction $ \μ (Tensor f) -> Tensor $ μ*^f
+  negateTensor = LinearFunction $ \(Tensor f) -> Tensor $ negateV f
+  tensorProduct = case scalarSpaceWitness @y of
+   ScalarSpaceWitness -> bilinearFunction
+         $ \f w -> Tensor $ CC.fmap (LinearFunction $ \y -> y⊗w) CC.$ f
+  transposeTensor = case scalarSpaceWitness @y of
+   ScalarSpaceWitness -> LinearFunction $
+       \(Tensor (Haar_S¹ fw))
+           -> CC.fmap (LinearFunction Haar_S¹) CC.. transposeTensor CC.$ Tensor fw
+  fmapTensor = case scalarSpaceWitness @y of
+   ScalarSpaceWitness -> bilinearFunction $ \a (Tensor f)
+             -> Tensor $ CC.fmap (CC.fmap a) CC.$ f
+  fzipTensorWith = case scalarSpaceWitness @y of
+   ScalarSpaceWitness -> bilinearFunction $ \a (Tensor f, Tensor g)
+             -> Tensor $ CC.fzipWith (getLinearFunction fzipTensorWith a) CC.$ (f,g)
 
 
 
@@ -537,6 +667,66 @@ instance ∀ y dn .
                           (LinearMap a₀ :: (y⊗u)+>w)) CC.$ f₀ )
               ^+^ ( (getLinearFunction applyTensorLinMap $ LinearMap δa)
                               CC.$ (Tensor δf :: Haar0BiasTree dn y⊗u) )
+                 
+instance ∀ y dn .
+           ( LinearSpace y, VAffineSpace y, Num' (Scalar y), ValidDualness dn
+           , AffineSpace (DualVector y), Diff (DualVector y) ~ DualVector y ) 
+             => LinearSpace (Haar_S¹ dn y) where
+  type DualVector (Haar_S¹ dn y) = Haar_S¹ (Dual dn) (DualVector y)
+  dualSpaceWitness = case ( dualSpaceWitness :: DualSpaceWitness y
+                          , dualityWitness :: DualityWitness dn ) of
+       (DualSpaceWitness, DualityWitness) -> DualSpaceWitness
+  linearId = LinearMap hId
+   where hId = case dualSpaceWitness :: DualSpaceWitness y of
+          DualSpaceWitness
+            -> Haar_S¹ (CC.fmap (CC.fmap . LinearFunction
+                                          $ \s -> Haar_S¹ s) CC.$ getLinearMap
+                                              (linearId :: Haar_D¹ dn y+>Haar_D¹ dn y))
+  tensorId = LinearMap $ hId
+   where hId :: ∀ w . (LinearSpace w, Scalar w ~ Scalar y)
+               => Haar_S¹ (Dual dn)
+                    (Tensor (Scalar (DualVector y))
+                            (DualVector y)
+                            (Tensor (Scalar y) (DualVector w)
+                                (Tensor (Scalar y) (Haar_S¹ dn y) w)))
+         hId = case ( dualSpaceWitness :: DualSpaceWitness y
+                    , dualSpaceWitness :: DualSpaceWitness w ) of
+          (DualSpaceWitness, DualSpaceWitness)
+            -> Haar_S¹ (case tensorId :: (Haar_D¹ dn y⊗w)+>(Haar_D¹ dn y⊗w) of
+                          LinearMap h₀ywId
+                           -> CC.fmap (CC.fmap . CC.fmap . LinearFunction
+                                       $ \(Tensor q) -> Tensor (Haar_S¹ q))
+                                 CC.$ h₀ywId)
+  applyDualVector = bilinearFunction $ \(Haar_S¹ a) (Haar_S¹ f)
+      -> case (dualSpaceWitness @y, scalarSpaceWitness @y) of
+           (DualSpaceWitness, ScalarSpaceWitness)
+                -> (getLinearFunction applyDualVector a CC.$ f)
+  applyTensorFunctional = bilinearFunction $ \(LinearMap a) (Tensor f) -> go a f
+   where go :: ∀ u . (LinearSpace u, Scalar u ~ Scalar y)
+             => Haar_S¹ (Dual dn) (DualVector y⊗DualVector u)
+                 -> Haar_S¹ dn (y⊗u) -> Scalar y
+         go (Haar_S¹ a) (Haar_S¹ f)
+          = case ( dualSpaceWitness @y, dualSpaceWitness @u, scalarSpaceWitness @y ) of
+           (DualSpaceWitness, DualSpaceWitness, ScalarSpaceWitness)
+               -> (getLinearFunction applyDualVector
+                              (Coercion CC.$ a) CC.$ f)
+  applyLinear = bilinearFunction $ \(LinearMap a) f -> go a f
+   where go :: ∀ w . (TensorSpace w, Scalar w ~ Scalar y)
+                => Haar_S¹ (Dual dn) (Tensor (Scalar (DualVector y)) (DualVector y) w)
+                      -> Haar_S¹ dn y -> w
+         go (Haar_S¹ a) (Haar_S¹ f)
+           = ( getLinearFunction applyLinear (LinearMap a :: Haar_D¹ dn y+>w) CC.$ f )
+  applyTensorLinMap = bilinearFunction $ \(LinearMap a) (Tensor f) -> go a f
+   where go :: ∀ u w . ( LinearSpace u, Scalar u ~ Scalar y
+                       , TensorSpace w, Scalar w ~ Scalar y )
+                => Haar_S¹ (Dual dn) (Tensor
+                           (Scalar (DualVector y))
+                            (DualVector y)
+                            (Tensor (Scalar y) (DualVector u) w))
+                 -> Haar_S¹ dn (y⊗u) -> w
+         go (Haar_S¹ a) (Haar_S¹ f)
+               = (getLinearFunction applyTensorLinMap $ LinearMap a)
+                              CC.$ (Tensor f :: Haar_D¹ dn y⊗u)
 
 instance (QC.Arbitrary y) => QC.Arbitrary (Haar_D¹ 'DistributionSpace y) where
   arbitrary = do
@@ -580,6 +770,10 @@ instance ( TensorSpace x, Scalar x ~ ℝ, AffineSpace x, Diff x ~ x, Needle x ~ 
 
 instance (Show y, Show (Diff y), Scalar y ~ ℝ)
              => Show (Tensor ℝ (Haar_D¹ dn ℝ) y) where
+  showsPrec p (Tensor t) = showParen (p>9) $ ("Tensor "++) . showsPrec 10 t
+
+instance (Show y, Show (Diff y), Scalar y ~ ℝ)
+             => Show (Tensor ℝ (Haar_S¹ dn ℝ) y) where
   showsPrec p (Tensor t) = showParen (p>9) $ ("Tensor "++) . showsPrec 10 t
            
 multiscaleDecompose :: VAffineSpace y => Haar D¹ y -> (y, (Haar D¹ y, Haar D¹ y))

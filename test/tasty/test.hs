@@ -53,6 +53,31 @@ main = defaultMain $ testGroup "Tests"
                in vmap g (homsampleHaarFunction res f)
                     ≃ homsampleHaarFunction res (g . f)
   ]
+ , testGroup "Haar sampling on circle / 1-torus / 1-sphere"
+  [ testProperty "Sine function" . retrieveSampledFn @'Haar
+         $ \(S¹Polar ϑ) -> sin ϑ
+  , testProperty "4th-order polynomial on cosine" . retrieveSampledFn @'Haar
+         $ \(S¹Polar ϑ) -> let x = cos ϑ
+                           in x^4/9 + x^3/2 - x^2/3 - x - 0.3
+  , testProperty "Additivity of sampled form"
+         $ \cfs₀ cfs₁ res
+            -> let f (a,b,c) (S¹Polar ϑ) = a*sin ϑ + b*cos ϑ + c
+                   [f₀,f₁] = f<$>[cfs₀,cfs₁]
+               in homsampleHaarFunction res f₀ ^+^ homsampleHaarFunction res f₁
+                    ≃ (homsampleHaarFunction res (f₀^+^f₁) :: Haar S¹ ℝ)
+  , testProperty "Multiplicativity of sampled form"
+         $ \cfs₀ cfs₁ res
+            -> let f (a,b,c) (S¹Polar ϑ) = a*sin ϑ + b*cos ϑ + c
+                   [f₀,f₁] = f<$>[cfs₀,cfs₁]
+               in homsampleHaarFunction res f₀ ^*^ homsampleHaarFunction res f₁
+                    ≃ (homsampleHaarFunction res (\p->f₀ p*f₁ p) :: Haar S¹ ℝ)
+  , testProperty "Point-wise function application"
+         $ \(a,b,c) res
+            -> let f (S¹Polar ϑ) = a*sin ϑ + b*cos ϑ + c
+                   g = asinh
+               in vmap g (homsampleHaarFunction res f)
+                    ≃ homsampleHaarFunction res (g . f)
+  ]
  , testGroup "Haar sampling on real line"
   [ testProperty "Identity function" . retrieveSampledFn @'Haar
          $ \x -> x
@@ -120,9 +145,9 @@ main = defaultMain $ testGroup "Tests"
       $ \f -> ((id :: Haar D¹ ℝ+>Haar D¹ ℝ) $ f) ≃ f
   ]
  , testGroup "Distributions"
-  [ testProperty "Dirac evaluation of given Haar function, D¹"
+  [ testProperty "Dirac evaluation of given Haar function, 𝐷¹"
       $ \f (p::D¹) -> dirac p<.>^f ≃ evalHaarFunction f p
-  , testProperty "Dirac evaluation of sampled polynomial (on D¹)"
+  , testProperty "Dirac evaluation of sampled polynomial (on 𝐷¹)"
       $ \a b c d res p
           -> let f (D¹ x) = a*x^3/3 + b*x^2/2 + c*x + d
                  exact = f p
@@ -130,6 +155,27 @@ main = defaultMain $ testGroup "Tests"
              in counterexample ("Exact: "<>show exact<>", Dirac: "<>show diracSampled)
                  $ magnitude (diracSampled - exact)
                     <= 5*maximum (abs<$>[a,b,c,d])/fromIntegral (getPowerOfTwo res)
+  , testProperty "Dirac evaluation of sinuoidal (on 𝑆¹)"
+      $ \a b c res p
+          -> let f (S¹Polar ϑ) = a*sin ϑ + b*cos ϑ + c
+                 exact = f p
+                 diracSampled = dirac p<.>^homsampleHaarFunction res f
+             in counterexample ("Exact: "<>show exact<>", Dirac: "<>show diracSampled)
+                 $ magnitude (diracSampled - exact)
+                    <= 5*maximum (abs<$>[a,b,c])/fromIntegral (getPowerOfTwo res)
+  , testProperty "Box distribution of sinuoidal (on 𝑆¹)"
+      $ \a b c res l@(S¹Polar ϑl) r@(S¹Polar ϑr)
+          -> let δϑ = case ϑr - ϑl of
+                     δ | δ<0        -> δ + 2*pi
+                       | otherwise  -> δ
+                 f (S¹Polar ϑ) = a*sin ϑ + b*cos ϑ + c
+                 intF ϑ       = -a*cos ϑ + b*sin ϑ + c*ϑ
+                 exact = intF (ϑl+δϑ) - intF ϑl
+                 diracSampled = boxDistributionS¹ (l,r) δϑ
+                                  <.>^homsampleHaarFunction res f
+             in counterexample ("Exact: "<>show exact<>", distribution: "<>show diracSampled)
+                 $ magnitude (diracSampled - exact)
+                    <= 5*maximum (abs<$>[a,b,c])/fromIntegral (getPowerOfTwo res)
   , testProperty "Dirac evaluation of trig function (on ℝ)"
       $ \a b c res p'
           -> let p = asinh p' -- avoid huge values
